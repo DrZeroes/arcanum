@@ -23,8 +23,8 @@ const backgrounds = [
     { 
         nom: "Allergie à la magie", 
         rest: {pasRaces:["Elfe", "Demi-Elfe"]}, 
-mod: { align: -15 }, // Tire vers la techno       
- desc: "Vous êtes gravement allergique aux objets magiques, de sorte que les toucher vous cause de la douleur. C’est pourquoi vous vous consacrez à la technologie depuis votre plus jeune âge et avez développé un talent pour cela. Vous gagnez un bonus de +10 % à la Technologie mais vous ne pouvez manier AUCUN objet magique.",
+		mod: { align: -15 }, // Tire vers la techno       
+		desc: "Vous êtes gravement allergique aux objets magiques, de sorte que les toucher vous cause de la douleur. C’est pourquoi vous vous consacrez à la technologie depuis votre plus jeune âge et avez développé un talent pour cela. Vous gagnez un bonus de +10 % à la Technologie mais vous ne pouvez manier AUCUN objet magique.",
         effets: "Impossible d'équiper votre personnage d'objets magiques."
     },
     { 
@@ -44,14 +44,14 @@ mod: { align: -15 }, // Tire vers la techno
     { 
         nom: "Bandit", 
         rest: {races:["Humain", "Demi-Orque", "Orque", "Demi-Elfe"]}, 
-        mod: {CH:-1, { armes_a_feu: 2 }, argent: 0}, 
+        mod: {CH:-1,  bonusComp: { armes_a_feu: 2 }, argent: 0}, 
         desc: "Vous êtes un bandit armé. Votre style de vie vous a valu un bonus en Armes à feu, ainsi qu'une pénalité de Charisme. Vous avez enfreint la loi et êtes arrivé à l'IFS Zephyr avec une longueur d'avance sur les autorités. Vous avez votre arme et quelques munitions, mais vous n'avez pas d'argent.",
         effets: "Revolver de qualité / 50 balles"
     },
     { 
         nom: "Barbare", 
         rest: {pasRaces:["Elfe"]}, 
-        mod: {FO:2, CN:1, IN:-1, CH:-2, bonusComp: { melee: 1 } , bonusComp: { marchandage: -2 } ,argent : 100}, 
+        mod: {FO:2, CN:1, IN:-1, CH:-2, bonusComp: { melee: 1  , marchandage: -2 } ,argent : 100}, 
         desc: "Vous avez été élevé au sein d’une tribu barbare sauvage dans un pays lointain. Personne ne sait comment ni pourquoi vous êtes devenu passager à bord de l'IFS Zephyr, mais compte tenu de votre comportement féroce, personne n'a essayé de le découvrir. Vous gagnez des bonus de Force et Constitution et un léger bonus en Mêlée, tout en subissant des sanctions en Intelligence, Charisme, et une pénalité à Marchander. Vous possédez également armure barbare mais moins d'argent que les autres personnages.",
         effets: "vêtements barbares"
     },

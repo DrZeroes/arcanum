@@ -15,6 +15,22 @@ const raceSelect = document.getElementById('raceSelect');
 const sexeSelect = document.getElementById('sexeSelect');
 const bgSelect = document.getElementById('bgSelect');
 
+function openTab(tabId) {
+    // Cacher tous les contenus
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    // Désactiver tous les boutons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    // Montrer l'onglet actuel
+    document.getElementById(tabId).classList.add('active');
+    // Activer le bouton correspondant
+    event.currentTarget.classList.add('active');
+}
+
+
 function init() {
     // Remplissage du menu Race
     for (let r in racesData) {
@@ -105,3 +121,8 @@ function buildChar() {
 
 // Lancement
 init();
+
+function updateUI() {
+    const name = document.getElementById('charName').value;
+    console.log("Nom actuel : " + name);
+}

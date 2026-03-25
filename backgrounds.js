@@ -4,7 +4,7 @@ const backgrounds = [
         rest: {}, 
         mod: {}, 
         desc: "Aucun passé particulier.",
-        effets: "Équipement standard."
+        effets: "-"
     },
     { 
         nom: "Affiche de Nietzsche Enfant", 
@@ -25,35 +25,35 @@ const backgrounds = [
         rest: {pasRaces:["Elfe", "Demi-Elfe"]}, 
 mod: { align: -15 }, // Tire vers la techno       
  desc: "Vous êtes gravement allergique aux objets magiques, de sorte que les toucher vous cause de la douleur. C’est pourquoi vous vous consacrez à la technologie depuis votre plus jeune âge et avez développé un talent pour cela. Vous gagnez un bonus de +10 % à la Technologie mais vous ne pouvez manier AUCUN objet magique.",
-        effets: "Points techniques +2 / Impossible d'équiper votre personnage d'objets magiques."
+        effets: "Impossible d'équiper votre personnage d'objets magiques."
     },
     { 
         nom: "Apprenti chez un commerçant", 
         rest: {pasRaces:["Ogre"]}, 
-        mod: {DX:-1}, 
+        mod: {DX:-1, bonusComp: { marchandage: 3 } }, 
         desc: "En passant toute votre enfance dans un magasin, vous bénéficiez d'un bonus exceptionnel pour Marchander, mais vous subissez une pénalité de Dextérité.",
-        effets: "Marchander +3"
+        effets: "-"
     },
     { 
         nom: "Apprenti chez un forgeron", 
         rest: {pasRaces:["Ogre"]}, 
-        mod: {FO:1, DX:-2}, 
+        mod: {FO:1, DX:-2, bonusComp: { reparation: 2 }}, 
         desc: "Votre maître est un homme dur. Vous gagnez un bonus de Force et un bonus à votre coméptence de Réparation, mais vous subissez une pénalité de Dextérité en raison du travail pénible et répétitif.",
-        effets: "Réparation +2"
+        effets: "-"
     },
     { 
         nom: "Bandit", 
         rest: {races:["Humain", "Demi-Orque", "Orque", "Demi-Elfe"]}, 
-        mod: {CH:-1}, 
+        mod: {CH:-1, { armes_a_feu: 2 }, argent: 0}, 
         desc: "Vous êtes un bandit armé. Votre style de vie vous a valu un bonus en Armes à feu, ainsi qu'une pénalité de Charisme. Vous avez enfreint la loi et êtes arrivé à l'IFS Zephyr avec une longueur d'avance sur les autorités. Vous avez votre arme et quelques munitions, mais vous n'avez pas d'argent.",
-        effets: "Armes à feu +2 / 0 Or / Revolver de qualité / 50 balles"
+        effets: "Revolver de qualité / 50 balles"
     },
     { 
         nom: "Barbare", 
         rest: {pasRaces:["Elfe"]}, 
-        mod: {FO:2, CN:1, IN:-1, CH:-2}, 
+        mod: {FO:2, CN:1, IN:-1, CH:-2, bonusComp: { melee: 1 } , bonusComp: { marchandage: -2 } ,argent : 100}, 
         desc: "Vous avez été élevé au sein d’une tribu barbare sauvage dans un pays lointain. Personne ne sait comment ni pourquoi vous êtes devenu passager à bord de l'IFS Zephyr, mais compte tenu de votre comportement féroce, personne n'a essayé de le découvrir. Vous gagnez des bonus de Force et Constitution et un léger bonus en Mêlée, tout en subissant des sanctions en Intelligence, Charisme, et une pénalité à Marchander. Vous possédez également armure barbare mais moins d'argent que les autres personnages.",
-        effets: "Mêlée +1 / Marchandage -2 / 100 or, vêtements barbares"
+        effets: "vêtements barbares"
     },
     { 
         nom: "Battu avec un bâton moche", 

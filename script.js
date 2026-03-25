@@ -108,10 +108,20 @@ function buildChar() {
         if (el) el.innerText = final[s];
     }
     
-    // 6. Calcul des ressources dérivées
+// ... code précédent ...
+
+    // 6. Calcul des ressources dérivées principales
     document.getElementById('pv-total').innerText = (final.FO * 2) + final.IN;
     document.getElementById('fatigue-total').innerText = (final.CN * 2) + final.IN;
     
+    /* NOTE POUR PLUS TARD (Écran de résumé) :
+    let degatsBonus = (final.FO > 10) ? (final.FO - 10) : (final.FO < 10 ? Math.floor((final.FO - 10) / 2) : 0);
+    let armure = final.DX;
+    let vitesse = final.DX;
+    let recupPoison = final.CN;
+    let compagnons = Math.max(1, Math.floor(final.CH / 4));
+    */
+
     // 7. Affichage des textes (Description + Autres effets)
     document.getElementById('desc-box').innerText = currentBg.desc;
     
@@ -128,4 +138,47 @@ init();
 function updateUI() {
     const name = document.getElementById('charName').value;
     console.log("Nom actuel : " + name);
+}
+
+// --- FONCTION DE SAUVEGARDE ---
+function saveCharacter() {
+    // 1. Récupérer le nom
+    const nomPerso = document.getElementById('charName').value.trim();
+    
+    // Si le champ nom est vide, on bloque la sauvegarde
+    if (nomPerso === "") {
+        alert("Veuillez entrer un nom pour votre personnage avant de sauvegarder !");
+        return;
+    }
+
+    // 2. Créer l'objet Personnage avec le niveau et les points par défaut
+    const personnage = {
+        nom: nomPerso,
+        race: document.getElementById('raceSelect').value,
+        sexe: document.getElementById('sexeSelect').value,
+        antecedent: document.getElementById('bgSelect').value,
+        niveau: 1,           // Niveau par défaut
+        pointsDispo: 5,      // Points de compétences par défaut
+        
+        // On sauvegarde aussi les stats calculées
+        stats: {
+            FO: document.getElementById('val-FO').innerText,
+            IN: document.getElementById('val-IN').innerText,
+            CN: document.getElementById('val-CN').innerText,
+            DX: document.getElementById('val-DX').innerText,
+            CH: document.getElementById('val-CH').innerText
+        },
+        derivees: {
+            PV: document.getElementById('pv-total').innerText,
+            Fatigue: document.getElementById('fatigue-total').innerText
+        }
+    };
+
+    // 3. Sauvegarder dans le localStorage du navigateur
+    // JSON.stringify transforme notre objet en texte pour pouvoir le stocker
+    localStorage.setItem('arcanum_sauvegarde', JSON.stringify(personnage));
+
+    // 4. Confirmer au joueur
+    console.log("Personnage sauvegardé :", personnage);
+    alert("Le personnage " + nomPerso + " a été sauvegardé avec succès dans le navigateur !");
 }

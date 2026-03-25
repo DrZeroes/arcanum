@@ -3,55 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arcanum JDR - Générateur de Personnage</title>
+    <title>ArcanumRP - Création</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-card">
-        <h1>Arcanum : Engrenages & Sortilèges</h1>
+        <h1>ArcanumRP</h1>
 
-        <div class="row">
-            <div class="col">
-                <label>RACE</label>
-                <select id="raceSelect"></select>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('tab-creation')">1. Identité & Race</button>
+            <button class="tab-btn" onclick="openTab('tab-aide')">Aide des Stats</button>
+        </div>
+
+        <div id="tab-creation" class="tab-content active">
+            <div class="row">
+                <div class="col">
+                    <label>NOM DU PERSONNAGE</label>
+                    <input type="text" id="charName" placeholder="Entrez un nom..." oninput="updateUI()">
+                </div>
             </div>
-            <div class="col">
-                <label>SEXE</label>
-                <select id="sexeSelect">
-                    <option value="M">Masculin</option>
-                    <option value="F">Féminin</option>
-                </select>
+
+            <div class="row">
+                <div class="col">
+                    <label>RACE</label>
+                    <select id="raceSelect"></select>
+                </div>
+                <div class="col">
+                    <label>SEXE</label>
+                    <select id="sexeSelect">
+                        <option value="M">Masculin</option>
+                        <option value="F">Féminin</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <label>ANTÉCÉDENT</label>
+                    <select id="bgSelect"></select>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box"><div class="stat-label">FORCE (FO)</div><div id="val-FO" class="stat-value">8</div></div>
+                <div class="stat-box"><div class="stat-label">INTELLIGENCE (IN)</div><div id="val-IN" class="stat-value">8</div></div>
+                <div class="stat-box"><div class="stat-label">CONSTITUTION (CN)</div><div id="val-CN" class="stat-value">8</div></div>
+                <div class="stat-box"><div class="stat-label">DEXTÉRITÉ (DX)</div><div id="val-DX" class="stat-value">8</div></div>
+                <div class="stat-box"><div class="stat-label">CHARISME (CH)</div><div id="val-CH" class="stat-value">8</div></div>
+            </div>
+            
+            <div id="raceTraits" class="special-trait"></div>
+
+            <div class="derived-stats">
+                <div class="derived-item" style="color: #4caf50;">Points de Vie (PV)<span id="pv-total" class="derived-val">0</span></div>
+                <div class="derived-item" style="color: #2196f3;">Fatigue / Magie<span id="fatigue-total" class="derived-val">0</span></div>
+            </div>
+
+            <div id="desc-box" class="description-box"></div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="next-btn" onclick="alert('Bientôt : Distribution des 5 points !')">Suivant : Compétences & Points →</button>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col">
-                <label>ANTÉCÉDENT</label> <select id="bgSelect"></select>
-            </div>
+        <div id="tab-aide" class="tab-content">
+            <h3>Effets des Caractéristiques</h3>
+            <ul class="aide-list">
+                <li><strong>FORCE (FO) :</strong> Détermine les dégâts au corps à corps, le poids transportable et les PV.</li>
+                <li><strong>INTELLIGENCE (IN) :</strong> Détermine l'accès aux sorts/schémas, la Fatigue et la qualité des dialogues.</li>
+                <li><strong>CONSTITUTION (CN) :</strong> Détermine la résistance aux poisons, la récupération de fatigue et les PV.</li>
+                <li><strong>DEXTÉRITÉ (DX) :</strong> Détermine la vitesse de combat, les chances de toucher et l'esquive.</li>
+                <li><strong>CHARISME (CH) :</strong> Détermine le nombre de compagnons et la réaction initiale des PNJ.</li>
+            </ul>
         </div>
+    </div>
 
-        <div class="stats-container">
-            <div class="stat-box"><div class="stat-label">FORCE (FO)</div><div id="val-FO" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">INTELLIGENCE (IN)</div><div id="val-IN" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">CONSTITUTION (CN)</div><div id="val-CN" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">DEXTÉRITÉ (DX)</div><div id="val-DX" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">CHARISME (CH)</div><div id="val-CH" class="stat-value">8</div></div>
-        </div>
-        
-        <div id="raceTraits" class="special-trait"></div>
-
-        <div class="derived-stats">
-            <div class="derived-item" style="color: #4caf50;">Points de Vie (PV)<span id="pv-total" class="derived-val">0</span></div>
-            <div class="derived-item" style="color: #2196f3;">Fatigue / Magie<span id="fatigue-total" class="derived-val">0</span></div>
-        </div>
-
-        <div id="desc-box" class="description-box"></div>
-</div>
-
-<script src="backgrounds.js"></script>
-<script src="script.js"></script>
-</body>
-</html>
+    <script src="backgrounds.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,16 +1,59 @@
 // ================= DONNÉES DE BASE =================
 const racesData = {
-    "Humain": { FO:8, IN:8, CN:8, DX:8, CH:8, spec: "aucune", peutEtreFemme: true },
-    "Nain": { FO:9, IN:8, CN:9, DX:7, CH:7, spec: "15% Technologie, +2 comp. Technologie", peutEtreFemme: false },
-    "Gnome": { FO:8, IN:10, CN:6, DX:8, CH:8, spec: "+2 Marchandage", peutEtreFemme: true },
-    "Halfelin": { FO:5, IN:8, CN:8, DX:10, CH:8, spec: "+2 Discrétion, +1 Esquive, +5% Crit", peutEtreFemme: true },
-    "Ogre": { FO:14, IN:2, CN:8, DX:8, CH:3, spec: "20% Résistance Physique, -3 Discrétion", peutEtreFemme: false },
-    "Demi-Ogre": { FO:12, IN:4, CN:8, DX:8, CH:7, spec: "10% Résistance Physique, -2 Discrétion", peutEtreFemme: false },
-    "Elfe": { FO:7, IN:9, CN:6, DX:9, CH:9, spec: "15% Magie, -2 points compétences Techno", peutEtreFemme: true },
-    "Demi-Elfe": { FO:8, IN:8, CN:7, DX:9, CH:9, spec: "5% Magie, -1 point compétence Techno", peutEtreFemme: true },
-    "Orque": { FO:10, IN:7, CN:10, DX:8, CH:4, spec: "+3 Mêlée, 20% Résistance Poison", peutEtreFemme: false },
-    "Demi-Orque": { FO:9, IN:8, CN:9, DX:8, CH:6, spec: "+2 Mêlée & Esquive, 10% Résistance Poison", peutEtreFemme: true }
+    "Humain": { 
+        FO:8, IN:8, CN:8, DX:8, CH:8, peutEtreFemme: true,
+        spec: "Aucune",
+        mod: { align: 0, resPoison: 0, resPhys: 0 }
+    },
+    "Nain": { 
+        FO:9, IN:8, CN:9, DX:7, CH:7, peutEtreFemme: false,
+        spec: "15% Technologie, +2 toutes comp. Technologie",
+        mod: { align: -15, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: 2 } }
+    },
+    "Gnome": { 
+        FO:8, IN:10, CN:6, DX:8, CH:8, peutEtreFemme: true,
+        spec: "+2 Marchandage",
+        mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { marchandage: 2 } }
+    },
+    "Halfelin": { 
+        FO:5, IN:8, CN:8, DX:10, CH:8, peutEtreFemme: true,
+        spec: "+2 Discrétion, +1 Esquive, +5% Crit",
+        mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { discretion: 2, esquive: 1 } }
+    },
+    "Ogre": { 
+        FO:14, IN:2, CN:8, DX:8, CH:3, peutEtreFemme: false,
+        spec: "20% Résistance Physique, -3 Discrétion",
+        mod: { align: 0, resPoison: 0, resPhys: 20, bonusComp: { discretion: -3 } }
+    },
+    "Demi-Ogre": { 
+        FO:12, IN:4, CN:8, DX:8, CH:7, peutEtreFemme: false,
+        spec: "10% Résistance Physique, -2 Discrétion",
+        mod: { align: 0, resPoison: 0, resPhys: 10, bonusComp: { discretion: -2 } }
+    },
+    "Elfe": { 
+        FO:7, IN:9, CN:6, DX:9, CH:9, peutEtreFemme: true,
+        spec: "15% Magie, -2 points toutes comp. Techno",
+        mod: { align: 15, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: -2 } }
+    },
+    "Demi-Elfe": { 
+        FO:8, IN:8, CN:7, DX:9, CH:9, peutEtreFemme: true,
+        spec: "5% Magie, -1 point toutes comp. Techno",
+        mod: { align: 5, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: -1 } }
+    },
+    "Orque": { 
+        FO:10, IN:7, CN:10, DX:8, CH:4, peutEtreFemme: false,
+        spec: "+3 Mêlée, 20% Résistance Poison",
+        mod: { align: 0, resPoison: 20, resPhys: 0, bonusComp: { melee: 3 } }
+    },
+    "Demi-Orque": { 
+        FO:9, IN:8, CN:9, DX:8, CH:6, peutEtreFemme: true,
+        spec: "+2 Mêlée & Esquive, 10% Résistance Poison",
+        mod: { align: 0, resPoison: 10, resPhys: 0, bonusComp: { melee: 2, esquive: 2 } }
+    }
 };
+
+
+
 
 let perso = {}; 
 let statsCalculees = {}; 
@@ -130,20 +173,84 @@ function buildChar() {
     }
     document.getElementById('pv-total').innerText = (final.FO * 2) + final.IN;
     document.getElementById('fatigue-total').innerText = (final.CN * 2) + final.IN;
+	
+	
+	
+// À la fin de la fonction buildChar()
+const currentBg = backgrounds.find(b => b.nom === bgSelect.value) || backgrounds[0];
+// Règle des 400 Or par défaut
+const argentDepart = (currentBg.mod && currentBg.mod.argent !== undefined) ? currentBg.mod.argent : 400;
+
+// On l'ajoute visuellement dans la zone de traits
+document.getElementById('raceTraits').innerHTML = `
+    <strong>Capacité :</strong> ${race.spec} | 
+    <strong>Effets :</strong> ${currentBg.effets || "Aucun"} | 
+    <strong>Argent :</strong> ${argentDepart} Or
+`;
+	
 }
+
 
 function validerCreation() {
     const nom = document.getElementById('charName').value.trim();
     if (nom === "") { alert("Veuillez entrer un nom !"); return; }
 
+    const rKey = document.getElementById('raceSelect').value;
+    const race = racesData[rKey];
+    const bgName = document.getElementById('bgSelect').value;
+    const bg = backgrounds.find(b => b.nom === bgName) || { mod: {} };
+
     perso = {
-        nom: nom, race: document.getElementById('raceSelect').value,
+        nom: nom,
+        race: rKey,
         sexe: document.getElementById('sexeSelect').value,
-        antecedent: document.getElementById('bgSelect').value,
-        niveau: 1, pointsDispo: 5, boostPV: 0, boostFT: 0,
-        statsBase: statsCalculees, statsInvesties: { FO:0, IN:0, CN:0, DX:0, CH:0 },
-        compInvesties: {}, magieInvesties: {}, techInvesties: {}
+        antecedent: bgName,
+        niveau: 1,
+        pointsDispo: 5,
+		
+		argent: (bg.mod && bg.mod.argent !== undefined) ? bg.mod.argent : 400,
+		
+        boostPV: 0, boostFT: 0,
+        boostPVBase: 0, boostFTBase: 0,
+        statsBase: JSON.parse(JSON.stringify(statsCalculees)), // Les stats incluent déjà le mod du BG via buildChar()
+        statsInvesties: { FO:0, IN:0, CN:0, DX:0, CH:0 },
+        compInvesties: {}, 
+        compBase: {},
+        magieInvesties: {},
+        techInvesties: {},
+        // CUMUL DES BONUS (Race + BG)
+        bonusInnes: {
+            align: (race.mod.align || 0) + (bg.mod.align || 0),
+            resPhys: (race.mod.resPhys || 0) + (bg.mod.resPhys || 0),
+            resPoison: (race.mod.resPoison || 0) + (bg.mod.resPoison || 0)
+        }
     };
+
+    // --- APPLICATION DES BONUS DE COMPÉTENCES (Race + BG) ---
+    const appliquerComp = (source) => {
+        if (!source) return;
+        // Bonus par ID
+        if (source.bonusComp) {
+            for (let id in source.bonusComp) {
+                perso.compBase[id] = (perso.compBase[id] || 0) + source.bonusComp[id];
+                perso.compInvesties[id] = (perso.compInvesties[id] || 0) + source.bonusComp[id];
+            }
+        }
+        // Bonus par Catégorie
+        if (source.bonusCompCat) {
+            const cat = source.bonusCompCat.cat;
+            const val = source.bonusCompCat.val;
+            if (competencesData[cat]) {
+                competencesData[cat].forEach(c => {
+                    perso.compBase[c.id] = (perso.compBase[c.id] || 0) + val;
+                    perso.compInvesties[c.id] = (perso.compInvesties[c.id] || 0) + val;
+                });
+            }
+        }
+    };
+
+    appliquerComp(race.mod);
+    appliquerComp(bg.mod);
 
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
     cacherTout();
@@ -162,87 +269,138 @@ function validerCreation() {
 
 
 
-// ================= MISE À JOUR FICHE =================
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ================= MISE À JOUR FICHE =================
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
-    if (!container) return;
+    if (!container || !perso) return;
 
-    // Gestion des points dispos
+    // 1. Sécurités pour éviter les plantages (Anciens persos)
+    if (!perso.bonusInnes) perso.bonusInnes = { align: 0, resPhys: 0, resPoison: 0 };
+    if (perso.pointsDispo === undefined) perso.pointsDispo = 0;
+
+    // 2. Gestion des points dispos
     if (perso.pointsDispo <= 0) container.classList.add('no-points');
     else container.classList.remove('no-points');
 
-    // Header
-    document.getElementById('fiche-name').innerText = perso.nom;
-    document.getElementById('fiche-level').innerText = perso.niveau;
-    document.getElementById('fiche-race').innerText = perso.race;
+    // 3. Header (Infos générales)
+    document.getElementById('fiche-name').innerText = perso.nom || "";
+    document.getElementById('fiche-level').innerText = perso.niveau || 1;
+    document.getElementById('fiche-race').innerText = perso.race || "";
     document.getElementById('fiche-sexe').innerText = perso.sexe === 'M' ? 'Masculin' : 'Féminin';
-    document.getElementById('fiche-bg').innerText = perso.antecedent;
-    document.getElementById('points-dispo').innerText = perso.pointsDispo;
+    document.getElementById('fiche-bg').innerText = perso.antecedent || "";
+    document.getElementById('points-dispo').innerText = perso.pointsDispo || 0;
 
-    // --- 1. STATISTIQUES (FO, IN, etc.) ---
+    // 4. Fortune
+    const elArgent = document.getElementById('fiche-argent');
+    if (elArgent) {
+        elArgent.innerText = (perso.argent !== undefined ? perso.argent : 400);
+    }
+
+    // 5. STATISTIQUES (Calcul des valeurs finales)
     let finalStats = {};
     const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
-   statsKeys.forEach(s => {
-    let total = (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0);
-    let elVal = document.getElementById('fiche-val-' + s);
-    if(elVal) elVal.innerText = total;
+    statsKeys.forEach(s => {
+        let total = (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0);
+        finalStats[s] = total; 
+        
+        let elVal = document.getElementById('fiche-val-' + s);
+        if(elVal) {
+            elVal.innerText = total;
+            elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
+            
+            // Masquer le bouton moins si investissement = 0
+            let btnMoins = elVal.previousElementSibling; 
+            if (btnMoins && btnMoins.classList.contains('btn-moins')) {
+                btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
+            }
+        }
+    });
 
-    // On cherche le bouton qui est juste AVANT la valeur
-    let btnMoins = elVal.previousElementSibling; 
-    if (btnMoins && btnMoins.classList.contains('btn-moins')) {
-        btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
-    }
-});
+    // 6. VITALITÉ (PV / FATIGUE) - Sécurisé
+    let statFO = finalStats.FO || 8;
+    let statCN = finalStats.CN || 8;
+    let statIN = finalStats.IN || 8;
 
-    // --- 2. VITALITÉ (PV / FATIGUE) ---
-    document.getElementById('fiche-pv').innerText = (finalStats.FO * 2) + finalStats.IN + (perso.boostPV || 0);
-    document.getElementById('fiche-fatigue').innerText = (finalStats.CN * 2) + finalStats.IN + (perso.boostFT || 0);
+    let pvTotal = (statFO * 2) + statIN + (perso.boostPV || 0);
+    let ftTotal = (statCN * 2) + statIN + (perso.boostFT || 0);
 
+    if (document.getElementById('fiche-pv')) document.getElementById('fiche-pv').innerText = pvTotal;
+    if (document.getElementById('fiche-fatigue')) document.getElementById('fiche-fatigue').innerText = ftTotal;
+
+    // 7. CALCULS DÉRIVÉS
+    let statDX = finalStats.DX || 8;
+    let statCH = finalStats.CH || 8;
+
+    if (document.getElementById('der-charge')) document.getElementById('der-charge').innerText = (statFO * 2) + " kg";
     
-	// Pour PV
-let elPv = document.getElementById('fiche-pv');
-let btnMpv = elPv.nextElementSibling.querySelector('.btn-moins'); // Cherche dans la div de boutons en dessous
-if (btnMpv) btnMpv.style.visibility = ((perso.boostPV || 0) > (perso.boostPVBase || 0)) ? "visible" : "hidden";
+    const elDegats = document.getElementById('der-degats');
+    if (elDegats) {
+        let degats = (statFO > 10) ? (statFO - 10) : (statFO < 10 ? Math.floor((statFO - 10) / 2) : 0);
+        elDegats.innerText = (degats > 0 ? "+" + degats : degats);
+    }
 
-// Pour Fatigue
-let elFt = document.getElementById('fiche-fatigue');
-let btnMft = elFt.nextElementSibling.querySelector('.btn-moins');
-if (btnMft) btnMft.style.visibility = ((perso.boostFT || 0) > (perso.boostFTBase || 0)) ? "visible" : "hidden";
+    if (document.getElementById('der-armure')) document.getElementById('der-armure').innerText = statDX;
+    if (document.getElementById('der-vitesse')) document.getElementById('der-vitesse').innerText = statDX;
+    if (document.getElementById('der-guerison')) document.getElementById('der-guerison').innerText = Math.floor(statCN / 3);
+    if (document.getElementById('der-toxines')) document.getElementById('der-toxines').innerText = statCN;
 
-    // --- 3. CALCULS DÉRIVÉS ---
-    document.getElementById('der-charge').innerText = (finalStats.FO * 2) + " kg";
-    let degats = (finalStats.FO > 10) ? (finalStats.FO - 10) : (finalStats.FO < 10 ? Math.floor((finalStats.FO - 10) / 2) : 0);
-    document.getElementById('der-degats').innerText = (degats > 0 ? "+" + degats : degats);
-    document.getElementById('der-armure').innerText = finalStats.DX;
-    document.getElementById('der-vitesse').innerText = finalStats.DX;
-    document.getElementById('der-guerison').innerText = Math.floor(finalStats.CN / 3);
-    document.getElementById('der-toxines').innerText = finalStats.CN;
-    document.getElementById('der-reaction').innerText = (finalStats.CH - 8 > 0 ? "+" + (finalStats.CH - 8) : finalStats.CH - 8);
-    document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(finalStats.CH / 4));
+    const elReaction = document.getElementById('der-reaction');
+    if (elReaction) {
+        let react = statCH - 8;
+        elReaction.innerText = (react > 0 ? "+" + react : react);
+    }
+    if (document.getElementById('der-compagnons')) document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(statCH / 4));
 
-    // --- 4. COMPÉTENCES ---
+  // --- 8. RÉSISTANCES (SÉCURISÉES) ---
+let b = perso.bonusInnes || { resPhys: 0, resPoison: 0 };
+
+const updateRes = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = (val || 0) + "%";
+};
+
+updateRes('res-degats', b.resPhys);
+updateRes('res-poison', b.resPoison);
+updateRes('res-sorts', b.resMagie);
+updateRes('res-feu', 0);
+updateRes('res-elec', 0);
+
+    // 9. COMPÉTENCES
     if (perso.compInvesties) {
         for (let id in perso.compInvesties) {
             let act = perso.compInvesties[id] || 0;
             let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
-            
             let el = document.getElementById('fiche-val-' + id);
             if (el) {
                 el.innerText = act;
                 el.style.color = (act > base) ? "#4caf50" : "#fff";
+                let btn = el.previousElementSibling;
+                if (btn && btn.classList.contains('btn-moins')) {
+                    btn.style.visibility = (act > base) ? "visible" : "hidden";
+                }
             }
-            // Recherche du bouton moins par ID partiel
-            let btn = document.querySelector(`button[onclick*="modComp('${id}'"][onclick*="-4"]`);
-            if (btn) btn.style.visibility = (act > base) ? "visible" : "hidden";
         }
     }
 
-    // --- 5. MAGIE ET TECH ---
+    // 10. MAGIE ET TECH
     if (typeof magieData !== 'undefined') updateMagieUI_Display();
     if (typeof techData !== 'undefined') updateTechUI_Display();
     
-    // --- 6. ALIGNEMENT ---
+    // 11. ALIGNEMENT
     let align = calculerAlignement();
     let needle = document.getElementById('meter-needle');
     let score = document.getElementById('meter-score');
@@ -252,11 +410,6 @@ if (btnMft) btnMft.style.visibility = ((perso.boostFT || 0) > (perso.boostFTBase
         score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
 }
-
-
-
-
-
 
 
 // ================= LOGIQUE STATS & VITALITÉ =================
@@ -320,25 +473,46 @@ function switchSubTab(cat) {
 function modComp(id, val) {
     if (!perso.compInvesties) perso.compInvesties = {};
     if (val > 0 && perso.pointsDispo <= 0) return;
+    
     let act = perso.compInvesties[id] || 0;
     let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
+    
+    // Bloquer si on descend sous le bonus de race ou si on dépasse 20
     if (val < 0 && act <= base) return;
     if (val > 0 && act >= 20) return;
     
+    // --- VÉRIFICATION DES PRÉREQUIS ---
     if (val > 0) {
         let statL = "";
+        // On trouve quelle statistique (IN ou DX) gère cette compétence
         for (let cat in competencesData) {
             let f = competencesData[cat].find(c => c.id === id);
             if (f) { statL = f.stat; break; }
         }
-        let req = [0, 4, 5, 12, 15][act / 4];
-        let pStat = perso.statsBase[statL] + (perso.statsInvesties[statL] || 0);
-        if (pStat < req) { alert(`Améliorer la stat ${statL} avant. (Requis: ${req})`); return; }
+
+        // On calcule le palier d'achat (0 clics, 1 clic, 2 clics...)
+        // Le bonus de race (base) ne compte pas pour la restriction de stat
+        let pointsInvestisReels = act - base; 
+        let palier = Math.floor(pointsInvestisReels / 4);
+        
+        // Paliers Arcanum : pour acheter le 1er rang (4 pts) il faut 7, le 2eme 11, etc.
+        const preRequisStats = [0, 7, 11, 15, 18]; 
+        let req = preRequisStats[palier];
+
+        let currentStatVal = (perso.statsBase[statL] || 0) + (perso.statsInvesties[statL] || 0);
+
+        if (currentStatVal < req) { 
+            alert(`Statistique ${statL} insuffisante. Requis: ${req}`); 
+            return; 
+        }
     }
+
+    // --- APPLICATION ---
     perso.compInvesties[id] = act + val;
     perso.pointsDispo -= (val > 0 ? 1 : -1);
     updateFicheUI();
 }
+
 
 // ================= GESTION MAGIE =================
 function initMagieUI() {
@@ -483,15 +657,21 @@ function updateTechUI_Display() {
 }
 
 // ================= ALIGNEMENT & SAUVEGARDE =================
+
 function calculerAlignement() {
     let m = 0, t = 0;
     if (perso.magieInvesties) for (let e in perso.magieInvesties) m += perso.magieInvesties[e];
     if (perso.techInvesties) for (let d in perso.techInvesties) t += perso.techInvesties[d];
-    if (perso.compInvesties && typeof competencesData !== 'undefined' && competencesData["Technologie"]) {
-        competencesData["Technologie"].forEach(c => { t += (perso.compInvesties[c.id] || 0) / 4; });
+    
+    // Ajout du modificateur cumulé (Race + BG)
+    let total = (m * 5) - (t * 5);
+    if (perso.bonusInnes && perso.bonusInnes.align) {
+        total += perso.bonusInnes.align;
     }
-    return Math.max(-100, Math.min(100, (m * 5) - (t * 5)));
+
+    return Math.max(-100, Math.min(100, total));
 }
+
 
 function resetInvestissements() {
     if (!confirm("Réinitialiser tous les investissements du niveau ?")) return;

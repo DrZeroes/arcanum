@@ -23,8 +23,8 @@ const backgrounds = [
     { 
         nom: "Allergie à la magie", 
         rest: {pasRaces:["Elfe", "Demi-Elfe"]}, 
-        mod: {}, 
-        desc: "Vous êtes gravement allergique aux objets magiques, de sorte que les toucher vous cause de la douleur. C’est pourquoi vous vous consacrez à la technologie depuis votre plus jeune âge et avez développé un talent pour cela. Vous gagnez un bonus de +10 % à la Technologie mais vous ne pouvez manier AUCUN objet magique.",
+mod: { align: -15 }, // Tire vers la techno       
+ desc: "Vous êtes gravement allergique aux objets magiques, de sorte que les toucher vous cause de la douleur. C’est pourquoi vous vous consacrez à la technologie depuis votre plus jeune âge et avez développé un talent pour cela. Vous gagnez un bonus de +10 % à la Technologie mais vous ne pouvez manier AUCUN objet magique.",
         effets: "Points techniques +2 / Impossible d'équiper votre personnage d'objets magiques."
     },
     { 

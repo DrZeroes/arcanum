@@ -3,84 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArcanumRP - Création</title>
+    <title>ArcanumRP</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-card">
-        <h1>ArcanumRP : Création de personnages</h1>
+
+    <div id="ecran-accueil" class="app-card" style="text-align: center; padding: 50px;">
+        <h1 style="font-size: 2.5em; margin-bottom: 5px;">ArcanumRP</h1>
+        <p style="color: #aaa; margin-bottom: 40px; font-style: italic;">Générateur de Personnages</p>
+        
+        <button class="next-btn" style="width: 80%; margin-bottom: 20px; padding: 20px;" onclick="nouveauPersonnage()">Créer un nouveau personnage</button>
+        <br>
+        <button id="btn-load" class="next-btn" style="width: 80%; padding: 20px; background: #444; color: #fff;" onclick="chargerPersonnage()">Charger le personnage sauvegardé</button>
+        
+        <br><br>
+        <input type="file" id="file-import" accept=".json" style="display:none;" onchange="importerFichier(event)">
+        <button class="next-btn" style="width: 80%; padding: 15px; background: #2b2b2b; color: #d4af37; border: 1px dashed #d4af37;" onclick="document.getElementById('file-import').click()">📂 Importer un fichier perso (.json)</button>
+    </div>
+
+    <div id="ecran-creation" class="app-card" style="display: none;">
+        <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à l'accueil</button>
+        
+        <h1>ArcanumRP : Création</h1>
 
         <div class="row">
-            <div class="col">
-                <input type="text" id="charName" placeholder="NOM DU PERSONNAGE" oninput="updateUI()">
-            </div>
+            <div class="col"><input type="text" id="charName" placeholder="NOM DU PERSONNAGE"></div>
         </div>
 
         <div class="row">
-            <div class="col">
-                <label>RACE</label>
-                <select id="raceSelect"></select>
-            </div>
-            <div class="col">
-                <label>SEXE</label>
-                <select id="sexeSelect">
-                    <option value="M">Masculin</option>
-                    <option value="F">Féminin</option>
-                </select>
-            </div>
+            <div class="col"><label>RACE</label><select id="raceSelect"></select></div>
+            <div class="col"><label>SEXE</label><select id="sexeSelect"></select></div>
         </div>
 
         <div class="row">
-            <div class="col">
-                <label>ANTÉCÉDENT</label>
-                <select id="bgSelect"></select>
-            </div>
+            <div class="col"><label>ANTÉCÉDENT</label><select id="bgSelect"></select></div>
         </div>
 
         <div class="stats-container">
-            <div class="stat-box"><div class="stat-label">FORCE</div><div id="val-FO" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">INTELLIGENCE</div><div id="val-IN" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">CONSTITUTION</div><div id="val-CN" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">DEXTÉRITÉ</div><div id="val-DX" class="stat-value">8</div></div>
-            <div class="stat-box"><div class="stat-label">CHARISME</div><div id="val-CH" class="stat-value">8</div></div>
+            <div class="stat-box" title="Mesure la puissance musculaire brute d'un personnage. La force détermine l'étendue des dommages corporels infligés, le nombre de coups encaissables, la charge transportable et la distance de lancer. Un niveau minimum est requis pour manipuler certaines armes.">
+                <div class="stat-label">FORCE</div>
+                <div id="val-FO" class="stat-value">8</div>
+            </div>
+            <div class="stat-box" title="Mesure les fonctions mentales : l'intelligence influe sur les compétences et l'apprentissage de sorts ou de disciplines technologiques. Une faible intelligence complique l'entretien des sorts et limite fortement les choix de dialogue.">
+                <div class="stat-label">INTELLIGENCE</div>
+                <div id="val-IN" class="stat-value">8</div>
+            </div>
+            <div class="stat-box" title="Mesure l'endurance du personnage. Elle détermine la résistance à la fatigue et aux poisons, ainsi que la vitesse de guérison.">
+                <div class="stat-label">CONSTITUTION</div>
+                <div id="val-CN" class="stat-value">8</div>
+            </div>
+            <div class="stat-box" title="Représente l'adresse générale du personnage : la dextérité influe sur un plus grand nombre de compétences que toutes les autres caractéristiques.">
+                <div class="stat-label">DEXTÉRITÉ</div>
+                <div id="val-DX" class="stat-value">8</div>
+            </div>
+            <div class="stat-box" title="L'attrait d'un personnage, le charisme influe sur sa capacité de persuasion et détermine ainsi le nombre maximum de personnages non-joueurs (compagnons) qui accepteront de l'accompagner.">
+                <div class="stat-label">CHARISME</div>
+                <div id="val-CH" class="stat-value">8</div>
+            </div>
         </div>
         
         <div id="raceTraits" class="special-trait"></div>
 
-        <h3 style="color: #8b7355; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 1em;">Statistiques Dérivées</h3>
-    <div class="derived-stats">
+        <div class="derived-stats">
             <div class="derived-item">Points de Vie (PV)<br><span id="pv-total" class="derived-val" style="color: #4caf50;">0</span></div>
             <div class="derived-item">Fatigue / Magie<br><span id="fatigue-total" class="derived-val" style="color: #2196f3;">0</span></div>
         </div>
 
         <div id="desc-box" class="description-box" style="margin-top: 20px;"></div>
 
-<div style="text-align: center; margin-top: 30px;">
-            <button class="next-btn" onclick="saveCharacter()">Sauvegarder le Personnage</button>
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerCreation()">Valider & Continuer →</button>
+        </div>
+    </div>
+
+    <div id="ecran-fiche" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
+        
+
+<div class="arcanum-header">
+    <div class="header-portrait" style="width: 64px; height: 64px; background: #000; border: 2px solid #d4af37; border-radius: 50%;"></div>
+    
+    <div class="header-info">
+        <div id="fiche-name" style="color: #d4af37; font-size: 1.5em; font-weight: bold; font-variant: small-caps;">Nom</div>
+        
+        <div style="margin: 5px 0;">
+            <span style="position: relative; display: inline-block;">
+                Niveau: <span id="fiche-level">1</span> 
+                <button class="btn-lvl-up lvl-up-btn" onclick="levelUp()" title="Passer au niveau supérieur">LV<br>UP</button>
+            </span>
+        </div>
+        
+        <div style="color: #d4af37; font-weight: bold;">Points à distribuer: <span id="points-dispo">5</span></div>
+    </div>
+    
+    <div class="header-info" style="border-left: 1px solid #444; padding-left: 20px;">
+        <div>Race: <span id="fiche-race">-</span></div>
+        <div>Sexe: <span id="fiche-sexe">-</span></div>
+        <div>Antécédent: <span id="fiche-bg">-</span></div>
+    </div>
+</div>
+
+
+
+        <div class="arcanum-main-layout">
+            <div class="arcanum-left-panel">
+                
+                <div class="stats-top-section">
+                    <div class="stats-grid-5">
+                       <div class="stat-row">
+							<div class="stat-name" title="Détermine les dégâts au corps à corps et la charge maximale.">FORCE (FO)</div>
+							<div class="stat-controls">
+							<button class="btn-stat btn-moins edit-only" onclick="modStat('FO', -1)">-</button>
+							<span id="fiche-val-FO" class="stat-value">8</span>
+							<button class="btn-stat btn-plus edit-only" onclick="modStat('FO', 1)">+</button>
+						</div>
+						</div>
+                        <div class="stat-row">
+                            <div class="stat-name" title="influe sur les capacités à maitriser la magie et la technologie." >Intelligence (IN)</div>
+														<div class="stat-controls">
+
+                            <button class="btn-stat btn-moins edit-only" onclick="modStat('IN', -1)">-</button>
+                            <span id="fiche-val-IN" class="stat-value">8</span>
+                            <button class="btn-stat btn-plus edit-only" onclick="modStat('IN', 1)">+</button>
+                        </div>
+						</div>
+                        <div class="stat-row">
+                            <div class="stat-name" title="Déterminela résistance à la fatigue/poison et la vitesse de guérison.">Constitution (CN)</div>
+														<div class="stat-controls">
+
+                            <button class="btn-stat btn-moins edit-only" onclick="modStat('CN', -1)">-</button>
+                            <span id="fiche-val-CN" class="stat-value">8</span>
+                            <button class="btn-stat btn-plus edit-only" onclick="modStat('CN', 1)">+</button>
+                        </div>
+						</div>
+                        <div class="stat-row">
+                            <div class="stat-name"title="Détermine la vitesse et influe sur un grand nombre de compétences">Dextérité (DX)</div>
+														<div class="stat-controls">
+
+                            <button class="btn-stat btn-moins edit-only" onclick="modStat('DX', -1)">-</button>
+                            <span id="fiche-val-DX" class="stat-value">8</span>
+                            <button class="btn-stat btn-plus edit-only" onclick="modStat('DX', 1)">+</button>
+                        </div>
+						</div>
+                        <div class="stat-row">
+                            <div class="stat-name" title="Détermine les réactions des pnj et le nombre de compagnons." >Charisme (CH)</div>
+														<div class="stat-controls">
+
+                            <button class="btn-stat btn-moins edit-only" onclick="modStat('CH', -1)">-</button>
+                            <span id="fiche-val-CH" class="stat-value">8</span>
+                            <button class="btn-stat btn-plus edit-only" onclick="modStat('CH', 1)">+</button>
+                        </div>
+                    </div>
+                    
+					
+					                </div>
+
+					
+<div class="vital-signs">
+    <div class="vital-bubble health-bubble">
+        <span id="fiche-pv">0</span>
+        <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
+            <button class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
+            <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 5)">+</button>
+        </div>
+        <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">VIE</small>
+    </div>
+    
+    <div class="vital-bubble fatigue-bubble">
+        <span id="fiche-fatigue">0</span>
+        <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
+            <button class="btn-stat btn-moins edit-onlyt" onclick="boostVital('FT', -5)">-</button>
+            <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 5)">+</button>
+        </div>
+        <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">FATIGUE</small>
+    </div>
+</div>
+
+					                </div>
+
+
+
+
+
+               <div class="stats-bottom-section">
+                    <div class="derived-box">
+                        <div class="box-title">Caractéristiques Dérivées</div>
+                        <div class="derived-list">
+                            <div>Charge: <span id="der-charge">0</span></div>
+                            <div>Bonus aux dégâts: <span id="der-degats">0</span></div>
+                            <div>Armure: <span id="der-armure">0</span></div>
+                            <div>Vitesse: <span id="der-vitesse">0</span></div>
+                            <div>Vitesse de guérison: <span id="der-guerison">0</span></div>
+                            <div>Purgation des toxines: <span id="der-toxines">0</span></div>
+                            <div>Réaction mondaine: <span id="der-reaction">0</span></div>
+                            <div>Compagnons possibles: <span id="der-compagnons">0</span></div>
+                        </div>
+                    </div>
+                    <div class="resistances-box">
+                        <div class="box-title">Résistances</div>
+                        <div class="derived-list">
+                            <div>Dégâts: <span id="res-degats">0</span></div>
+                            <div>Sortilèges: <span id="res-sorts">0</span></div>
+                            <div>Feu: <span id="res-feu">0</span></div>
+                            <div>Poison: <span id="res-poison">0</span></div>
+                            <div>Électricité: <span id="res-elec">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<div class="arcanum-tabs">
+    <button id="btn-tab-comp" class="arc-tab-btn active" onclick="switchSkillTab('tab-comp')">Compétences</button>
+    <button id="btn-tab-tech" class="arc-tab-btn" onclick="switchSkillTab('tab-tech')">Technologie</button>
+    <button id="btn-tab-magie" class="arc-tab-btn" onclick="switchSkillTab('tab-magie')">Magie</button>
+</div>
+
+             <div id="tab-comp" class="arc-tab-content active" style="overflow-y: auto; max-height: 400px; padding-right: 10px;">
+                    </div>
+                <div id="tab-tech" class="arc-tab-content" style="display:none;">
+                    <h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0;">Technologie</h4>
+                </div>
+                <div id="tab-magie" class="arc-tab-content" style="display:none;">
+                    <h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0;">Magie</h4>
+                </div>
+            </div>
+
+            <div class="alignment-meter">
+                <div class="meter-icon" style="color: #2196f3;">🌀</div>
+                <div class="meter-bar">
+                    <div class="meter-needle" id="meter-needle" style="top: 50%;"></div>
+                </div>
+                <div class="meter-icon" style="color: #ff9800;">⚙️</div>
+            </div>
+
         </div>
 
-        <details class="encyclopedia">
-            <summary>📖 Consulter le manuel des Caractéristiques (Cliquez pour ouvrir)</summary>
-            <div class="encyclopedia-content">
-                <p><strong>FORCE (FO) :</strong> Mesure la puissance musculaire brute d'un personnage. La force détermine l'étendue des dommages corporels que le personnage inflige lorsqu'il donne un coup, ainsi que le nombre de coups que lui-même peut recevoir, le nombre d'objets qu'il peut transporter et la distance à laquelle il pourra les lancer. Un niveau de force minimum est requis pour certaines armes. <br>
-                <span class="effet-20">⚡ Effet à 20 pts : Le bonus aux dégâts est multiplié par 2.</span></p>
-
-                <p><strong>INTELLIGENCE (IN) :</strong> Mesure les fonctions mentales du personnage. L'intelligence influe sur un certain nombre de compétences et peut se révéler un frein à l'apprentissage de sorts ou de disciplines technologiques. En outre, un personnage peu intelligent éprouvera des difficultés à entretenir des sorts. L'élocution et les choix de dialogue y sont liés. <br>
-                <span class="effet-20">⚡ Effet à 20 pts : Le taux de réussite pour chaque compétence augmente de 10 %.</span></p>
-
-                <p><strong>CONSTITUTION (CN) :</strong> L'endurance du personnage. Elle détermine la résistance du personnage à la fatigue et aux poisons, ainsi que sa vitesse de guérison. <br>
-                <span class="effet-20">⚡ Effet à 20 pts : Immunisation contre les poisons.</span></p>
-
-                <p><strong>DEXTÉRITÉ (DX) :</strong> Représente l'adresse générale du personnage : la dextérité influe donc sur un plus grand nombre de compétences que les autres caractéristiques. <br>
-                <span class="effet-20">⚡ Effet à 20 pts : La vitesse du joueur passe à 25 (+1 pour chaque point au-dessus de 20).</span></p>
-
-                <p><strong>CHARISME (CH) :</strong> D'un personnage, le charisme influe sur sa capacité de persuasion et détermine ainsi le nombre maximum de personnages non-joueurs qui accepteront de l'accompagner. <br>
-                <span class="effet-20">⚡ Effet à 20 pts : Loyauté absolue : vos compagnons ne vous quitteront jamais de leur propre chef, à moins que vous ne le leur demandiez.</span></p>
-            </div>
-        </details>
-
+<div style="display: flex; justify-content: space-between; margin-top: 20px;">
+    <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour à l'accueil</button>
+    <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerChangements()">✅ Valider Level Up</button>
+    <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Télécharger la Fiche</button>
+</div>
     </div>
-    <script src="backgrounds.js"></script>
+
+<script src="backgrounds.js"></script>
+    <script src="skills.js"></script>
+    <script src="technologie.js"></script>
+    <script src="magie.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

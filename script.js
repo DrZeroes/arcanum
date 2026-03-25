@@ -11,32 +11,32 @@ const racesData = {
     "Demi-Orque": { FO:9, IN:8, CN:9, DX:8, CH:6, spec: "+2 Mêlée & Esquive, 10% Résistance Poison", peutEtreFemme: true }
 };
 
-
-
 const raceSelect = document.getElementById('raceSelect');
 const sexeSelect = document.getElementById('sexeSelect');
 const bgSelect = document.getElementById('bgSelect');
 
 function init() {
+    // Remplissage du menu Race
     for (let r in racesData) {
         let o = document.createElement('option');
         o.value = r; o.innerText = r;
         raceSelect.appendChild(o);
     }
+
+    // Écouteurs d'événements
     raceSelect.addEventListener('change', buildChar);
     sexeSelect.addEventListener('change', buildChar);
     bgSelect.addEventListener('change', buildChar);
+
+    // Premier calcul
     buildChar();
 }
-
 
 function buildChar() {
     const rKey = raceSelect.value;
     const race = racesData[rKey];
-    const currentBg = backgrounds.find(b => b.nom === bgSelect.value) || backgrounds[0];
-	
-	
-    // Gérer Sexe
+
+    // 1. Gestion dynamique du Sexe selon la Race
     const currentSex = sexeSelect.value;
     sexeSelect.innerHTML = '<option value="M">Masculin</option>';
     if (race.peutEtreFemme) {
@@ -46,26 +46,25 @@ function buildChar() {
         sexeSelect.value = "M";
     }
 
+    // 2. Base des stats Race + Modificateur Sexe
     let final = { FO: race.FO, IN: race.IN, CN: race.CN, DX: race.DX, CH: race.CH };
     if (sexeSelect.value === "F") {
         final.CN += 1; final.CH += 1; final.FO -= 1; final.DX -= 1;
     }
 
-// Afficher la description littérale
-document.getElementById('desc-box').innerText = currentBg.desc;
-
-// NOUVEAU : Afficher les effets secondaires (équipement, bonus de comp, etc.)
-// Assure-toi d'avoir une div avec id="autres-effets" dans ton HTML
-document.getElementById('autres-effets').innerText = "Effets spéciaux : " + (currentBg.autres || "Aucun");
-
-    // Gérer Antécédents
+    // 3. Filtrage dynamique des Antécédents
     const lastBg = bgSelect.value;
     bgSelect.innerHTML = "";
+    
     backgrounds.forEach(bg => {
         let allow = true;
+        // Filtre de sexe
         if (bg.rest.sexe && bg.rest.sexe !== sexeSelect.value) allow = false;
+        // Filtre inclusion race
         if (bg.rest.races && !bg.rest.races.includes(rKey)) allow = false;
+        // Filtre exclusion race
         if (bg.rest.pasRaces && bg.rest.pasRaces.includes(rKey)) allow = false;
+
         if (allow) {
             let o = document.createElement('option');
             o.value = bg.nom; o.innerText = bg.nom;
@@ -74,21 +73,35 @@ document.getElementById('autres-effets').innerText = "Effets spéciaux : " + (cu
         }
     });
 
+    // 4. Application des modificateurs du Background choisi
     const currentBg = backgrounds.find(b => b.nom === bgSelect.value) || backgrounds[0];
-    for (let s in currentBg.mod) final[s] += currentBg.mod[s];
+    if (currentBg.mod) {
+        for (let s in currentBg.mod) {
+            if (final.hasOwnProperty(s)) {
+                final[s] += currentBg.mod[s];
+            }
+        }
+    }
 
-    // Affichage des Stats
-    for (let s in final) { document.getElementById('val-' + s).innerText = final[s]; }
+    // 5. Mise à jour de l'affichage des Stats
+    for (let s in final) {
+        const el = document.getElementById('val-' + s);
+        if (el) el.innerText = final[s];
+    }
     
-    // Calcul PV/Fatigue
+    // 6. Calcul des ressources dérivées
     document.getElementById('pv-total').innerText = (final.FO * 2) + final.IN;
     document.getElementById('fatigue-total').innerText = (final.CN * 2) + final.IN;
     
-    // Description Textuelle
+    // 7. Affichage des textes (Description + Autres effets)
     document.getElementById('desc-box').innerText = currentBg.desc;
-    document.getElementById('raceTraits').innerText = "Capacités de race : " + race.spec;
     
-    // Les lignes de mise à jour du footer ont été supprimées
+    // On affiche les capacités de race et les effets de l'antécédent ensemble
+    let extraHTML = `<div style="margin-bottom:10px;"><strong>Capacités de race :</strong> ${race.spec}</div>`;
+    extraHTML += `<div><strong>Autres effets :</strong> ${currentBg.effets || "Aucun"}</div>`;
+    
+    document.getElementById('raceTraits').innerHTML = extraHTML;
 }
 
+// Lancement
 init();

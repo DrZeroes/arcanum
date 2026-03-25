@@ -585,3 +585,8 @@ input[type="text"]:focus, select:focus { border-color: #d4af37; outline: none; }
 /* Sécurité pour l'affichage des boutons */
 .edit-only { visibility: visible !important; }
 .is-locked .edit-only { visibility: hidden !important; }
+
+/* Empêche les boutons de s'afficher si le script dit de les cacher */
+.btn-stat {
+    transition: visibility 0.1s;
+}

@@ -1,6 +1,6 @@
 // ================= DONNÉES DE BASE =================
 const racesData = {
-    "Humain": { FO:8, IN:8, CN:8, DX:8, CH:8, spec: "Polyvalent", peutEtreFemme: true },
+    "Humain": { FO:8, IN:8, CN:8, DX:8, CH:8, spec: "aucune", peutEtreFemme: true },
     "Nain": { FO:9, IN:8, CN:9, DX:7, CH:7, spec: "15% Technologie, +2 comp. Technologie", peutEtreFemme: false },
     "Gnome": { FO:8, IN:10, CN:6, DX:8, CH:8, spec: "+2 Marchandage", peutEtreFemme: true },
     "Halfelin": { FO:5, IN:8, CN:8, DX:10, CH:8, spec: "+2 Discrétion, +1 Esquive, +5% Crit", peutEtreFemme: true },
@@ -151,14 +151,28 @@ function validerCreation() {
     updateFicheUI();
 }
 
+
+
+
+
+
+
+
+
+
+
+
 // ================= MISE À JOUR FICHE =================
+
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
     if (!container) return;
 
+    // Gestion des points dispos
     if (perso.pointsDispo <= 0) container.classList.add('no-points');
     else container.classList.remove('no-points');
 
+    // Header
     document.getElementById('fiche-name').innerText = perso.nom;
     document.getElementById('fiche-level').innerText = perso.niveau;
     document.getElementById('fiche-race').innerText = perso.race;
@@ -166,30 +180,37 @@ function updateFicheUI() {
     document.getElementById('fiche-bg').innerText = perso.antecedent;
     document.getElementById('points-dispo').innerText = perso.pointsDispo;
 
+    // --- 1. STATISTIQUES (FO, IN, etc.) ---
     let finalStats = {};
-    for (let s in perso.statsBase) {
-        let total = perso.statsBase[s] + (perso.statsInvesties[s] || 0);
-        finalStats[s] = total;
-        let elVal = document.getElementById('fiche-val-' + s);
-        if(elVal) {
-            elVal.innerText = total;
-            elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
-        }
-        // Masquer le bouton moins si rien n'est investi
-        let btnMoinsStat = document.querySelector(`button[onclick="modStat('${s}', -1)"]`);
-        if (btnMoinsStat) btnMoinsStat.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
-    }
+    const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
+   statsKeys.forEach(s => {
+    let total = (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0);
+    let elVal = document.getElementById('fiche-val-' + s);
+    if(elVal) elVal.innerText = total;
 
+    // On cherche le bouton qui est juste AVANT la valeur
+    let btnMoins = elVal.previousElementSibling; 
+    if (btnMoins && btnMoins.classList.contains('btn-moins')) {
+        btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
+    }
+});
+
+    // --- 2. VITALITÉ (PV / FATIGUE) ---
     document.getElementById('fiche-pv').innerText = (finalStats.FO * 2) + finalStats.IN + (perso.boostPV || 0);
     document.getElementById('fiche-fatigue').innerText = (finalStats.CN * 2) + finalStats.IN + (perso.boostFT || 0);
 
-    // Masquer moins vitalité
-    let btnMoinsPV = document.querySelector(`button[onclick="boostVital('PV', -5)"]`);
-    if (btnMoinsPV) btnMoinsPV.style.visibility = ((perso.boostPV || 0) > (perso.boostPVBase || 0)) ? "visible" : "hidden";
-    let btnMoinsFT = document.querySelector(`button[onclick="boostVital('FT', -5)"]`);
-    if (btnMoinsFT) btnMoinsFT.style.visibility = ((perso.boostFT || 0) > (perso.boostFTBase || 0)) ? "visible" : "hidden";
+    
+	// Pour PV
+let elPv = document.getElementById('fiche-pv');
+let btnMpv = elPv.nextElementSibling.querySelector('.btn-moins'); // Cherche dans la div de boutons en dessous
+if (btnMpv) btnMpv.style.visibility = ((perso.boostPV || 0) > (perso.boostPVBase || 0)) ? "visible" : "hidden";
 
-    // Calculs Dérivés
+// Pour Fatigue
+let elFt = document.getElementById('fiche-fatigue');
+let btnMft = elFt.nextElementSibling.querySelector('.btn-moins');
+if (btnMft) btnMft.style.visibility = ((perso.boostFT || 0) > (perso.boostFTBase || 0)) ? "visible" : "hidden";
+
+    // --- 3. CALCULS DÉRIVÉS ---
     document.getElementById('der-charge').innerText = (finalStats.FO * 2) + " kg";
     let degats = (finalStats.FO > 10) ? (finalStats.FO - 10) : (finalStats.FO < 10 ? Math.floor((finalStats.FO - 10) / 2) : 0);
     document.getElementById('der-degats').innerText = (degats > 0 ? "+" + degats : degats);
@@ -200,26 +221,28 @@ function updateFicheUI() {
     document.getElementById('der-reaction').innerText = (finalStats.CH - 8 > 0 ? "+" + (finalStats.CH - 8) : finalStats.CH - 8);
     document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(finalStats.CH / 4));
 
-    // Compétences
+    // --- 4. COMPÉTENCES ---
     if (perso.compInvesties) {
         for (let id in perso.compInvesties) {
-            let el = document.getElementById('fiche-val-' + id);
-            let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
             let act = perso.compInvesties[id] || 0;
+            let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
+            
+            let el = document.getElementById('fiche-val-' + id);
             if (el) {
                 el.innerText = act;
                 el.style.color = (act > base) ? "#4caf50" : "#fff";
             }
-            let btn = document.querySelector(`button[onclick="modComp('${id}', -4)"]`);
+            // Recherche du bouton moins par ID partiel
+            let btn = document.querySelector(`button[onclick*="modComp('${id}'"][onclick*="-4"]`);
             if (btn) btn.style.visibility = (act > base) ? "visible" : "hidden";
         }
     }
 
-    // Magie & Techno visuel
+    // --- 5. MAGIE ET TECH ---
     if (typeof magieData !== 'undefined') updateMagieUI_Display();
     if (typeof techData !== 'undefined') updateTechUI_Display();
     
-    // Alignement & Score
+    // --- 6. ALIGNEMENT ---
     let align = calculerAlignement();
     let needle = document.getElementById('meter-needle');
     let score = document.getElementById('meter-score');
@@ -229,6 +252,12 @@ function updateFicheUI() {
         score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
 }
+
+
+
+
+
+
 
 // ================= LOGIQUE STATS & VITALITÉ =================
 function modStat(stat, val) {
@@ -273,7 +302,7 @@ function initCompetencesUI() {
         competencesData[cat].forEach(c => {
             div.innerHTML += `<div class="skill-row">
                 <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
-                <button class="btn-stat edit-only" onclick="modComp('${c.id}', -4)">-</button>
+                <button class="btn-stat btn-moins edit-only" onclick="modComp('${c.id}', -4)">-</button>
                 <span id="fiche-val-${c.id}" class="stat-value">0</span>
                 <button class="btn-stat edit-only" onclick="modComp('${c.id}', 4)">+</button>
             </div>`;

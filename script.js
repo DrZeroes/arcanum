@@ -15,6 +15,8 @@ const raceSelect = document.getElementById('raceSelect');
 const sexeSelect = document.getElementById('sexeSelect');
 const bgSelect = document.getElementById('bgSelect');
 
+
+/*
 function openTab(tabId) {
     // Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -29,6 +31,7 @@ function openTab(tabId) {
     // Activer le bouton correspondant
     event.currentTarget.classList.add('active');
 }
+*/
 
 
 function init() {

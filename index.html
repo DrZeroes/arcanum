@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcanum JDR - Générateur de Personnage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-card">
+        <h1>Arcanum : Engrenages & Sortilèges</h1>
+
+        <div class="row">
+            <div class="col">
+                <label>RACE</label>
+                <select id="raceSelect"></select>
+            </div>
+            <div class="col">
+                <label>SEXE</label>
+                <select id="sexeSelect">
+                    <option value="M">Masculin</option>
+                    <option value="F">Féminin</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <select id="bgSelect"></select>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-box"><div class="stat-label">FORCE (FO)</div><div id="val-FO" class="stat-value">8</div></div>
+            <div class="stat-box"><div class="stat-label">INTELLIGENCE (IN)</div><div id="val-IN" class="stat-value">8</div></div>
+            <div class="stat-box"><div class="stat-label">CONSTITUTION (CN)</div><div id="val-CN" class="stat-value">8</div></div>
+            <div class="stat-box"><div class="stat-label">DEXTÉRITÉ (DX)</div><div id="val-DX" class="stat-value">8</div></div>
+            <div class="stat-box"><div class="stat-label">CHARISME (CH)</div><div id="val-CH" class="stat-value">8</div></div>
+        </div>
+        
+        <div id="raceTraits" class="special-trait"></div>
+
+        <div class="derived-stats">
+            <div class="derived-item" style="color: #4caf50;">Points de Vie (PV)<span id="pv-total" class="derived-val">0</span></div>
+            <div class="derived-item" style="color: #2196f3;">Fatigue / Magie<span id="fatigue-total" class="derived-val">0</span></div>
+        </div>
+
+        <div id="desc-box" class="description-box"></div>
+
+        <div class="footer-info">
+            <div class="footer-item" id="bonus-xp">Expérience : Standard</div>
+            <div class="footer-item" id="bonus-money">Or de départ : 400</div>
+            <div id="item-depart" class="footer-item" style="grid-column: span 2;">Équipement spécial : Aucun</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

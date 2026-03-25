@@ -1,4 +1,4 @@
-// ================= DONNÉES =================
+// ================= DONNÉES DE BASE =================
 const racesData = {
     "Humain": { FO:8, IN:8, CN:8, DX:8, CH:8, spec: "Polyvalent", peutEtreFemme: true },
     "Nain": { FO:9, IN:8, CN:9, DX:7, CH:7, spec: "15% Technologie, +2 comp. Technologie", peutEtreFemme: false },
@@ -18,31 +18,22 @@ let statsCalculees = {};
 // ================= INITIALISATION =================
 window.onload = function() {
     const raceSelect = document.getElementById('raceSelect');
-    for (let r in racesData) {
-        let o = document.createElement('option');
-        o.value = r; o.innerText = r;
-        raceSelect.appendChild(o);
-    }
-    
-    document.getElementById('raceSelect').addEventListener('change', buildChar);
-    document.getElementById('sexeSelect').addEventListener('change', buildChar);
-    document.getElementById('bgSelect').addEventListener('change', buildChar);
-
-    // On génère la liste des compétences
-    if (typeof competencesData !== 'undefined') {
-        initCompetencesUI();
-    }
-    
-    // On génère la liste des écoles de magie
-    if (typeof magieData !== 'undefined') {
-        initMagieUI();
-    }
-	// On génère la liste des disciplines technologiques
-    if (typeof techData !== 'undefined') {
-        initTechUI();
+    if (raceSelect) {
+        for (let r in racesData) {
+            let o = document.createElement('option');
+            o.value = r; o.innerText = r;
+            raceSelect.appendChild(o);
+        }
+        document.getElementById('raceSelect').addEventListener('change', buildChar);
+        document.getElementById('sexeSelect').addEventListener('change', buildChar);
+        document.getElementById('bgSelect').addEventListener('change', buildChar);
     }
 
-    allerAccueil(); // Démarrage
+    if (typeof competencesData !== 'undefined') initCompetencesUI();
+    if (typeof magieData !== 'undefined') initMagieUI();
+    if (typeof techData !== 'undefined') initTechUI();
+
+    allerAccueil(); 
 };
 
 // ================= NAVIGATION =================
@@ -55,7 +46,6 @@ function cacherTout() {
 function allerAccueil() {
     cacherTout();
     document.getElementById('ecran-accueil').style.display = 'block';
-    
     const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
     const btnLoad = document.getElementById('btn-load');
     if (sauvegarde) {
@@ -87,7 +77,7 @@ function chargerPersonnage() {
     }
 }
 
-// ================= CRÉATION (Écran 2) =================
+// ================= CRÉATION =================
 function buildChar() {
     const rKey = document.getElementById('raceSelect').value;
     const race = racesData[rKey];
@@ -130,16 +120,14 @@ function buildChar() {
             }
         }
         document.getElementById('desc-box').innerText = currentBg.desc;
-        document.getElementById('raceTraits').innerHTML = `<div style="margin-bottom:10px;"><strong>Capacité :</strong> ${race.spec}</div><div><strong>Effets :</strong> ${currentBg.effets || "Aucun"}</div>`;
+        document.getElementById('raceTraits').innerHTML = `<strong>Capacité :</strong> ${race.spec} | <strong>Effets :</strong> ${currentBg.effets || "Aucun"}`;
     }
 
     statsCalculees = final; 
-
     for (let s in final) { 
         let el = document.getElementById('val-' + s);
         if(el) el.innerText = final[s]; 
     }
-    
     document.getElementById('pv-total').innerText = (final.FO * 2) + final.IN;
     document.getElementById('fatigue-total').innerText = (final.CN * 2) + final.IN;
 }
@@ -149,43 +137,27 @@ function validerCreation() {
     if (nom === "") { alert("Veuillez entrer un nom !"); return; }
 
     perso = {
-        nom: nom,
-        race: document.getElementById('raceSelect').value,
+        nom: nom, race: document.getElementById('raceSelect').value,
         sexe: document.getElementById('sexeSelect').value,
         antecedent: document.getElementById('bgSelect').value,
-        niveau: 1,
-        pointsDispo: 5,
-        boostPV: 0,
-        boostFT: 0,
-        statsBase: statsCalculees,
-        statsInvesties: { FO:0, IN:0, CN:0, DX:0, CH:0 },
-        compInvesties: {} 
+        niveau: 1, pointsDispo: 5, boostPV: 0, boostFT: 0,
+        statsBase: statsCalculees, statsInvesties: { FO:0, IN:0, CN:0, DX:0, CH:0 },
+        compInvesties: {}, magieInvesties: {}, techInvesties: {}
     };
 
-    if (typeof competencesData !== 'undefined') {
-        for (let cat in competencesData) {
-            competencesData[cat].forEach(comp => {
-                perso.compInvesties[comp.id] = 0;
-            });
-        }
-    }
-
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
-    
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI();
 }
 
-// ================= FICHE & POINTS (Écran 3) =================
+// ================= MISE À JOUR FICHE =================
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
-    
-    if (perso.pointsDispo <= 0) {
-        container.classList.add('no-points');
-    } else {
-        container.classList.remove('no-points');
-    }
+    if (!container) return;
+
+    if (perso.pointsDispo <= 0) container.classList.add('no-points');
+    else container.classList.remove('no-points');
 
     document.getElementById('fiche-name').innerText = perso.nom;
     document.getElementById('fiche-level').innerText = perso.niveau;
@@ -198,710 +170,363 @@ function updateFicheUI() {
     for (let s in perso.statsBase) {
         let total = perso.statsBase[s] + (perso.statsInvesties[s] || 0);
         finalStats[s] = total;
-        
         let elVal = document.getElementById('fiche-val-' + s);
         if(elVal) {
             elVal.innerText = total;
             elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
         }
-
+        // Masquer le bouton moins si rien n'est investi
         let btnMoinsStat = document.querySelector(`button[onclick="modStat('${s}', -1)"]`);
-        if (btnMoinsStat) {
-            btnMoinsStat.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
-        }
+        if (btnMoinsStat) btnMoinsStat.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
     }
 
-    let pvTotal = (finalStats.FO * 2) + finalStats.IN + (perso.boostPV || 0);
-    let ftTotal = (finalStats.CN * 2) + finalStats.IN + (perso.boostFT || 0);
-    
-    let elPv = document.getElementById('fiche-pv');
-    let elFt = document.getElementById('fiche-fatigue');
-    if (elPv) elPv.innerText = pvTotal;
-    if (elFt) elFt.innerText = ftTotal;
+    document.getElementById('fiche-pv').innerText = (finalStats.FO * 2) + finalStats.IN + (perso.boostPV || 0);
+    document.getElementById('fiche-fatigue').innerText = (finalStats.CN * 2) + finalStats.IN + (perso.boostFT || 0);
 
+    // Masquer moins vitalité
     let btnMoinsPV = document.querySelector(`button[onclick="boostVital('PV', -5)"]`);
-    if (btnMoinsPV) {
-        let basePV = perso.boostPVBase || 0;
-        let actuPV = perso.boostPV || 0;
-        btnMoinsPV.style.visibility = (actuPV > basePV) ? "visible" : "hidden";
-    }
-    
+    if (btnMoinsPV) btnMoinsPV.style.visibility = ((perso.boostPV || 0) > (perso.boostPVBase || 0)) ? "visible" : "hidden";
     let btnMoinsFT = document.querySelector(`button[onclick="boostVital('FT', -5)"]`);
-    if (btnMoinsFT) {
-        let baseFT = perso.boostFTBase || 0;
-        let actuFT = perso.boostFT || 0;
-        btnMoinsFT.style.visibility = (actuFT > baseFT) ? "visible" : "hidden";
-    }
+    if (btnMoinsFT) btnMoinsFT.style.visibility = ((perso.boostFT || 0) > (perso.boostFTBase || 0)) ? "visible" : "hidden";
 
-    // Calculs dérivés
-    let fo = finalStats.FO;
-    let cn = finalStats.CN;
-    let dx = finalStats.DX;
-    let ch = finalStats.CH;
-
-    let elCharge = document.getElementById('der-charge');
-    if(elCharge) elCharge.innerText = (fo * 2) + " kg";
-
-    let degats = (fo > 10) ? (fo - 10) : (fo < 10 ? Math.floor((fo - 10) / 2) : 0);
-    let elDegats = document.getElementById('der-degats');
-    if(elDegats) elDegats.innerText = (degats > 0 ? "+" + degats : degats);
-
-    let elArmure = document.getElementById('der-armure');
-    if(elArmure) elArmure.innerText = dx;
-
-    let elVitesse = document.getElementById('der-vitesse');
-    if(elVitesse) elVitesse.innerText = dx;
-
-    let elGuerison = document.getElementById('der-guerison');
-    if(elGuerison) elGuerison.innerText = Math.floor(cn / 3);
-
-    let elToxines = document.getElementById('der-toxines');
-    if(elToxines) elToxines.innerText = cn;
-
-    let reaction = ch - 8;
-    let elReaction = document.getElementById('der-reaction');
-    if(elReaction) elReaction.innerText = (reaction > 0 ? "+" + reaction : reaction);
-
-    let elCompagnons = document.getElementById('der-compagnons');
-    if(elCompagnons) elCompagnons.innerText = Math.max(1, Math.floor(ch / 4));
+    // Calculs Dérivés
+    document.getElementById('der-charge').innerText = (finalStats.FO * 2) + " kg";
+    let degats = (finalStats.FO > 10) ? (finalStats.FO - 10) : (finalStats.FO < 10 ? Math.floor((finalStats.FO - 10) / 2) : 0);
+    document.getElementById('der-degats').innerText = (degats > 0 ? "+" + degats : degats);
+    document.getElementById('der-armure').innerText = finalStats.DX;
+    document.getElementById('der-vitesse').innerText = finalStats.DX;
+    document.getElementById('der-guerison').innerText = Math.floor(finalStats.CN / 3);
+    document.getElementById('der-toxines').innerText = finalStats.CN;
+    document.getElementById('der-reaction').innerText = (finalStats.CH - 8 > 0 ? "+" + (finalStats.CH - 8) : finalStats.CH - 8);
+    document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(finalStats.CH / 4));
 
     // Compétences
     if (perso.compInvesties) {
-        for (let compId in perso.compInvesties) {
-            let elComp = document.getElementById('fiche-val-' + compId);
-            let base = (perso.compBase && perso.compBase[compId]) ? perso.compBase[compId] : 0;
-            
-            if (elComp) {
-                elComp.innerText = perso.compInvesties[compId];
-                elComp.style.color = (perso.compInvesties[compId] > base) ? "#4caf50" : "#fff";
+        for (let id in perso.compInvesties) {
+            let el = document.getElementById('fiche-val-' + id);
+            let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
+            let act = perso.compInvesties[id] || 0;
+            if (el) {
+                el.innerText = act;
+                el.style.color = (act > base) ? "#4caf50" : "#fff";
             }
-
-            let btnMoinsComp = document.querySelector(`button[onclick="modComp('${compId}', -4)"]`);
-            if (btnMoinsComp) {
-                btnMoinsComp.style.visibility = (perso.compInvesties[compId] > base) ? "visible" : "hidden";
-            }
+            let btn = document.querySelector(`button[onclick="modComp('${id}', -4)"]`);
+            if (btn) btn.style.visibility = (act > base) ? "visible" : "hidden";
         }
     }
 
-    // Magie
-    if (typeof magieData !== 'undefined') {
-        for (let ecole in magieData) {
-            let maitrise = (perso.magieInvesties && perso.magieInvesties[ecole]) ? perso.magieInvesties[ecole] : 0;
-            let base = (perso.magieBase && perso.magieBase[ecole]) ? perso.magieBase[ecole] : 0;
-            let safeEcoleId = ecole.replace(/\s+/g, '');
-            
-            let elVal = document.getElementById('magie-val-' + safeEcoleId);
-            if (elVal) {
-                elVal.innerText = maitrise + "/5";
-                elVal.style.color = (maitrise > base) ? "#4caf50" : "#fff";
-            }
-            
-            let btnMoinsMagie = document.querySelector(`button[onclick="modMagie('${ecole}', -1)"]`);
-            if (btnMoinsMagie) {
-                btnMoinsMagie.style.visibility = (maitrise > base) ? "visible" : "hidden";
-            }
-            
-            for (let i = 0; i < 5; i++) {
-                let spellDiv = document.getElementById(`spell-${safeEcoleId}-${i}`);
-                if (spellDiv) {
-                    if (i < maitrise) {
-                        spellDiv.classList.add('learned'); 
-                    } else {
-                        spellDiv.classList.remove('learned'); 
-                    }
-                }
-            }
-        }
-    }
-	
-	
-	
-	// ==========================================
-    // 8. MISE À JOUR DE LA TECHNOLOGIE
-    // ==========================================
-    if (typeof techData !== 'undefined') {
-        for (let dis in techData) {
-            let maitrise = (perso.techInvesties && perso.techInvesties[dis]) ? perso.techInvesties[dis] : 0;
-            let base = (perso.techBase && perso.techBase[dis]) ? perso.techBase[dis] : 0;
-            let safeDisId = dis.replace(/\s+/g, '');
-            
-            let elVal = document.getElementById('tech-val-' + safeDisId);
-            if (elVal) {
-                elVal.innerText = maitrise + "/7";
-                elVal.style.color = (maitrise > base) ? "#4caf50" : "#fff";
-            }
-            
-            let btnMoinsTech = document.querySelector(`button[onclick="modTech('${dis}', -1)"]`);
-            if (btnMoinsTech) {
-                btnMoinsTech.style.visibility = (maitrise > base) ? "visible" : "hidden";
-            }
-            
-            for (let i = 0; i < 7; i++) { // Jusqu'à 7 pour la techno
-                let schemaDiv = document.getElementById(`schema-${safeDisId}-${i}`);
-                if (schemaDiv) {
-                    if (i < maitrise) {
-                        schemaDiv.classList.add('learned'); 
-                    } else {
-                        schemaDiv.classList.remove('learned'); 
-                    }
-                }
-            }
-        }
-    }
-	
-	
-	// ==========================================
-    // 9. MISE À JOUR DE LA JAUGE D'ALIGNEMENT
-    // ==========================================
-    let alignement = calculerAlignement();
-    let elNeedle = document.getElementById('meter-needle');
+    // Magie & Techno visuel
+    if (typeof magieData !== 'undefined') updateMagieUI_Display();
+    if (typeof techData !== 'undefined') updateTechUI_Display();
     
-    if (elNeedle) {
-        // La jauge CSS va de 0% (Haut/Magie) à 100% (Bas/Techno). 
-        // À 0 d'alignement, on veut qu'elle soit au milieu (50%).
-        let topPosition = 50 - (alignement / 2);
-        elNeedle.style.top = topPosition + "%";
-        
-        // Bonus visuel : on change la couleur de l'aiguille selon le côté !
-        if (alignement > 0) {
-            elNeedle.style.backgroundColor = "#2196f3"; // Bleu Magie
-        } else if (alignement < 0) {
-            elNeedle.style.backgroundColor = "#ff9800"; // Orange Techno
-        } else {
-            elNeedle.style.backgroundColor = "red"; // Neutre
-        }
+    // Alignement & Score
+    let align = calculerAlignement();
+    let needle = document.getElementById('meter-needle');
+    let score = document.getElementById('meter-score');
+    if (needle) needle.style.top = (50 - (align / 2)) + "%";
+    if (score) {
+        score.innerText = (align > 0 ? "+" : "") + align;
+        score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
-	
-	
 }
 
+// ================= LOGIQUE STATS & VITALITÉ =================
 function modStat(stat, val) {
     if (val > 0 && perso.pointsDispo <= 0) return;
-    if (val < 0 && perso.statsInvesties[stat] <= 0) return;
-
-    perso.statsInvesties[stat] += val;
+    if (val < 0 && (perso.statsInvesties[stat] || 0) <= 0) return;
+    perso.statsInvesties[stat] = (perso.statsInvesties[stat] || 0) + val;
     perso.pointsDispo -= val;
-    
     updateFicheUI();
 }
 
 function boostVital(type, valeur) {
     if (valeur > 0 && perso.pointsDispo <= 0) return;
-    
     if (type === 'PV') {
-        let basePV = perso.boostPVBase || 0;
-        let actuPV = perso.boostPV || 0;
-        if (valeur < 0 && actuPV <= basePV) return; 
-        perso.boostPV = actuPV + valeur;
+        let base = perso.boostPVBase || 0;
+        if (valeur < 0 && (perso.boostPV || 0) <= base) return;
+        perso.boostPV = (perso.boostPV || 0) + valeur;
     } else {
-        let baseFT = perso.boostFTBase || 0;
-        let actuFT = perso.boostFT || 0;
-        if (valeur < 0 && actuFT <= baseFT) return; 
-        perso.boostFT = actuFT + valeur;
+        let base = perso.boostFTBase || 0;
+        if (valeur < 0 && (perso.boostFT || 0) <= base) return;
+        perso.boostFT = (perso.boostFT || 0) + valeur;
     }
-    
     perso.pointsDispo -= (valeur > 0 ? 1 : -1);
     updateFicheUI();
 }
 
-// ================= GESTION DES COMPÉTENCES =================
+// ================= GESTION COMPÉTENCES =================
 function initCompetencesUI() {
     const tabComp = document.getElementById('tab-comp');
-    tabComp.innerHTML = ''; 
-
-    let subTabsDiv = document.createElement('div');
-    subTabsDiv.className = 'sub-tabs';
-    tabComp.appendChild(subTabsDiv);
-
-    let contentDiv = document.createElement('div');
-    tabComp.appendChild(contentDiv);
-
+    if (!tabComp) return;
+    tabComp.innerHTML = '<div class="sub-tabs"></div><div class="sub-contents"></div>';
     let isFirst = true;
-
-    for (let categorie in competencesData) {
+    for (let cat in competencesData) {
         let btn = document.createElement('button');
         btn.className = 'sub-tab-btn' + (isFirst ? ' active' : '');
-        btn.innerText = categorie;
-        btn.onclick = function() { switchSubTab(categorie); };
-        subTabsDiv.appendChild(btn);
+        btn.innerText = cat;
+        btn.onclick = function() { switchSubTab(cat); };
+        tabComp.querySelector('.sub-tabs').appendChild(btn);
 
-        let catDiv = document.createElement('div');
-        catDiv.id = 'sub-tab-' + categorie.replace(/\s+/g, ''); 
-        catDiv.className = 'sub-tab-content' + (isFirst ? ' active' : '');
-        
-        competencesData[categorie].forEach(comp => {
-            let row = document.createElement('div');
-            row.className = 'skill-row';
-            row.title = comp.desc; 
-
-            row.innerHTML = `
-                <div class="skill-name">${comp.nom} <span class="skill-stat-tag">${comp.stat}</span></div>
-                <button class="btn-stat edit-only" onclick="modComp('${comp.id}', -4)">-</button>
-                <span id="fiche-val-${comp.id}" class="stat-value">0</span>
-                <button class="btn-stat edit-only" onclick="modComp('${comp.id}', 4)">+</button>
-            `;
-            catDiv.appendChild(row);
+        let div = document.createElement('div');
+        div.id = 'sub-tab-' + cat.replace(/\s+/g, '');
+        div.className = 'sub-tab-content' + (isFirst ? ' active' : '');
+        competencesData[cat].forEach(c => {
+            div.innerHTML += `<div class="skill-row">
+                <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
+                <button class="btn-stat edit-only" onclick="modComp('${c.id}', -4)">-</button>
+                <span id="fiche-val-${c.id}" class="stat-value">0</span>
+                <button class="btn-stat edit-only" onclick="modComp('${c.id}', 4)">+</button>
+            </div>`;
         });
-
-        contentDiv.appendChild(catDiv);
-        isFirst = false; 
-    }
-}
-
-function switchSubTab(catActive) {
-    let catId = 'sub-tab-' + catActive.replace(/\s+/g, '');
-
-    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-        if(btn.innerText === catActive) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
-    
-    document.querySelectorAll('.sub-tab-content').forEach(content => {
-        if(content.id === catId) content.classList.add('active');
-        else content.classList.remove('active');
-    });
-}
-
-function modComp(compId, val) {
-    if (val > 0 && perso.pointsDispo <= 0) return;
-    
-    let valActuelle = perso.compInvesties[compId] || 0;
-    let valBase = (perso.compBase && perso.compBase[compId]) ? perso.compBase[compId] : 0;
-    
-    if (val < 0 && valActuelle <= valBase) return;
-    if (val > 0 && valActuelle >= 20) return;
-
-    if (val > 0) {
-        let statLiee = "";
-        for (let cat in competencesData) {
-            let compTrouvee = competencesData[cat].find(c => c.id === compId);
-            if (compTrouvee) { statLiee = compTrouvee.stat; break; }
-        }
-
-        let palier = valActuelle / 4; 
-        const preRequisStats = [0, 4, 5, 12, 15]; 
-        let statRequise = preRequisStats[palier];
-        let statJoueur = perso.statsBase[statLiee] + (perso.statsInvesties[statLiee] || 0);
-
-        if (statJoueur < statRequise) {
-            alert("Améliorer la stat " + statLiee + " avant. (Requis: " + statRequise + ")");
-            return; 
-        }
-    }
-
-    perso.compInvesties[compId] = valActuelle + val;
-    let coutPoint = (val > 0) ? 1 : -1;
-    perso.pointsDispo -= coutPoint;
-    
-    updateFicheUI();
-}
-
-function switchSkillTab(tabId) {
-    document.getElementById('tab-comp').style.display = 'none';
-    document.getElementById('tab-tech').style.display = 'none';
-    document.getElementById('tab-magie').style.display = 'none';
-    
-    document.getElementById('btn-tab-comp').classList.remove('active');
-    document.getElementById('btn-tab-tech').classList.remove('active');
-    document.getElementById('btn-tab-magie').classList.remove('active');
-    
-    document.getElementById(tabId).style.display = 'block';
-    document.getElementById('btn-' + tabId).classList.add('active');
-}
-
-// ================= GESTION DE LA MAGIE =================
-function initMagieUI() {
-    const tabMagie = document.getElementById('tab-magie');
-    tabMagie.innerHTML = '<h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0; margin-bottom:15px;">Écoles de Magie</h4>'; 
-
-    let tabsDiv = document.createElement('div');
-    tabsDiv.className = 'magic-tabs';
-    tabMagie.appendChild(tabsDiv);
-
-    let contentDiv = document.createElement('div');
-    tabMagie.appendChild(contentDiv);
-
-    let isFirst = true;
-
-    // Dictionnaire des icônes pour chaque école
-    const iconesMagie = {
-        "Déplacement": "🌀", "Divination": "👁️", "Air": "💨", "Terre": "🪨",
-        "Feu": "🔥", "Eau": "💧", "Energie": "⚡", "Mental": "🧠",
-        "Méta": "💠", "Transformation": "🦋", "Nature": "🌿", 
-        "Nécromancie noire": "💀", "Nécromancie blanche": "🕊️", 
-        "Illusion": "🎭", "Invocation": "👹", "Temporel": "⏳"
-    };
-
-    for (let ecole in magieData) {
-        let ecoleData = magieData[ecole];
-        let safeEcoleId = ecole.replace(/\s+/g, '');
-
-        // 1. Le bouton de l'onglet avec l'icône (et le nom au survol)
-        let btn = document.createElement('button');
-        btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
-        btn.innerText = iconesMagie[ecole] || "🪄"; // Met une baguette magique par défaut si l'école n'a pas d'icône
-        btn.title = ecole; // Affiche le nom de l'école quand on laisse la souris dessus !
-        btn.onclick = function() { switchMagicTab(ecole); };
-        tabsDiv.appendChild(btn);
-
-        let pane = document.createElement('div');
-        pane.id = 'magic-pane-' + safeEcoleId;
-        pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
-
-        pane.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="color:#d4af37; font-weight:bold; font-variant:small-caps; font-size:1.1em;">${ecole}</span>
-                <div class="stat-controls">
-                    <button class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
-                    <span id="magie-val-${safeEcoleId}" class="stat-value" style="font-size:1em; margin: 0 10px;">0/5</span>
-                    <button class="btn-stat edit-only" onclick="modMagie('${ecole}', 1)">+</button>
-                </div>
-            </div>
-            <div style="font-size:0.85em; color:#aaa; margin-bottom:15px; font-style:italic; border-left: 2px solid #444; padding-left: 10px;">
-                ${ecoleData.desc}
-            </div>
-            <div id="spells-list-${safeEcoleId}" style="background: #1a110b; padding: 10px; border: 1px solid #333; border-radius: 4px;"></div>
-        `;
-
-        let spellsContainer = pane.querySelector('#spells-list-' + safeEcoleId);
-        ecoleData.sorts.forEach((sort, index) => {
-            let coutAffiche = sort.cout ? sort.cout : "?";
-            let descAffiche = sort.desc ? sort.desc : "Description inconnue.";
-            
-            // J'ai supprimé la balise <span> qui affichait les prérequis
-            spellsContainer.innerHTML += `
-                <div id="spell-${safeEcoleId}-${index}" class="spell-item">
-                    <div style="line-height: 1.3;">
-                        <strong>Niveau ${index + 1} : ${sort.nom}</strong> 
-                        <span style="color: #2196f3; font-weight: bold; font-size: 0.85em; float:right;">Fatigue: ${coutAffiche}</span><br>
-                        <em style="font-size: 0.85em; padding-left: 15px; display: inline-block; margin-top: 3px;">${descAffiche}</em>
-                    </div>
-                </div>
-            `;
-        });
-
-        contentDiv.appendChild(pane);
+        tabComp.querySelector('.sub-contents').appendChild(div);
         isFirst = false;
     }
 }
 
-
-
-function switchMagicTab(ecoleActive) {
-    let safeId = 'magic-pane-' + ecoleActive.replace(/\s+/g, '');
-    
-    document.querySelectorAll('.magic-tab-btn').forEach(btn => {
-        if(btn.innerText === ecoleActive) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
-
-    document.querySelectorAll('.magic-content-pane').forEach(pane => {
-        if(pane.id === safeId) pane.classList.add('active');
-        else pane.classList.remove('active');
-    });
+function switchSubTab(cat) {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.toggle('active', b.innerText === cat));
+    document.querySelectorAll('.sub-tab-content').forEach(c => c.classList.toggle('active', c.id === 'sub-tab-' + cat.replace(/\s+/g, '')));
 }
 
-function modMagie(ecole, val) {
-    if (!perso.magieInvesties) perso.magieInvesties = {};
-    
-    let niveauMaitriseActuel = perso.magieInvesties[ecole] || 0;
+function modComp(id, val) {
+    if (!perso.compInvesties) perso.compInvesties = {};
+    if (val > 0 && perso.pointsDispo <= 0) return;
+    let act = perso.compInvesties[id] || 0;
+    let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
+    if (val < 0 && act <= base) return;
+    if (val > 0 && act >= 20) return;
     
     if (val > 0) {
-        if (perso.pointsDispo <= 0) return; 
-        if (niveauMaitriseActuel >= 5) return; 
-        
-        let sortCible = magieData[ecole].sorts[niveauMaitriseActuel];
-        let intActuelle = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
-        
-        if (perso.niveau < sortCible.niv) {
-            alert(`Niveau insuffisant ! Le sort "${sortCible.nom}" nécessite d'être niveau ${sortCible.niv}.`);
-            return;
+        let statL = "";
+        for (let cat in competencesData) {
+            let f = competencesData[cat].find(c => c.id === id);
+            if (f) { statL = f.stat; break; }
         }
-        if (intActuelle < sortCible.int) {
-            alert(`Intelligence insuffisante ! Le sort "${sortCible.nom}" nécessite ${sortCible.int} en IN.`);
-            return;
-        }
-        
-        perso.magieInvesties[ecole] = niveauMaitriseActuel + 1;
-        perso.pointsDispo -= 1;
-    } 
-    else if (val < 0) {
-        let niveauBase = (perso.magieBase && perso.magieBase[ecole]) ? perso.magieBase[ecole] : 0;
-        if (niveauMaitriseActuel <= niveauBase) return;
-        
-        perso.magieInvesties[ecole] = niveauMaitriseActuel - 1;
-        perso.pointsDispo += 1;
+        let req = [0, 4, 5, 12, 15][act / 4];
+        let pStat = perso.statsBase[statL] + (perso.statsInvesties[statL] || 0);
+        if (pStat < req) { alert(`Améliorer la stat ${statL} avant. (Requis: ${req})`); return; }
     }
-    
+    perso.compInvesties[id] = act + val;
+    perso.pointsDispo -= (val > 0 ? 1 : -1);
     updateFicheUI();
 }
 
-// ================= IMPORT / EXPORT =================
-function telechargerFichier() {
-    const dataStr = JSON.stringify(perso, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    
-    let nomFichier = perso.nom ? perso.nom.replace(/[^a-z0-9]/gi, '_').toLowerCase() : "personnage";
-    a.download = nomFichier + "_arcanum.json";
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+// ================= GESTION MAGIE =================
+function initMagieUI() {
+    const tab = document.getElementById('tab-magie');
+    if (!tab) return;
+    tab.innerHTML = '<div class="magic-tabs"></div><div class="magic-contents"></div>';
+    const icons = {"Déplacement":"🌀","Divination":"👁️","Air":"💨","Terre":"🪨","Feu":"🔥","Eau":"💧","Energie":"⚡","Mental":"🧠","Méta":"💠","Transformation":"🦋","Nature":"🌿","Nécromancie noire":"💀","Nécromancie blanche":"🕊️","Illusion":"🎭","Invocation":"👹","Temporel":"⏳"};
+    let isFirst = true;
+    for (let ecole in magieData) {
+        let btn = document.createElement('button');
+        btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
+        btn.innerText = icons[ecole] || "🪄"; btn.title = ecole;
+        btn.onclick = function() { switchMagicTab(ecole); };
+        tab.querySelector('.magic-tabs').appendChild(btn);
+
+        let pane = document.createElement('div');
+        pane.id = 'magic-pane-' + ecole.replace(/\s+/g, '');
+        pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
+        pane.innerHTML = `<div class="magic-school-header"><strong>${ecole}</strong>
+            <button class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
+            <span id="magie-val-${ecole.replace(/\s+/g, '')}">0/5</span>
+            <button class="btn-stat edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
+            <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
+        magieData[ecole].sorts.forEach((s, i) => {
+            pane.querySelector(`#spells-${ecole.replace(/\s+/g, '')}`).innerHTML += `<div id="spell-${ecole.replace(/\s+/g, '')}-${i}" class="spell-item">
+                <strong>${s.nom}</strong> (Fatigue: ${s.cout})<br><em>${s.desc}</em></div>`;
+        });
+        tab.querySelector('.magic-contents').appendChild(pane);
+        isFirst = false;
+    }
 }
 
-function importerFichier(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function switchMagicTab(e) {
+    document.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === e));
+    document.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'magic-pane-' + e.replace(/\s+/g, '')));
+}
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const contenu = e.target.result;
-            const persoImporte = JSON.parse(contenu);
-            
-            if (persoImporte.nom !== undefined && persoImporte.statsBase !== undefined) {
-                localStorage.setItem('arcanum_sauvegarde', JSON.stringify(persoImporte));
-                perso = persoImporte;
-                
-                alert("Le personnage " + perso.nom + " a été importé avec succès !");
-                
-                cacherTout();
-                document.getElementById('ecran-fiche').style.display = 'block';
-                updateFicheUI();
-            } else {
-                alert("Fichier invalide ou corrompu. Ce n'est pas une fiche ArcanumRP.");
-            }
-        } catch (erreur) {
-            alert("Erreur lors de la lecture du fichier : " + erreur.message);
+function modMagie(e, v) {
+    if (!perso.magieInvesties) perso.magieInvesties = {};
+    let act = perso.magieInvesties[e] || 0;
+    if (v > 0) {
+        if (perso.pointsDispo <= 0 || act >= 5) return;
+        let s = magieData[e].sorts[act];
+        let intel = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
+        if (perso.niveau < s.niv || intel < s.int) { alert("Niveau ou IN insuffisant"); return; }
+        perso.magieInvesties[e] = act + 1; perso.pointsDispo--;
+    } else {
+        let base = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
+        if (act <= base) return;
+        perso.magieInvesties[e] = act - 1; perso.pointsDispo++;
+    }
+    updateFicheUI();
+}
+
+function updateMagieUI_Display() {
+    for (let e in magieData) {
+        let act = perso.magieInvesties[e] || 0;
+        let id = e.replace(/\s+/g, '');
+        let el = document.getElementById('magie-val-' + id);
+        if (el) el.innerText = act + "/5";
+        
+        let btnMoins = document.querySelector(`button[onclick="modMagie('${e}', -1)"]`);
+        let base = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
+        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
+
+        for (let i = 0; i < 5; i++) {
+            let sDiv = document.getElementById(`spell-${id}-${i}`);
+            if (sDiv) sDiv.classList.toggle('learned', i < act);
         }
-        document.getElementById('file-import').value = "";
-    };
-    reader.readAsText(file);
+    }
 }
 
-// --- LOGIQUE DE MONTÉE DE NIVEAU ---
-function levelUp() {
-    document.getElementById('ecran-fiche').classList.remove('is-locked');
-    perso.niveau += 1;
-    perso.pointsDispo += (perso.niveau % 5 === 0 ? 2 : 1);
+// ================= GESTION TECH =================
+function initTechUI() {
+    const tab = document.getElementById('tab-tech');
+    if (!tab) return;
+    tab.innerHTML = '<div class="magic-tabs"></div><div class="magic-contents"></div>';
+    const icons = {"Forge":"⚒️","Mécanique":"⚙️","Armurerie":"🔫","Electricité":"⚡","Botanique":"🌱","Thérapeutique":"💊","Chimie":"🧪","Explosifs":"💣"};
+    let isFirst = true;
+    for (let d in techData) {
+        let btn = document.createElement('button');
+        btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
+        btn.innerText = icons[d] || "🔧"; btn.title = d;
+        btn.onclick = function() { switchTechTab(d); };
+        tab.querySelector('.magic-tabs').appendChild(btn);
+
+        let pane = document.createElement('div');
+        pane.id = 'tech-pane-' + d.replace(/\s+/g, '');
+        pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
+        pane.innerHTML = `<div class="magic-school-header"><strong>${d}</strong>
+            <button class="btn-stat edit-only" onclick="modTech('${d}', -1)">-</button>
+            <span id="tech-val-${d.replace(/\s+/g, '')}">0/7</span>
+            <button class="btn-stat edit-only" onclick="modTech('${d}', 1)">+</button></div>
+            <div id="schemas-${d.replace(/\s+/g, '')}"></div>`;
+        techData[d].schematics.forEach((s, i) => {
+            pane.querySelector(`#schemas-${d.replace(/\s+/g, '')}`).innerHTML += `<div id="schema-${d.replace(/\s+/g, '')}-${i}" class="spell-item">
+                <strong>${s.nom}</strong> (Compos: ${s.compo})<br><em>${s.desc}</em></div>`;
+        });
+        tab.querySelector('.magic-contents').appendChild(pane);
+        isFirst = false;
+    }
+}
+
+function switchTechTab(d) {
+    const tab = document.getElementById('tab-tech');
+    tab.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === d));
+    tab.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'tech-pane-' + d.replace(/\s+/g, '')));
+}
+
+function modTech(d, v) {
+    if (!perso.techInvesties) perso.techInvesties = {};
+    let act = perso.techInvesties[d] || 0;
+    if (v > 0) {
+        if (perso.pointsDispo <= 0 || act >= 7) return;
+        let intel = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
+        if (intel < techData[d].schematics[act].int) { alert("IN insuffisante"); return; }
+        perso.techInvesties[d] = act + 1; perso.pointsDispo--;
+    } else {
+        let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
+        if (act <= base) return;
+        perso.techInvesties[d] = act - 1; perso.pointsDispo++;
+    }
     updateFicheUI();
 }
 
-// ================= VALIDATION =================
+function updateTechUI_Display() {
+    for (let d in techData) {
+        let act = perso.techInvesties[d] || 0;
+        let id = d.replace(/\s+/g, '');
+        let el = document.getElementById('tech-val-' + id);
+        if (el) el.innerText = act + "/7";
+        
+        let btnMoins = document.querySelector(`button[onclick="modTech('${d}', -1)"]`);
+        let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
+        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
+
+        for (let i = 0; i < 7; i++) {
+            let sDiv = document.getElementById(`schema-${id}-${i}`);
+            if (sDiv) sDiv.classList.toggle('learned', i < act);
+        }
+    }
+}
+
+// ================= ALIGNEMENT & SAUVEGARDE =================
+function calculerAlignement() {
+    let m = 0, t = 0;
+    if (perso.magieInvesties) for (let e in perso.magieInvesties) m += perso.magieInvesties[e];
+    if (perso.techInvesties) for (let d in perso.techInvesties) t += perso.techInvesties[d];
+    if (perso.compInvesties && typeof competencesData !== 'undefined' && competencesData["Technologie"]) {
+        competencesData["Technologie"].forEach(c => { t += (perso.compInvesties[c.id] || 0) / 4; });
+    }
+    return Math.max(-100, Math.min(100, (m * 5) - (t * 5)));
+}
+
+function resetInvestissements() {
+    if (!confirm("Réinitialiser tous les investissements du niveau ?")) return;
+    for (let s in perso.statsInvesties) { perso.pointsDispo += perso.statsInvesties[s]; perso.statsInvesties[s] = 0; }
+    for (let id in perso.compInvesties) {
+        let act = perso.compInvesties[id], base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
+        perso.pointsDispo += (act - base) / 4; perso.compInvesties[id] = base;
+    }
+    perso.pointsDispo += ((perso.boostPV || 0) - (perso.boostPVBase || 0)) / 5; perso.boostPV = perso.boostPVBase || 0;
+    perso.pointsDispo += ((perso.boostFT || 0) - (perso.boostFTBase || 0)) / 5; perso.boostFT = perso.boostFTBase || 0;
+    if (perso.magieInvesties) for (let e in perso.magieInvesties) {
+        let b = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
+        perso.pointsDispo += (perso.magieInvesties[e] - b); perso.magieInvesties[e] = b;
+    }
+    if (perso.techInvesties) for (let d in perso.techInvesties) {
+        let b = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
+        perso.pointsDispo += (perso.techInvesties[d] - b); perso.techInvesties[d] = b;
+    }
+    updateFicheUI();
+}
+
 function validerChangements() {
-    if (perso.pointsDispo > 0) {
-        alert("Action impossible : Il vous reste " + perso.pointsDispo + " point(s) à distribuer ! Vous devez tout dépenser avant de verrouiller la fiche.");
-        return; 
-    }
-
-    if (confirm("Voulez-vous valider définitivement ces changements ? Vous ne pourrez plus retirer ces points par la suite.")) {
-        
-        for (let s in perso.statsInvesties) {
-            perso.statsBase[s] += perso.statsInvesties[s]; 
-            perso.statsInvesties[s] = 0; 
-        }
-
-        if (!perso.compBase) perso.compBase = {};
-        for (let c in perso.compInvesties) {
-            perso.compBase[c] = perso.compInvesties[c]; 
-        }
-
-        perso.boostPVBase = perso.boostPV || 0;
-        perso.boostFTBase = perso.boostFT || 0;
-
-        if (!perso.magieBase) perso.magieBase = {};
-        if (perso.magieInvesties) {
-            for (let e in perso.magieInvesties) {
-                perso.magieBase[e] = perso.magieInvesties[e];
-            }
-        }
-		
-		if (!perso.techBase) perso.techBase = {};
-        if (perso.techInvesties) {
-            for (let t in perso.techInvesties) {
-                perso.techBase[t] = perso.techInvesties[t];
-            }
-        }
-		
-		
-
+    if (perso.pointsDispo > 0) { alert("Dépensez tous vos points !"); return; }
+    if (confirm("Valider définitivement ?")) {
+        for (let s in perso.statsInvesties) { perso.statsBase[s] += (perso.statsInvesties[s] || 0); perso.statsInvesties[s] = 0; }
+        if (!perso.compBase) perso.compBase = {}; for (let c in perso.compInvesties) perso.compBase[c] = perso.compInvesties[c];
+        perso.boostPVBase = perso.boostPV; perso.boostFTBase = perso.boostFT;
+        if (!perso.magieBase) perso.magieBase = {}; for (let e in perso.magieInvesties) perso.magieBase[e] = perso.magieInvesties[e];
+        if (!perso.techBase) perso.techBase = {}; for (let d in perso.techInvesties) perso.techBase[d] = perso.techInvesties[d];
         document.getElementById('ecran-fiche').classList.add('is-locked');
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
-        
-        alert("Fiche mise à jour et verrouillée avec succès !");
-        updateFicheUI(); 
+        updateFicheUI();
     }
 }
 
+function switchSkillTab(id) {
+    ["tab-comp", "tab-tech", "tab-magie"].forEach(t => {
+        let el = document.getElementById(t);
+        if (el) el.style.display = t === id ? 'block' : 'none';
+    });
+    ["btn-tab-comp", "btn-tab-tech", "btn-tab-magie"].forEach(b => {
+        let el = document.getElementById(b);
+        if (el) el.classList.toggle('active', b === 'btn-' + id);
+    });
+}
 
-// ================= GESTION DE LA TECHNOLOGIE =================
-function initTechUI() {
-    const tabTech = document.getElementById('tab-tech');
-    tabTech.innerHTML = '<h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0; margin-bottom:15px;">Disciplines Technologiques</h4>'; 
+function telechargerFichier() {
+    const blob = new Blob([JSON.stringify(perso, null, 2)], { type: "application/json" });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = (perso.nom || "perso") + "_arcanum.json"; a.click();
+}
 
-    let tabsDiv = document.createElement('div');
-    tabsDiv.className = 'magic-tabs'; // On réutilise le style CSS des onglets Magie !
-    tabTech.appendChild(tabsDiv);
-
-    let contentDiv = document.createElement('div');
-    tabTech.appendChild(contentDiv);
-
-    let isFirst = true;
-
-    // Dictionnaire des icônes pour chaque discipline
-    const iconesTech = {
-        "Forge": "⚒️", "Mécanique": "⚙️", "Armurerie": "🔫", "Electricité": "⚡",
-        "Botanique": "🌱", "Thérapeutique": "💊", "Chimie": "🧪", "Explosifs": "💣"
+function importerFichier(e) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const p = JSON.parse(ev.target.result);
+        if (p.nom) { localStorage.setItem('arcanum_sauvegarde', JSON.stringify(p)); perso = p; updateFicheUI(); cacherTout(); document.getElementById('ecran-fiche').style.display = 'block'; }
     };
-
-    for (let dis in techData) {
-        let disData = techData[dis];
-        let safeDisId = dis.replace(/\s+/g, '');
-
-        let btn = document.createElement('button');
-        btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
-        btn.innerText = iconesTech[dis] || "🔧"; 
-        btn.title = dis; 
-        btn.onclick = function() { switchTechTab(dis); };
-        tabsDiv.appendChild(btn);
-
-        let pane = document.createElement('div');
-        pane.id = 'tech-pane-' + safeDisId;
-        pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
-
-        pane.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="color:#d4af37; font-weight:bold; font-variant:small-caps; font-size:1.1em;">${dis}</span>
-                <div class="stat-controls">
-                    <button class="btn-stat edit-only" onclick="modTech('${dis}', -1)">-</button>
-                    <span id="tech-val-${safeDisId}" class="stat-value" style="font-size:1em; margin: 0 10px;">0/7</span>
-                    <button class="btn-stat edit-only" onclick="modTech('${dis}', 1)">+</button>
-                </div>
-            </div>
-            <div style="font-size:0.85em; color:#aaa; margin-bottom:15px; font-style:italic; border-left: 2px solid #444; padding-left: 10px;">
-                ${disData.desc}
-            </div>
-            <div id="schemas-list-${safeDisId}" style="background: #1a110b; padding: 10px; border: 1px solid #333; border-radius: 4px;"></div>
-        `;
-
-        let schemasContainer = pane.querySelector('#schemas-list-' + safeDisId);
-        disData.schematics.forEach((schema, index) => {
-            let compoAffiche = schema.compo ? schema.compo : "?";
-            let descAffiche = schema.desc ? schema.desc : "Description inconnue.";
-            
-            schemasContainer.innerHTML += `
-                <div id="schema-${safeDisId}-${index}" class="spell-item">
-                    <div style="line-height: 1.3;">
-                        <strong>Niveau ${index + 1} : ${schema.nom}</strong> 
-                        <span style="color: #ff9800; font-weight: bold; font-size: 0.85em; float:right;">Composants: ${compoAffiche}</span><br>
-                        <em style="font-size: 0.85em; padding-left: 15px; display: inline-block; margin-top: 3px;">${descAffiche}</em>
-                    </div>
-                </div>
-            `;
-        });
-
-        contentDiv.appendChild(pane);
-        isFirst = false;
-    }
+    reader.readAsText(e.target.files[0]);
 }
 
-function switchTechTab(disActive) {
-    let safeId = 'tech-pane-' + disActive.replace(/\s+/g, '');
-    
-    // Le code fouille dans l'onglet tech pour ajuster les boutons
-    const tabTech = document.getElementById('tab-tech');
-    tabTech.querySelectorAll('.magic-tab-btn').forEach(btn => {
-        if(btn.title === disActive) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
-
-    tabTech.querySelectorAll('.magic-content-pane').forEach(pane => {
-        if(pane.id === safeId) pane.classList.add('active');
-        else pane.classList.remove('active');
-    });
-}
-
-function modTech(dis, val) {
-    if (!perso.techInvesties) perso.techInvesties = {};
-    
-    let niveauActuel = perso.techInvesties[dis] || 0;
-    
-    if (val > 0) {
-        if (perso.pointsDispo <= 0) return; 
-        if (niveauActuel >= 7) return; // La technologie va jusqu'à 7 !
-        
-        let schemaCible = techData[dis].schematics[niveauActuel];
-        let intActuelle = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
-        
-        if (intActuelle < schemaCible.int) {
-            alert(`Intelligence insuffisante ! Le schéma "${schemaCible.nom}" nécessite ${schemaCible.int} en IN.`);
-            return;
-        }
-        
-        perso.techInvesties[dis] = niveauActuel + 1;
-        perso.pointsDispo -= 1;
-    } 
-    else if (val < 0) {
-        let niveauBase = (perso.techBase && perso.techBase[dis]) ? perso.techBase[dis] : 0;
-        if (niveauActuel <= niveauBase) return;
-        
-        perso.techInvesties[dis] = niveauActuel - 1;
-        perso.pointsDispo += 1;
-    }
-    
+function levelUp() {
+    document.getElementById('ecran-fiche').classList.remove('is-locked');
+    perso.niveau = (perso.niveau || 1) + 1;
+    perso.pointsDispo = (perso.pointsDispo || 0) + (perso.niveau % 5 === 0 ? 2 : 1);
     updateFicheUI();
 }
-
-// ================= ALIGNEMENT MAGIE / TECHNOLOGIE =================
-function calculerAlignement() {
-    let ptsMagie = 0;
-    let ptsTech = 0;
-
-    // 1. Magie (Chaque sort appris donne 1 point)
-    if (perso.magieInvesties) {
-        for (let ecole in perso.magieInvesties) {
-            ptsMagie += perso.magieInvesties[ecole];
-        }
-    }
-
-    // 2. Technologie (Chaque schéma appris donne 1 point)
-    if (perso.techInvesties) {
-        for (let dis in perso.techInvesties) {
-            ptsTech += perso.techInvesties[dis];
-        }
-    }
-
-    // 3. Compétences Technologiques
-    // On fouille dans la catégorie "Technologie" de competencesData
-    if (perso.compInvesties && typeof competencesData !== 'undefined' && competencesData["Technologie"]) {
-        competencesData["Technologie"].forEach(comp => {
-            let valeurComp = perso.compInvesties[comp.id] || 0;
-            // On divise par 4 car 1 rang investi = +4 dans la valeur
-            ptsTech += (valeurComp / 4);
-        });
-    }
-
-    // Calcul final : Magie monte, Tech descend (x5 par point)
-    let alignementFinal = (ptsMagie * 5) - (ptsTech * 5);
-
-    // On bloque l'alignement entre -100 (Max Tech) et +100 (Max Magie)
-    if (alignementFinal > 100) alignementFinal = 100;
-    if (alignementFinal < -100) alignementFinal = -100;
-
-    return alignementFinal;
-}
-
-
-
-
-
-
-
-
-
-

@@ -76,115 +76,97 @@
         </div>
     </div>
 
-    <div id="ecran-fiche" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
-        
 
-<div class="arcanum-header">
-    <div class="header-portrait" style="width: 64px; height: 64px; background: #000; border: 2px solid #d4af37; border-radius: 50%;"></div>
-    
-    <div class="header-info">
-        <div id="fiche-name" style="color: #d4af37; font-size: 1.5em; font-weight: bold; font-variant: small-caps;">Nom</div>
+
+<div id="ecran-fiche" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
         
-        <div style="margin: 5px 0;">
-            <span style="position: relative; display: inline-block;">
-                Niveau: <span id="fiche-level">1</span> 
-                <button class="btn-lvl-up lvl-up-btn" onclick="levelUp()" title="Passer au niveau supérieur">LV<br>UP</button>
-            </span>
+        <div class="arcanum-header">
+            <div class="header-portrait" style="width: 64px; height: 64px; background: #000; border: 2px solid #d4af37; border-radius: 50%;"></div>
+            
+            <div class="header-info">
+                <div id="fiche-name" style="color: #d4af37; font-size: 1.5em; font-weight: bold; font-variant: small-caps;">Nom</div>
+                
+                <div style="margin: 5px 0;">
+                    <span style="position: relative; display: inline-block;">
+                        Niveau: <span id="fiche-level">1</span> 
+                        <button class="btn-lvl-up lvl-up-btn" onclick="levelUp()" title="Passer au niveau supérieur">LV<br>UP</button>
+                    </span>
+                </div>
+                
+                <div style="color: #d4af37; font-weight: bold;">Points à distribuer: <span id="points-dispo">5</span></div>
+            </div>
+            
+            <div class="header-info" style="border-left: 1px solid #444; padding-left: 20px;">
+                <div>Race: <span id="fiche-race">-</span></div>
+                <div>Sexe: <span id="fiche-sexe">-</span></div>
+                <div>Antécédent: <span id="fiche-bg">-</span></div>
+            </div>
         </div>
-        
-        <div style="color: #d4af37; font-weight: bold;">Points à distribuer: <span id="points-dispo">5</span></div>
-    </div>
-    
-    <div class="header-info" style="border-left: 1px solid #444; padding-left: 20px;">
-        <div>Race: <span id="fiche-race">-</span></div>
-        <div>Sexe: <span id="fiche-sexe">-</span></div>
-        <div>Antécédent: <span id="fiche-bg">-</span></div>
-    </div>
-</div>
-
-
 
         <div class="arcanum-main-layout">
             <div class="arcanum-left-panel">
                 
                 <div class="stats-top-section">
                     <div class="stats-grid-5">
-                       <div class="stat-row">
-							<div class="stat-name" title="Détermine les dégâts au corps à corps et la charge maximale.">FORCE (FO)</div>
-							<div class="stat-controls">
-							<button class="btn-stat btn-moins edit-only" onclick="modStat('FO', -1)">-</button>
-							<span id="fiche-val-FO" class="stat-value">8</span>
-							<button class="btn-stat btn-plus edit-only" onclick="modStat('FO', 1)">+</button>
-						</div>
-						</div>
+                        <div class="stat-row">
+                            <div class="stat-name" title="Détermine les dégâts au corps à corps et la charge maximale.">FORCE (FO)</div>
+                            <div class="stat-controls">
+                                <button class="btn-stat btn-moins edit-only" onclick="modStat('FO', -1)">-</button>
+                                <span id="fiche-val-FO" class="stat-value">8</span>
+                                <button class="btn-stat btn-plus edit-only" onclick="modStat('FO', 1)">+</button>
+                            </div>
+                        </div>
                         <div class="stat-row">
                             <div class="stat-name" title="influe sur les capacités à maitriser la magie et la technologie." >Intelligence (IN)</div>
-														<div class="stat-controls">
-
-                            <button class="btn-stat btn-moins edit-only" onclick="modStat('IN', -1)">-</button>
-                            <span id="fiche-val-IN" class="stat-value">8</span>
-                            <button class="btn-stat btn-plus edit-only" onclick="modStat('IN', 1)">+</button>
+                            <div class="stat-controls">
+                                <button class="btn-stat btn-moins edit-only" onclick="modStat('IN', -1)">-</button>
+                                <span id="fiche-val-IN" class="stat-value">8</span>
+                                <button class="btn-stat btn-plus edit-only" onclick="modStat('IN', 1)">+</button>
+                            </div>
                         </div>
-						</div>
                         <div class="stat-row">
                             <div class="stat-name" title="Déterminela résistance à la fatigue/poison et la vitesse de guérison.">Constitution (CN)</div>
-														<div class="stat-controls">
-
-                            <button class="btn-stat btn-moins edit-only" onclick="modStat('CN', -1)">-</button>
-                            <span id="fiche-val-CN" class="stat-value">8</span>
-                            <button class="btn-stat btn-plus edit-only" onclick="modStat('CN', 1)">+</button>
+                            <div class="stat-controls">
+                                <button class="btn-stat btn-moins edit-only" onclick="modStat('CN', -1)">-</button>
+                                <span id="fiche-val-CN" class="stat-value">8</span>
+                                <button class="btn-stat btn-plus edit-only" onclick="modStat('CN', 1)">+</button>
+                            </div>
                         </div>
-						</div>
                         <div class="stat-row">
-                            <div class="stat-name"title="Détermine la vitesse et influe sur un grand nombre de compétences">Dextérité (DX)</div>
-														<div class="stat-controls">
-
-                            <button class="btn-stat btn-moins edit-only" onclick="modStat('DX', -1)">-</button>
-                            <span id="fiche-val-DX" class="stat-value">8</span>
-                            <button class="btn-stat btn-plus edit-only" onclick="modStat('DX', 1)">+</button>
+                            <div class="stat-name" title="Détermine la vitesse et influe sur un grand nombre de compétences">Dextérité (DX)</div>
+                            <div class="stat-controls">
+                                <button class="btn-stat btn-moins edit-only" onclick="modStat('DX', -1)">-</button>
+                                <span id="fiche-val-DX" class="stat-value">8</span>
+                                <button class="btn-stat btn-plus edit-only" onclick="modStat('DX', 1)">+</button>
+                            </div>
                         </div>
-						</div>
                         <div class="stat-row">
                             <div class="stat-name" title="Détermine les réactions des pnj et le nombre de compagnons." >Charisme (CH)</div>
-														<div class="stat-controls">
-
-                            <button class="btn-stat btn-moins edit-only" onclick="modStat('CH', -1)">-</button>
-                            <span id="fiche-val-CH" class="stat-value">8</span>
-                            <button class="btn-stat btn-plus edit-only" onclick="modStat('CH', 1)">+</button>
+                            <div class="stat-controls">
+                                <button class="btn-stat btn-moins edit-only" onclick="modStat('CH', -1)">-</button>
+                                <span id="fiche-val-CH" class="stat-value">8</span>
+                                <button class="btn-stat btn-plus edit-only" onclick="modStat('CH', 1)">+</button>
+                            </div>
                         </div>
-                    </div>
-                    
-					
-					                </div>
-
-					
-<div class="vital-signs">
-    <div class="vital-bubble health-bubble">
-        <span id="fiche-pv">0</span>
-        <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
-            <button class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
-            <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 5)">+</button>
-        </div>
-        <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">VIE</small>
-    </div>
-    
-    <div class="vital-bubble fatigue-bubble">
-        <span id="fiche-fatigue">0</span>
-        <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
-            <button class="btn-stat btn-moins edit-onlyt" onclick="boostVital('FT', -5)">-</button>
-            <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 5)">+</button>
-        </div>
-        <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">FATIGUE</small>
-    </div>
-</div>
-
-					                </div>
-
-
-
-
-
-               <div class="stats-bottom-section">
+                    </div> <div class="vital-signs">
+                        <div class="vital-bubble health-bubble">
+                            <span id="fiche-pv">0</span>
+                            <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
+                                <button class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
+                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 5)">+</button>
+                            </div>
+                            <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">VIE</small>
+                        </div>
+                        
+                        <div class="vital-bubble fatigue-bubble">
+                            <span id="fiche-fatigue">0</span>
+                            <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
+                                <button class="btn-stat btn-moins edit-only" onclick="boostVital('FT', -5)">-</button>
+                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 5)">+</button>
+                            </div>
+                            <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">FATIGUE</small>
+                        </div>
+                    </div> </div> <div class="stats-bottom-section">
                     <div class="derived-box">
                         <div class="box-title">Caractéristiques Dérivées</div>
                         <div class="derived-list">
@@ -208,41 +190,37 @@
                             <div>Électricité: <span id="res-elec">0</span></div>
                         </div>
                     </div>
+                </div> </div> <div class="arcanum-right-panel">
+                <div class="arcanum-tabs">
+                    <button id="btn-tab-comp" class="arc-tab-btn active" onclick="switchSkillTab('tab-comp')">Compétences</button>
+                    <button id="btn-tab-tech" class="arc-tab-btn" onclick="switchSkillTab('tab-tech')">Technologie</button>
+                    <button id="btn-tab-magie" class="arc-tab-btn" onclick="switchSkillTab('tab-magie')">Magie</button>
                 </div>
-            </div>
 
-<div class="arcanum-tabs">
-    <button id="btn-tab-comp" class="arc-tab-btn active" onclick="switchSkillTab('tab-comp')">Compétences</button>
-    <button id="btn-tab-tech" class="arc-tab-btn" onclick="switchSkillTab('tab-tech')">Technologie</button>
-    <button id="btn-tab-magie" class="arc-tab-btn" onclick="switchSkillTab('tab-magie')">Magie</button>
-</div>
-
-             <div id="tab-comp" class="arc-tab-content active" style="overflow-y: auto; max-height: 400px; padding-right: 10px;">
-                    </div>
-                <div id="tab-tech" class="arc-tab-content" style="display:none;">
-                    <h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0;">Technologie</h4>
-                </div>
-                <div id="tab-magie" class="arc-tab-content" style="display:none;">
-                    <h4 style="color:#8b7355; border-bottom:1px solid #333; margin-top:0;">Magie</h4>
-                </div>
-            </div>
-
-            <div class="alignment-meter">
-                <div class="meter-icon" style="color: #2196f3;">🌀</div>
-                <div class="meter-bar">
+                <div id="tab-comp" class="arc-tab-content active" style="overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
+                <div id="tab-tech" class="arc-tab-content" style="display:none; overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
+                <div id="tab-magie" class="arc-tab-content" style="display:none; overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
+            </div> 
+<div class="alignment-meter">
+                <div class="meter-icon" style="color: #2196f3;" title="Magie">🌀</div>
+                <div class="meter-bar" title="Alignement Magie/Technologie">
                     <div class="meter-needle" id="meter-needle" style="top: 50%;"></div>
                 </div>
-                <div class="meter-icon" style="color: #ff9800;">⚙️</div>
-            </div>
-
-        </div>
-
-<div style="display: flex; justify-content: space-between; margin-top: 20px;">
-    <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour à l'accueil</button>
+                <div class="meter-icon" style="color: #ff9800;" title="Technologie">⚙️</div>
+                
+                <div id="meter-score" style="font-size: 0.8em; font-weight: bold; margin-top: 8px; color: #dcdcdc; text-align: center;">0</div>
+            </div>		
+			</div> 
+		<div style="display: flex; justify-content: space-between; margin-top: 20px;">
+    <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour</button>
+        
     <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerChangements()">✅ Valider Level Up</button>
-    <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Télécharger la Fiche</button>
+    <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Sauvegarder</button>
 </div>
     </div>
+
+
+
 
 <script src="backgrounds.js"></script>
     <script src="skills.js"></script>

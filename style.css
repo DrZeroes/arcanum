@@ -535,3 +535,53 @@ input[type="text"]:focus, select:focus { border-color: #d4af37; outline: none; }
     border-bottom: 2px solid #3e2d20; /* Fusionne avec le panneau du dessous */
     margin-bottom: -2px; 
 }
+
+
+/* --- SOUS-ONGLETS DES COMPÉTENCES --- */
+.sub-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #444;
+    padding-bottom: 5px;
+}
+
+.sub-tab-btn {
+    flex: 1;
+    background: #1a110b;
+    color: #888;
+    border: 1px solid #333;
+    padding: 8px 5px;
+    cursor: pointer;
+    font-size: 0.75em;
+    font-variant: small-caps;
+    border-radius: 4px 4px 0 0;
+    transition: 0.2s;
+}
+
+.sub-tab-btn:hover {
+    background: #2a1b12;
+    color: #ccc;
+}
+
+.sub-tab-btn.active {
+    background: #3e2d20;
+    color: #d4af37;
+    border-color: #d4af37;
+    border-bottom: 2px solid #3e2d20; 
+    margin-bottom: -7px; 
+    font-weight: bold;
+}
+
+.sub-tab-content {
+    display: none;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+
+/* Sécurité pour l'affichage des boutons */
+.edit-only { visibility: visible !important; }
+.is-locked .edit-only { visibility: hidden !important; }

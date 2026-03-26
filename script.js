@@ -2,53 +2,52 @@
 const racesData = {
     "Humain": { 
         FO:8, IN:8, CN:8, DX:8, CH:8, peutEtreFemme: true,
-        spec: "Aucune",
         mod: { align: 0, resPoison: 0, resPhys: 0 }
     },
     "Nain": { 
         FO:9, IN:8, CN:9, DX:7, CH:7, peutEtreFemme: false,
-        spec: "15% Technologie, +2 toutes comp. Technologie",
         mod: { align: -15, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: 2 } }
     },
     "Gnome": { 
         FO:8, IN:10, CN:6, DX:8, CH:8, peutEtreFemme: true,
-        spec: "+2 Marchandage",
         mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { marchandage: 2 } }
     },
     "Halfelin": { 
         FO:5, IN:8, CN:8, DX:10, CH:8, peutEtreFemme: true,
-        spec: "+2 Discrétion, +1 Esquive, +5% Crit",
-        mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { discretion: 2, esquive: 1 } }
+        mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { discretion: 2, esquive: 1, vol_a_la_tire:1 } }
     },
     "Ogre": { 
         FO:14, IN:2, CN:8, DX:8, CH:3, peutEtreFemme: false,
-        spec: "20% Résistance Physique, -3 Discrétion",
         mod: { align: 0, resPoison: 0, resPhys: 20, bonusComp: { discretion: -3 } }
     },
     "Demi-Ogre": { 
         FO:12, IN:4, CN:8, DX:8, CH:7, peutEtreFemme: false,
-        spec: "10% Résistance Physique, -2 Discrétion",
         mod: { align: 0, resPoison: 0, resPhys: 10, bonusComp: { discretion: -2 } }
     },
     "Elfe": { 
         FO:7, IN:9, CN:6, DX:9, CH:9, peutEtreFemme: true,
-        spec: "15% Magie, -2 points toutes comp. Techno",
         mod: { align: 15, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: -2 } }
     },
     "Demi-Elfe": { 
         FO:8, IN:8, CN:7, DX:9, CH:9, peutEtreFemme: true,
-        spec: "5% Magie, -1 point toutes comp. Techno",
         mod: { align: 5, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: -1 } }
     },
     "Orque": { 
         FO:10, IN:7, CN:10, DX:8, CH:4, peutEtreFemme: false,
-        spec: "+3 Mêlée, 20% Résistance Poison",
-        mod: { align: 0, resPoison: 20, resPhys: 0, bonusComp: { melee: 3 } }
+        mod: { align: 0, resPoison: 20, resPhys: 0, bonusComp: { melee: 4 } }
     },
     "Demi-Orque": { 
         FO:9, IN:8, CN:9, DX:8, CH:6, peutEtreFemme: true,
-        spec: "+2 Mêlée & Esquive, 10% Résistance Poison",
         mod: { align: 0, resPoison: 10, resPhys: 0, bonusComp: { melee: 2, esquive: 2 } }
+    }
+	,
+    "Bedokien": { 
+        FO:7, IN:9, CN:8, DX:10, CH:6, peutEtreFemme: true,
+        mod: { align: 10, resPoison: 15, resFeu:15, resPhys: 0, bonusComp: { arc: 3}, magieInit: { "Feu": 1 } }
+    },
+    "Elfe noire": { 
+        FO:6, IN:11, CN:6, DX:7, CH:10, peutEtreFemme: true,
+        mod: { align: 20, resPoison: 0, resPhys: 0, bonusComp: { discretion: 2, attaque_sournoise: 2 }, magieInit: { "Nécromancie noire": 1} }
     }
 };
 
@@ -163,8 +162,8 @@ function buildChar() {
             }
         }
         document.getElementById('desc-box').innerText = currentBg.desc;
-        document.getElementById('raceTraits').innerHTML = `<strong>Capacité :</strong> ${race.spec} | <strong>Effets :</strong> ${currentBg.effets || "Aucun"}`;
-    }
+		////A VOIRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+document.getElementById('raceTraits').innerHTML = `<strong>Effets :</strong> ${currentBg.effets || "Aucun"}`;    }
 
     statsCalculees = final; 
     for (let s in final) { 
@@ -182,11 +181,22 @@ const currentBg = backgrounds.find(b => b.nom === bgSelect.value) || backgrounds
 const argentDepart = (currentBg.mod && currentBg.mod.argent !== undefined) ? currentBg.mod.argent : 400;
 
 // On l'ajoute visuellement dans la zone de traits
-document.getElementById('raceTraits').innerHTML = `
+
+		////A VOIRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+
+/*document.getElementById('raceTraits').innerHTML = `
     <strong>Capacité :</strong> ${race.spec} | 
     <strong>Effets :</strong> ${currentBg.effets || "Aucun"} | 
     <strong>Argent :</strong> ${argentDepart} Or
 `;
+*/
+// On l'ajoute visuellement dans la zone de traits
+document.getElementById('raceTraits').innerHTML = `
+    <strong>Effets :</strong> ${currentBg.effets || "Aucun"} | 
+    <strong>Argent :</strong> ${argentDepart} Or
+`;
+
+
 	
 }
 
@@ -210,6 +220,10 @@ function validerCreation() {
 		
 		argent: (bg.mod && bg.mod.argent !== undefined) ? bg.mod.argent : 400,
 		
+		// On ajoute le stockage du bonus de vitesse ici
+    boostVitesseInne: (bg.mod && bg.mod.vitesse) ? bg.mod.vitesse : 0,
+		
+		
         boostPV: 0, boostFT: 0,
         boostPVBase: 0, boostFTBase: 0,
         statsBase: JSON.parse(JSON.stringify(statsCalculees)), // Les stats incluent déjà le mod du BG via buildChar()
@@ -219,11 +233,14 @@ function validerCreation() {
         magieInvesties: {},
         techInvesties: {},
         // CUMUL DES BONUS (Race + BG)
-        bonusInnes: {
-            align: (race.mod.align || 0) + (bg.mod.align || 0),
-            resPhys: (race.mod.resPhys || 0) + (bg.mod.resPhys || 0),
-            resPoison: (race.mod.resPoison || 0) + (bg.mod.resPoison || 0)
-        }
+     bonusInnes: {
+        align: (race.mod.align || 0) + (bg.mod.align || 0),
+        resPhys: (race.mod.resPhys || 0) + (bg.mod.resPhys || 0),
+        resPoison: (race.mod.resPoison || 0) + (bg.mod.resPoison || 0),
+        resMagie: (race.mod.resMagie || 0) + (bg.mod.resMagie || 0), // Ajouté
+        resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),       // Ajouté
+        resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)     // Ajouté
+    }
     };
 
     // --- APPLICATION DES BONUS DE COMPÉTENCES (Race + BG) ---
@@ -251,6 +268,31 @@ function validerCreation() {
 
     appliquerComp(race.mod);
     appliquerComp(bg.mod);
+
+// --- GESTION GÉNÉRIQUE DES MAGIES & TECHNOS (RACES + BACKGROUNDS) ---
+    
+    // 1. Initialiser les objets s'ils n'existent pas
+    if (!perso.techInvesties) perso.techInvesties = {};
+    if (!perso.magieInvesties) perso.magieInvesties = {};
+
+    // 2. Fonction pour ajouter les points
+    const ajouterPointsInit = (source) => {
+        if (source && source.techInit) {
+            for (let discipline in source.techInit) {
+                perso.techInvesties[discipline] = source.techInit[discipline];
+            }
+        }
+        if (source && source.magieInit) {
+            for (let ecole in source.magieInit) {
+                perso.magieInvesties[ecole] = source.magieInit[ecole];
+            }
+        }
+    };
+
+    // 3. On applique pour la Race ET le Background
+    ajouterPointsInit(race.mod);
+    ajouterPointsInit(bg.mod);
+
 
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
     cacherTout();
@@ -354,7 +396,15 @@ function updateFicheUI() {
     }
 
     if (document.getElementById('der-armure')) document.getElementById('der-armure').innerText = statDX;
-    if (document.getElementById('der-vitesse')) document.getElementById('der-vitesse').innerText = statDX;
+// Calcul de la vitesse : Dextérité + Bonus de background
+const elVitesse = document.getElementById('der-vitesse');
+if (elVitesse) {
+    const totalVitesse = statDX + (perso.boostVitesseInne || 0);
+    elVitesse.innerText = totalVitesse;
+    
+    // Optionnel : mettre en vert si boosté
+    elVitesse.style.color = (perso.boostVitesseInne > 0) ? "#4caf50" : "#dcdcdc";
+}
     if (document.getElementById('der-guerison')) document.getElementById('der-guerison').innerText = Math.floor(statCN / 3);
     if (document.getElementById('der-toxines')) document.getElementById('der-toxines').innerText = statCN;
 
@@ -366,18 +416,19 @@ function updateFicheUI() {
     if (document.getElementById('der-compagnons')) document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(statCH / 4));
 
   // --- 8. RÉSISTANCES (SÉCURISÉES) ---
-let b = perso.bonusInnes || { resPhys: 0, resPoison: 0 };
+const b = perso.bonusInnes || { resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
 
-const updateRes = (id, val) => {
+const setRes = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.innerText = (val || 0) + "%";
 };
 
-updateRes('res-degats', b.resPhys);
-updateRes('res-poison', b.resPoison);
-updateRes('res-sorts', b.resMagie);
-updateRes('res-feu', 0);
-updateRes('res-elec', 0);
+// On lie chaque ID du HTML aux données du personnage
+setRes('res-degats', b.resPhys);    // Résistance Physique
+setRes('res-poison', b.resPoison);  // Résistance Poison
+setRes('res-sorts', b.resMagie);    // Résistance Magique
+setRes('res-feu', b.resFeu);        // Résistance Feu (Nouveau)
+setRes('res-elec', b.resElec);      // Résistance Élec (Nouveau)
 
     // 9. COMPÉTENCES
     if (perso.compInvesties) {

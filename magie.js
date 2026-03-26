@@ -1,8 +1,8 @@
 const magieData = {
     "Déplacement": {
-        desc: "Sortilèges liés au mouvement et au déplacement d'êtres ou d'objets.",
+        desc: "Les arcanes du Déplacement regroupent les sortilèges liés aux mouvements et aux déplacements d'",
         sorts: [
-            { nom: "Désarmement", niv: 1, int: 6, cout: 10, desc: "Fait tomber l'arme équipée par la cible." },
+            { nom: "Désarmement", niv: 1, int: 6, cout: 10, desc: " si la cible n'a pas la dextérité nécessaire pour résister, son arme lui échappera des mains" },
             { nom: "Déverrouillage", niv: 1, int: 9, cout: 10, desc: "Ouvre magiquement les portes et conteneurs normaux." },
             { nom: "Choc", niv: 5, int: 12, cout: 15, desc: "Repousse violemment une cible en arrière." },
             { nom: "Distorsion spatiale", niv: 10, int: 15, cout: 25, desc: "Vous téléporte instantanément sur une courte distance." },
@@ -20,13 +20,13 @@ const magieData = {
         ]
     },
     "Air": {
-        desc: "Sortilèges basés sur l'utilisation du premier élémentaire, à savoir l'air et le vent.",
+        desc: "Ecole basée sur la manipulation de l’élément air. La plupart des sorts sont surtout défensif, mais il y a quelques sort plus ou moins offensifs.",
         sorts: [
-            { nom: "Vitalité de l'Air", niv: 1, int: 6, cout: "?", desc: "???" },
-            { nom: "Vapeurs toxiques", niv: 1, int: 9, cout: "?", desc: "???" },
-            { nom: "Rafale de vent", niv: 5, int: 12, cout: "?", desc: "???" },
-            { nom: "Incarnation d'Air", niv: 10, int: 15, cout: "?", desc: "???" },
-            { nom: "Appel d'un élémentaire de l'Air", niv: 15, int: 18, cout: "?", desc: "???" }
+            { nom: "Vitalité de l'Air", niv: 1, int: 6, cout: "?", desc: "Augmente la constitution de la cible" },
+            { nom: "Vapeurs toxiques", niv: 1, int: 9, cout: "?", desc: "crée un nuage toxique" },
+            { nom: "Rafale de vent", niv: 5, int: 12, cout: "?", desc: "crée un tourbillon autour du lanceur" },
+            { nom: "Incarnation d'Air", niv: 10, int: 15, cout: "?", desc: "rend le corps de la cible impalpable (donc relativement intouchable) et fait qu’il flotte au-dessus du sol" },
+            { nom: "Appel d'un élémentaire de l'Air", niv: 15, int: 18, cout: "?", desc: "invoque un élémental d’air" }
         ]
     },
     "Terre": { 
@@ -110,9 +110,9 @@ const magieData = {
         ] 
     },
     "Nécromancie noire": { 
-        desc: "Affecte de façon négative la force vitale.", 
+        desc: "Ecole basée sur la modification de la vie, négativement. Très intéressant à bas niveau, puisque c’est ici que vous apprendrez le seul sort offensif de 1er niveau.", 
         sorts: [
-            { nom: "???", niv: 1, int: 6, cout: "?", desc: "???" }, 
+            { nom: "Blessure ", niv: 1, int: 6, cout: "?", desc: "diminue la vie de la cible. Très efficace contre la plupart des créatures faibles (loups etc) et même contre les autres à haut niveau puisque la puissance augmente avec le niveau." }, 
             { nom: "???", niv: 1, int: 9, cout: "?", desc: "???" }, 
             { nom: "???", niv: 5, int: 12, cout: "?", desc: "???" }, 
             { nom: "???", niv: 10, int: 15, cout: "?", desc: "???" }, 

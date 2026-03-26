@@ -305,7 +305,7 @@ const backgrounds = [
         rest: {pasRaces:["Orque", "Demi-Orque", "Ogre", "Demi-Ogre"]}, 
         mod: {CH:6, FO:-2, CN:-2 , bonusCompCat: { cat: "Combat", val: -1 } }, 
         desc: "Convaincu par un voyageur de commerce de devenir son apprenti, vous avez abandonné votre vie dans l'académie militaire dans laquelle vous étiez inscrit. Vous gagnez un bonus majeur en Charisme, mais perdre un peu de Force et Constitution, en plus d'infliger de légères pénalités à tous vos Compétences de combat.",
-        effets: "Compétences de combat -1"
+        effets: "-"
     },
     { 
         nom: "Maladif", 

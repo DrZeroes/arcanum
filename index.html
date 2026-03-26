@@ -8,18 +8,77 @@
 </head>
 <body>
 
-    <div id="ecran-accueil" class="app-card" style="text-align: center; padding: 50px;">
-        <h1 style="font-size: 2.5em; margin-bottom: 5px;">ArcanumRP</h1>
-        <p style="color: #aaa; margin-bottom: 40px; font-style: italic;">Générateur de Personnages</p>
+<div id="ecran-accueil" class="app-card" style="text-align: center;">
+    <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ARCANUM</h1>
+    
+    <div id="accueil-nouveau-jeu">
+        <button class="next-btn" style="background: #8b0000; color: white; width: 80%; margin-bottom: 15px;" onclick="nouveauPersonnage()">✨ Créer un Personnage</button>
         
-        <button class="next-btn" style="width: 80%; margin-bottom: 20px; padding: 20px;" onclick="nouveauPersonnage()">Créer un nouveau personnage</button>
-        <br>
-        <button id="btn-load" class="next-btn" style="width: 80%; padding: 20px; background: #444; color: #fff;" onclick="chargerPersonnage()">Charger le personnage sauvegardé</button>
-        
-        <br><br>
-        <input type="file" id="file-import" accept=".json" style="display:none;" onchange="importerFichier(event)">
-        <button class="next-btn" style="width: 80%; padding: 15px; background: #2b2b2b; color: #d4af37; border: 1px dashed #d4af37;" onclick="document.getElementById('file-import').click()">📂 Importer un fichier perso (.json)</button>
+        <div style="margin-top: 10px;">
+            <input type="file" id="file-import-new" accept=".json" style="display:none;" onchange="importerFichier(event)">
+            <button class="next-btn" style="width: 80%; padding: 12px; background: #2b2b2b; color: #d4af37; border: 1px dashed #d4af37; font-size: 0.9em;" onclick="document.getElementById('file-import-new').click()">📂 Importer un perso (.json)</button>
+        </div>
     </div>
+
+    <div id="accueil-continuer" style="display: none;">
+        <h3 id="accueil-nom-perso" style="color: #aaa; margin-bottom: 20px;">Personnage : -</h3>
+        
+<button class="next-btn" style="background: #4caf50; color: white; width: 80%; margin-bottom: 10px;" onclick="reprendrePartie()">📜 Reprendre l'Aventure</button>        
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
+            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
+            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
+        </div>
+
+        <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+            <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
+            <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margin-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
+                Importer une autre sauvegarde (.json)
+            </span>
+            
+            <button onclick="nouveauPersonnage()" style="background: transparent; color: #555; border: 1px solid #333; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.7em;">
+                🗑️ Recommencer (Nouveau Perso)
+            </button>
+        </div>
+    </div>
+</div>
+		
+		
+		
+		
+		
+		
+		
+		
+		
+<div id="ecran-fouille" class="app-card" style="display:none; width:500px; background:#2b1d14; border:4px solid #d4af37;">
+    <h2 id="titre-fouille">Coffre</h2>
+    <button id="btn-tout-prendre" class="next-btn" style="background: #d4af37; color: #000; margin-bottom: 15px; width: 100%; display: none;">💰 Tout prendre</button>
+    
+    <div id="liste-fouille" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
+    <button class="next-btn" onclick="allerAccueil()">Fermer</button>
+</div>
+
+<div id="ecran-marchand" class="app-card" style="display:none; width:900px; background:#2b1d14; border:4px solid #795548;">
+    <h2 id="nom-marchand">Marchand</h2>
+    <div style="display:flex; gap:20px;">
+        <div style="flex:1; background:#1a110b; padding:10px; border-radius:5px;">
+            <h3>Échoppe (<span id="argent-marchand">0</span> Or)</h3>
+            <div id="inventaire-marchand"></div>
+        </div>
+        <div style="flex:1; background:#1a110b; padding:10px; border-radius:5px;">
+            <h3>Votre Sac (<span id="votre-argent">0</span> Or)</h3>
+            <div id="votre-inventaire-vente"></div>
+        </div>
+    </div>
+    <button class="next-btn" onclick="allerAccueil()" style="margin-top:20px;">Quitter le magasin</button>
+</div>
+		
+		
+
+
+
+
+
 
     <div id="ecran-creation" class="app-card" style="display: none;">
         <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à l'accueil</button>
@@ -107,56 +166,59 @@
 
 
 
-        <div class="arcanum-main-layout">
+<div class="arcanum-main-layout">
+            
             <div class="arcanum-left-panel">
                 
                 <div class="stats-top-section">
                     <div class="stats-grid-5">
                         <div class="stat-row">
-                            <div class="stat-name" title="Détermine les dégâts au corps à corps et la charge maximale.">FORCE (FO)</div>
+                            <div class="stat-name">FORCE (FO)</div>
                             <div class="stat-controls">
-                                <button class="btn-stat btn-moins edit-only" onclick="modStat('FO', -1)">-</button>
+                                <button id="btn-moins-FO" class="btn-stat btn-moins edit-only" onclick="modStat('FO', -1)">-</button>
                                 <span id="fiche-val-FO" class="stat-value">8</span>
                                 <button class="btn-stat btn-plus edit-only" onclick="modStat('FO', 1)">+</button>
                             </div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-name" title="influe sur les capacités à maitriser la magie et la technologie." >Intelligence (IN)</div>
+                            <div class="stat-name">Intelligence (IN)</div>
                             <div class="stat-controls">
-                                <button class="btn-stat btn-moins edit-only" onclick="modStat('IN', -1)">-</button>
+                                <button id="btn-moins-IN" class="btn-stat btn-moins edit-only" onclick="modStat('IN', -1)">-</button>
                                 <span id="fiche-val-IN" class="stat-value">8</span>
                                 <button class="btn-stat btn-plus edit-only" onclick="modStat('IN', 1)">+</button>
                             </div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-name" title="Déterminela résistance à la fatigue/poison et la vitesse de guérison.">Constitution (CN)</div>
+                            <div class="stat-name">Constitution (CN)</div>
                             <div class="stat-controls">
-                                <button class="btn-stat btn-moins edit-only" onclick="modStat('CN', -1)">-</button>
+                                <button id="btn-moins-CN" class="btn-stat btn-moins edit-only" onclick="modStat('CN', -1)">-</button>
                                 <span id="fiche-val-CN" class="stat-value">8</span>
                                 <button class="btn-stat btn-plus edit-only" onclick="modStat('CN', 1)">+</button>
                             </div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-name" title="Détermine la vitesse et influe sur un grand nombre de compétences">Dextérité (DX)</div>
+                            <div class="stat-name">Dextérité (DX)</div>
                             <div class="stat-controls">
-                                <button class="btn-stat btn-moins edit-only" onclick="modStat('DX', -1)">-</button>
+                                <button id="btn-moins-DX" class="btn-stat btn-moins edit-only" onclick="modStat('DX', -1)">-</button>
                                 <span id="fiche-val-DX" class="stat-value">8</span>
                                 <button class="btn-stat btn-plus edit-only" onclick="modStat('DX', 1)">+</button>
                             </div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-name" title="Détermine les réactions des pnj et le nombre de compagnons." >Charisme (CH)</div>
+                            <div class="stat-name">Charisme (CH)</div>
                             <div class="stat-controls">
-                                <button class="btn-stat btn-moins edit-only" onclick="modStat('CH', -1)">-</button>
+                                <button id="btn-moins-CH" class="btn-stat btn-moins edit-only" onclick="modStat('CH', -1)">-</button>
                                 <span id="fiche-val-CH" class="stat-value">8</span>
                                 <button class="btn-stat btn-plus edit-only" onclick="modStat('CH', 1)">+</button>
                             </div>
                         </div>
-                    </div> <div class="vital-signs">
+                    </div> 
+                
+                    <div class="vital-signs">
                         <div class="vital-bubble health-bubble">
                             <span id="fiche-pv">0</span>
                             <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
-                                <button class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
+                                <button id="btn-moins-PV" class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
                                 <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 5)">+</button>
                             </div>
                             <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">VIE</small>
@@ -165,35 +227,38 @@
                         <div class="vital-bubble fatigue-bubble">
                             <span id="fiche-fatigue">0</span>
                             <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
-                                <button class="btn-stat btn-moins edit-only" onclick="boostVital('FT', -5)">-</button>
+                                <button id="btn-moins-FT" class="btn-stat btn-moins edit-only" onclick="boostVital('FT', -5)">-</button>
                                 <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 5)">+</button>
                             </div>
                             <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">FATIGUE</small>
                         </div>
-                    </div> </div> <div class="stats-bottom-section">
-                    <div class="derived-box">
-                        <div class="box-title">Caractéristiques Dérivées</div>
-                        <div class="derived-list">
-                            <div>Charge: <span id="der-charge">0</span></div>
-                            <div>Bonus aux dégâts: <span id="der-degats">0</span></div>
-                            <div>Armure: <span id="der-armure">0</span></div>
-                            <div>Vitesse: <span id="der-vitesse">0</span></div>
-                            <div>Vitesse de guérison: <span id="der-guerison">0</span></div>
-                            <div>Purgation des toxines: <span id="der-toxines">0</span></div>
-                            <div>Réaction mondaine: <span id="der-reaction">0</span></div>
-                            <div>Compagnons possibles: <span id="der-compagnons">0</span></div>
+                    </div>
+                </div> <div class="stats-bottom-section" style="display: flex; gap: 10px; background: #1a110b; border: 2px solid #d4af37; border-radius: 8px; padding: 10px; margin-top: 15px;">
+                    <div class="derived-box" style="flex: 1;">
+                        <div class="box-title" style="text-align: center; color: #dcdcdc; font-variant: small-caps; border-bottom: 1px solid #444; margin-bottom: 5px; padding-bottom: 5px;">Dérivées</div>
+                        <div class="derived-list" style="font-size: 0.75em; color: #aaa; line-height: 1.5;">
+                            <div>Charge max: <span id="der-charge" style="color: #fff; float: right;">0 kg</span></div>
+                            <div>Modif. Dégâts: <span id="der-degats" style="color: #fff; float: right;">0</span></div>
+                            <div>Armure: <span id="der-armure" style="color: #fff; float: right;">0</span></div>
+                            <div>Vitesse: <span id="der-vitesse" style="color: #fff; float: right;">0</span></div>
+                            <div>Guérison: <span id="der-guerison" style="color: #fff; float: right;">0</span></div>
+                            <div>Toxines: <span id="der-toxines" style="color: #fff; float: right;">0</span></div>
+                            <div>Réaction: <span id="der-reaction" style="color: #fff; float: right;">0</span></div>
+                            <div>Compagnons: <span id="der-compagnons" style="color: #fff; float: right;">0</span></div>
                         </div>
                     </div>
-                   <div class="resistances-box">
-    <div class="box-title">Résistances</div>
-    <div class="derived-list">
-        <div>Dégâts: <span id="res-degats">0</span>%</div>
-        <div>Sortilèges: <span id="res-sorts">0</span>%</div> 
-		<div>Feu: <span id="res-feu">0</span>%</div>         
-		<div>Poison: <span id="res-poison">0</span>%</div>
-        <div>Électricité: <span id="res-elec">0</span>%</div> </div>
-</div>
-                </div> </div> <div class="arcanum-right-panel">
+                    <div class="resistances-box" style="flex: 1;">
+                        <div class="box-title" style="text-align: center; color: #dcdcdc; font-variant: small-caps; border-bottom: 1px solid #444; margin-bottom: 5px; padding-bottom: 5px;">Résistances</div>
+                        <div class="derived-list" style="font-size: 0.75em; color: #aaa; line-height: 1.5;">
+                            <div>Physique: <span id="res-degats" style="color: #fff; float: right;">0%</span></div>
+                            <div>Poison: <span id="res-poison" style="color: #fff; float: right;">0%</span></div>
+                            <div>Magie: <span id="res-sorts" style="color: #fff; float: right;">0%</span></div>
+                            <div>Feu: <span id="res-feu" style="color: #fff; float: right;">0%</span></div>
+                            <div>Électricité: <span id="res-elec" style="color: #fff; float: right;">0%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div> <div class="arcanum-right-panel">
                 <div class="arcanum-tabs">
                     <button id="btn-tab-comp" class="arc-tab-btn active" onclick="switchSkillTab('tab-comp')">Compétences</button>
                     <button id="btn-tab-tech" class="arc-tab-btn" onclick="switchSkillTab('tab-tech')">Technologie</button>
@@ -203,27 +268,64 @@
                 <div id="tab-comp" class="arc-tab-content active" style="overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
                 <div id="tab-tech" class="arc-tab-content" style="display:none; overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
                 <div id="tab-magie" class="arc-tab-content" style="display:none; overflow-y: auto; max-height: 400px; padding-right: 10px;"></div>
-            </div> 
-<div class="alignment-meter">
+            </div> <div class="alignment-meter">
                 <div class="meter-icon" style="color: #2196f3;" title="Magie">🌀</div>
                 <div class="meter-bar" title="Alignement Magie/Technologie">
                     <div class="meter-needle" id="meter-needle" style="top: 50%;"></div>
                 </div>
                 <div class="meter-icon" style="color: #ff9800;" title="Technologie">⚙️</div>
-                
                 <div id="meter-score" style="font-size: 0.8em; font-weight: bold; margin-top: 8px; color: #dcdcdc; text-align: center;">0</div>
-            </div>		
-			</div> 
-		<div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            </div>      
+
+        </div> 
+
+
+
+
+
+	<div style="display: flex; justify-content: space-between; margin-top: 20px;">
     <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour</button>
-        
+        <button class="next-btn" style="background: #8b0000; color:#fff;" onclick="allerInventaire()">🎒 Sac à dos</button>
     <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerChangements()">✅ Valider Level Up</button>
     <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Sauvegarder</button>
 </div>
     </div>
 
 
+<div id="ecran-inventaire" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
+        <button onclick="fermerInventaire()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
+        
+        <h2 style="color: #d4af37; border-bottom: 2px solid #444; padding-bottom: 5px; margin-bottom: 20px;">🎒 Inventaire & Équipement</h2>
+        
+        <div style="display: flex; gap: 20px;">
+            
+            <div style="flex: 1; background: #3e2d20; padding: 15px; border: 2px solid #111; border-radius: 8px; box-shadow: inset 0 0 10px #000;">
+                <h3 style="color: #dcdcdc; text-align: center; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">🛡️ Équipement Actuel</h3>
+                <div id="equipement-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    </div>
+            </div>
 
+            <div style="flex: 1.5; background: #1a110b; padding: 15px; border: 2px solid #111; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 0;">
+    <h3 style="color: #dcdcdc; margin: 0;">📦 Sac à dos</h3>
+    <div style="background: #111; padding: 5px 10px; border: 1px solid #444; border-radius: 4px; font-weight: bold;">
+        Charge : <span id="inv-poids-total">0 / 0 kg</span>
+    </div>
+</div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px dashed #444; padding-bottom: 15px;">
+                    <input type="text" id="new-item-id" placeholder="ID (ex: AM01)" style="flex: 1; padding:8px; background:#111; color:#fff; border:1px solid #444; text-transform: uppercase;">
+                    <button onclick="ajouterItemParId()" style="padding:8px 15px; background:#4caf50; color:#fff; border:none; cursor:pointer; font-weight:bold; border-radius:4px;">AJOUTER</button>
+                </div>
+
+                <div id="inv-list-full" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 400px; padding-right: 5px;">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+<script src="items.js"></script>
+<script src="monde.js"></script>
 
 <script src="backgrounds.js"></script>
     <script src="skills.js"></script>

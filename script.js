@@ -59,6 +59,7 @@ let statsCalculees = {};
 
 // ================= INITIALISATION =================
 window.onload = function() {
+    // 1. Initialisation des menus (ton code existant)
     const raceSelect = document.getElementById('raceSelect');
     if (raceSelect) {
         for (let r in racesData) {
@@ -71,20 +72,38 @@ window.onload = function() {
         document.getElementById('bgSelect').addEventListener('change', buildChar);
     }
 
+    // 2. TENTATIVE DE RÉCUPÉRATION AUTO
+    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
+    if (sauvegarde) {
+        perso = JSON.parse(sauvegarde); // On remplit la variable perso avec la sauvegarde
+        console.log("Personnage récupéré automatiquement !");
+    }
+
+    // 3. On initialise les interfaces
     if (typeof competencesData !== 'undefined') initCompetencesUI();
     if (typeof magieData !== 'undefined') initMagieUI();
     if (typeof techData !== 'undefined') initTechUI();
 
+    // 4. On affiche l'accueil (qui affichera "Continuer" grâce au point 2)
     allerAccueil(); 
 };
-
 // ================= NAVIGATION =================
 function cacherTout() {
-    document.getElementById('ecran-accueil').style.display = 'none';
-    document.getElementById('ecran-creation').style.display = 'none';
-    document.getElementById('ecran-fiche').style.display = 'none';
-}
+    // Liste complète de tous les écrans de ton interface
+    const ecrans = [
+        'ecran-accueil', 
+        'ecran-creation', 
+        'ecran-fiche', 
+        'ecran-inventaire', 
+        'ecran-fouille',   // AJOUTÉ
+        'ecran-marchand'   // AJOUTÉ
+    ];
 
+    ecrans.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
 function allerAccueil() {
     cacherTout();
     document.getElementById('ecran-accueil').style.display = 'block';
@@ -103,10 +122,44 @@ function allerAccueil() {
 }
 
 function nouveauPersonnage() {
+	
+	
+	
+	
+    // 1. Sécurité anti-écrasement
+    if (perso && perso.nom && perso.nom !== "Nom du Personnage") {
+        if (!confirm("Attention : Créer un nouveau personnage effacera votre progression. Continuer ?")) {
+            return;
+        }
+    }
+
+
+    // 2. Réinitialisation complète des données (Inventaire, Argent, Equipement)
+    perso = {
+        nom: "Nom du Personnage",
+        race: "Humain",
+        background: "Aucun",
+        statsBase: { FO: 8, IN: 8, CN: 8, DX: 8, CH: 8 },
+        statsInvesties: { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 },
+        pointsDeCompetence: 5,
+        niveau: 1,
+        experience: 0,
+        argent: 400,
+        inventaire: [], // On vide le sac
+        equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null }
+    };
+
+    // 3. Affichage de l'écran
     cacherTout();
     document.getElementById('ecran-creation').style.display = 'block';
-    document.getElementById('charName').value = "";
+    
+    // On vide le champ texte du nom
+    let inputNom = document.getElementById('charName');
+    if (inputNom) inputNom.value = "";
+    
+    // 4. On lance ton calcul de stats (Race + BG)
     buildChar(); 
+	rafraichirAccueil(); // Ajouté pour mettre à jour les boutons d'accueil
 }
 
 function chargerPersonnage() {
@@ -162,7 +215,6 @@ function buildChar() {
             }
         }
         document.getElementById('desc-box').innerText = currentBg.desc;
-		////A VOIRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
 document.getElementById('raceTraits').innerHTML = `<strong>Effets :</strong> ${currentBg.effets || "Aucun"}`;    }
 
     statsCalculees = final; 
@@ -180,16 +232,8 @@ const currentBg = backgrounds.find(b => b.nom === bgSelect.value) || backgrounds
 // Règle des 400 Or par défaut
 const argentDepart = (currentBg.mod && currentBg.mod.argent !== undefined) ? currentBg.mod.argent : 400;
 
-// On l'ajoute visuellement dans la zone de traits
 
-		////A VOIRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
 
-/*document.getElementById('raceTraits').innerHTML = `
-    <strong>Capacité :</strong> ${race.spec} | 
-    <strong>Effets :</strong> ${currentBg.effets || "Aucun"} | 
-    <strong>Argent :</strong> ${argentDepart} Or
-`;
-*/
 // On l'ajoute visuellement dans la zone de traits
 document.getElementById('raceTraits').innerHTML = `
     <strong>Effets :</strong> ${currentBg.effets || "Aucun"} | 
@@ -242,6 +286,15 @@ function validerCreation() {
         resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)     // Ajouté
     }
     };
+	
+	
+	// Dans validerCreation, ajoute ces lignes si elles manquent :
+if (!perso.inventaire) perso.inventaire = [];
+if (!perso.equipement) perso.equipement = {
+    tete: null, torse: null, gants: null, bottes: null, 
+    anneau: null, amulette: null, main_droite: null, main_gauche: null
+};
+	
 
     // --- APPLICATION DES BONUS DE COMPÉTENCES (Race + BG) ---
     const appliquerComp = (source) => {
@@ -298,25 +351,12 @@ function validerCreation() {
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI();
+	
+	rafraichirAccueil(); 
+    allerAccueil();
+	
+	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -330,128 +370,134 @@ function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
     if (!container || !perso) return;
 
-    // 1. Sécurités pour éviter les plantages (Anciens persos)
-    if (!perso.bonusInnes) perso.bonusInnes = { align: 0, resPhys: 0, resPoison: 0 };
+    // 1. Sécurités et Initialisation
+    if (!perso.bonusInnes) perso.bonusInnes = { align: 0, resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
     if (perso.pointsDispo === undefined) perso.pointsDispo = 0;
+    const b = perso.bonusInnes; // On définit 'b' tôt pour pouvoir l'utiliser
 
     // 2. Gestion des points dispos
-    if (perso.pointsDispo <= 0) container.classList.add('no-points');
-    else container.classList.remove('no-points');
+    container.classList.toggle('no-points', perso.pointsDispo <= 0);
+    document.getElementById('points-dispo').innerText = perso.pointsDispo;
 
-    // 3. Header (Infos générales)
+    // 3. Header & Fortune
     document.getElementById('fiche-name').innerText = perso.nom || "";
     document.getElementById('fiche-level').innerText = perso.niveau || 1;
     document.getElementById('fiche-race').innerText = perso.race || "";
     document.getElementById('fiche-sexe').innerText = perso.sexe === 'M' ? 'Masculin' : 'Féminin';
     document.getElementById('fiche-bg').innerText = perso.antecedent || "";
-    document.getElementById('points-dispo').innerText = perso.pointsDispo || 0;
+    if (document.getElementById('fiche-argent')) document.getElementById('fiche-argent').innerText = perso.argent ?? 400;
 
-    // 4. Fortune
-    const elArgent = document.getElementById('fiche-argent');
-    if (elArgent) {
-        elArgent.innerText = (perso.argent !== undefined ? perso.argent : 400);
-    }
-
-    // 5. STATISTIQUES (Calcul des valeurs finales)
+    // 4. STATISTIQUES
     let finalStats = {};
     const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
     statsKeys.forEach(s => {
         let total = (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0);
         finalStats[s] = total; 
-        
         let elVal = document.getElementById('fiche-val-' + s);
         if(elVal) {
             elVal.innerText = total;
             elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
-            
-            // Masquer le bouton moins si investissement = 0
-            let btnMoins = elVal.previousElementSibling; 
-            if (btnMoins && btnMoins.classList.contains('btn-moins')) {
-                btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
-            }
+            let btnMoins = document.getElementById('btn-moins-' + s); 
+            if (btnMoins) btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
         }
     });
 
-    // 6. VITALITÉ (PV / FATIGUE) - Sécurisé
+    // 5. LECTURE DES BONUS D'ÉQUIPEMENT (Important pour l'épée enchantée)
+    let bonusArmure = 0, bonusResPhys = 0, bonusResMagie = 0, bonusFT = 0;
+    for (let slot in perso.equipement) {
+        let itemEq = perso.equipement[slot];
+        if (itemEq && itemsData[itemEq.id]) {
+            let data = itemsData[itemEq.id];
+            if (data.armure) bonusArmure += data.armure;
+            if (data.stats) {
+                bonusResMagie += (data.stats.resMagie || 0);
+                bonusResPhys += (data.stats.resPhys || 0);
+                bonusFT += (data.stats.FT || 0);
+            }
+        }
+    }
+
+    // 6. VITALITÉ (PV / FATIGUE)
     let statFO = finalStats.FO || 8;
     let statCN = finalStats.CN || 8;
     let statIN = finalStats.IN || 8;
 
     let pvTotal = (statFO * 2) + statIN + (perso.boostPV || 0);
-    let ftTotal = (statCN * 2) + statIN + (perso.boostFT || 0);
+    // On ajoute bonusFT ici pour l'épée !
+    let ftTotal = (statCN * 2) + statIN + (perso.boostFT || 0) + bonusFT;
 
     if (document.getElementById('fiche-pv')) document.getElementById('fiche-pv').innerText = pvTotal;
-    if (document.getElementById('fiche-fatigue')) document.getElementById('fiche-fatigue').innerText = ftTotal;
+    if (document.getElementById('fiche-fatigue')) {
+        const elFt = document.getElementById('fiche-fatigue');
+        elFt.innerText = ftTotal;
+        elFt.style.color = (bonusFT > 0) ? "#4caf50" : "#fff"; // Vert si boosté par item
+    }
 
-    // 7. CALCULS DÉRIVÉS
+    // 7. RÉSISTANCES (Fonction de mise à jour)
+    const setRes = (id, valBase, valBonus) => {
+        const el = document.getElementById(id);
+        if (el) {
+            let total = (valBase || 0) + (valBonus || 0);
+            el.innerText = total + "%";
+            el.style.color = (valBonus > 0) ? "#4caf50" : "#fff";
+        }
+    };
+
+    setRes('res-degats', b.resPhys, bonusResPhys);
+    setRes('res-poison', b.resPoison, 0); 
+    setRes('res-sorts', b.resMagie, bonusResMagie); 
+    setRes('res-feu', b.resFeu, 0); 
+    setRes('res-elec', b.resElec, 0);
+
+    // 8. CALCULS DÉRIVÉS
     let statDX = finalStats.DX || 8;
     let statCH = finalStats.CH || 8;
 
-    if (document.getElementById('der-charge')) document.getElementById('der-charge').innerText = (statFO * 2) + " kg";
+    let poidsActuel = (typeof updateInventaireUI === 'function') ? updateInventaireUI() : 0;
+    let chargeMax = (statFO * 2);
+    let elCharge = document.getElementById('der-charge');
+    if (elCharge) {
+        elCharge.innerText = poidsActuel.toFixed(1) + " / " + chargeMax + " kg";
+        elCharge.style.color = (poidsActuel > chargeMax) ? "#f44336" : "#fff";
+    }
     
     const elDegats = document.getElementById('der-degats');
     if (elDegats) {
-        let degats = (statFO > 10) ? (statFO - 10) : (statFO < 10 ? Math.floor((statFO - 10) / 2) : 0);
-        elDegats.innerText = (degats > 0 ? "+" + degats : degats);
+        let modifFo = (statFO > 10) ? (statFO - 10) : (statFO < 10 ? Math.floor((statFO - 10) / 2) : 0);
+        elDegats.innerText = (modifFo >= 0 ? "+" : "") + modifFo;
     }
 
-    if (document.getElementById('der-armure')) document.getElementById('der-armure').innerText = statDX;
-// Calcul de la vitesse : Dextérité + Bonus de background
-const elVitesse = document.getElementById('der-vitesse');
-if (elVitesse) {
-    const totalVitesse = statDX + (perso.boostVitesseInne || 0);
-    elVitesse.innerText = totalVitesse;
+    if (document.getElementById('der-armure')) {
+        document.getElementById('der-armure').innerText = statDX + bonusArmure;
+        document.getElementById('der-armure').style.color = (bonusArmure > 0) ? "#4caf50" : "#fff";
+    }
     
-    // Optionnel : mettre en vert si boosté
-    elVitesse.style.color = (perso.boostVitesseInne > 0) ? "#4caf50" : "#dcdcdc";
-}
+    if (document.getElementById('der-vitesse')) document.getElementById('der-vitesse').innerText = statDX + (perso.boostVitesseInne || 0);
     if (document.getElementById('der-guerison')) document.getElementById('der-guerison').innerText = Math.floor(statCN / 3);
     if (document.getElementById('der-toxines')) document.getElementById('der-toxines').innerText = statCN;
-
+    
     const elReaction = document.getElementById('der-reaction');
     if (elReaction) {
         let react = statCH - 8;
-        elReaction.innerText = (react > 0 ? "+" + react : react);
+        elReaction.innerText = (react > 0 ? "+" : "") + react;
     }
     if (document.getElementById('der-compagnons')) document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(statCH / 4));
 
-  // --- 8. RÉSISTANCES (SÉCURISÉES) ---
-const b = perso.bonusInnes || { resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
-
-const setRes = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = (val || 0) + "%";
-};
-
-// On lie chaque ID du HTML aux données du personnage
-setRes('res-degats', b.resPhys);    // Résistance Physique
-setRes('res-poison', b.resPoison);  // Résistance Poison
-setRes('res-sorts', b.resMagie);    // Résistance Magique
-setRes('res-feu', b.resFeu);        // Résistance Feu (Nouveau)
-setRes('res-elec', b.resElec);      // Résistance Élec (Nouveau)
-
-    // 9. COMPÉTENCES
-    if (perso.compInvesties) {
-        for (let id in perso.compInvesties) {
-            let act = perso.compInvesties[id] || 0;
-            let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
-            let el = document.getElementById('fiche-val-' + id);
-            if (el) {
-                el.innerText = act;
-                el.style.color = (act > base) ? "#4caf50" : "#fff";
-                let btn = el.previousElementSibling;
-                if (btn && btn.classList.contains('btn-moins')) {
-                    btn.style.visibility = (act > base) ? "visible" : "hidden";
-                }
-            }
+    // 9. COMPÉTENCES, MAGIE, TECH
+    if (typeof competencesData !== 'undefined') {
+        for (let cat in competencesData) {
+            competencesData[cat].forEach(c => {
+                let id = c.id;
+                let act = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
+                let el = document.getElementById('fiche-val-' + id);
+                if (el) el.innerText = act;
+            });
         }
     }
-
-    // 10. MAGIE ET TECH
     if (typeof magieData !== 'undefined') updateMagieUI_Display();
     if (typeof techData !== 'undefined') updateTechUI_Display();
     
-    // 11. ALIGNEMENT
+    // 10. ALIGNEMENT
     let align = calculerAlignement();
     let needle = document.getElementById('meter-needle');
     let score = document.getElementById('meter-score');
@@ -461,6 +507,8 @@ setRes('res-elec', b.resElec);      // Résistance Élec (Nouveau)
         score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
 }
+
+
 
 
 // ================= LOGIQUE STATS & VITALITÉ =================
@@ -504,12 +552,12 @@ function initCompetencesUI() {
         div.id = 'sub-tab-' + cat.replace(/\s+/g, '');
         div.className = 'sub-tab-content' + (isFirst ? ' active' : '');
         competencesData[cat].forEach(c => {
-            div.innerHTML += `<div class="skill-row">
-                <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
-                <button class="btn-stat btn-moins edit-only" onclick="modComp('${c.id}', -4)">-</button>
-                <span id="fiche-val-${c.id}" class="stat-value">0</span>
-                <button class="btn-stat edit-only" onclick="modComp('${c.id}', 4)">+</button>
-            </div>`;
+div.innerHTML += `<div class="skill-row">
+            <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
+            <button id="btn-moins-${c.id}" class="btn-stat btn-moins edit-only" onclick="modComp('${c.id}', -4)">-</button>
+            <span id="fiche-val-${c.id}" class="stat-value">0</span>
+            <button class="btn-stat btn-plus edit-only" onclick="modComp('${c.id}', 4)">+</button>
+        </div>`;
         });
         tabComp.querySelector('.sub-contents').appendChild(div);
         isFirst = false;
@@ -522,13 +570,13 @@ function switchSubTab(cat) {
 }
 
 function modComp(id, val) {
-    if (!perso.compInvesties) perso.compInvesties = {};
-    if (val > 0 && perso.pointsDispo <= 0) return;
+  if (!perso.compInvesties) perso.compInvesties = {};
+    // Utilise pointsDispo pour correspondre à ton objet perso
+    if (val > 0 && (perso.pointsDispo || 0) <= 0) return; 
     
     let act = perso.compInvesties[id] || 0;
     let base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
     
-    // Bloquer si on descend sous le bonus de race ou si on dépasse 20
     if (val < 0 && act <= base) return;
     if (val > 0 && act >= 20) return;
     
@@ -559,13 +607,14 @@ function modComp(id, val) {
     }
 
     // --- APPLICATION ---
-    perso.compInvesties[id] = act + val;
+  perso.compInvesties[id] = act + val;
     perso.pointsDispo -= (val > 0 ? 1 : -1);
     updateFicheUI();
 }
 
 
 // ================= GESTION MAGIE =================
+
 function initMagieUI() {
     const tab = document.getElementById('tab-magie');
     if (!tab) return;
@@ -574,6 +623,8 @@ function initMagieUI() {
     let isFirst = true;
     for (let ecole in magieData) {
         let btn = document.createElement('button');
+		// AJOUTE CETTE LIGNE JUSTE ICI :
+        btn.id = 'tab-btn-magie-' + ecole.replace(/\s+/g, '');
         btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
         btn.innerText = icons[ecole] || "🪄"; btn.title = ecole;
         btn.onclick = function() { switchMagicTab(ecole); };
@@ -583,7 +634,7 @@ function initMagieUI() {
         pane.id = 'magic-pane-' + ecole.replace(/\s+/g, '');
         pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
         pane.innerHTML = `<div class="magic-school-header"><strong>${ecole}</strong>
-            <button class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
+            <button id="btn-moins-magie-${ecole.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
             <span id="magie-val-${ecole.replace(/\s+/g, '')}">0/5</span>
             <button class="btn-stat edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
             <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
@@ -593,6 +644,31 @@ function initMagieUI() {
         });
         tab.querySelector('.magic-contents').appendChild(pane);
         isFirst = false;
+    }
+}
+
+function updateMagieUI_Display() {
+    for (let e in magieData) {
+        let act = (perso.magieInvesties && perso.magieInvesties[e]) ? perso.magieInvesties[e] : 0;
+        let id = e.replace(/\s+/g, ''); 
+
+        // --- AJOUT : Allumer/Éteindre l'icône de l'onglet ---
+        let tabBtn = document.getElementById('tab-btn-magie-' + id);
+        if (tabBtn) {
+            if (act > 0) tabBtn.classList.add('has-points'); // Utilise ta classe CSS
+            else tabBtn.classList.remove('has-points');
+        }
+
+        let el = document.getElementById('magie-val-' + id);
+        if (el) el.innerText = act + "/5";
+        
+        for (let i = 0; i < 5; i++) {
+            let sDiv = document.getElementById(`spell-${id}-${i}`);
+            if (sDiv) {
+                if (i < act) sDiv.classList.add('learned');
+                else sDiv.classList.remove('learned');
+            }
+        }
     }
 }
 
@@ -607,36 +683,30 @@ function modMagie(e, v) {
     if (v > 0) {
         if (perso.pointsDispo <= 0 || act >= 5) return;
         let s = magieData[e].sorts[act];
-        let intel = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
-        if (perso.niveau < s.niv || intel < s.int) { alert("Niveau ou IN insuffisant"); return; }
-        perso.magieInvesties[e] = act + 1; perso.pointsDispo--;
+        // Calcul de l'intelligence totale (Base + Investie)
+        let intel = (perso.statsBase.IN || 8) + (perso.statsInvesties.IN || 0);
+        if (perso.niveau < s.niv || intel < s.int) { 
+            alert("Niveau ou Intelligence insuffisante pour ce sort !"); 
+            return; 
+        }
+        perso.magieInvesties[e] = act + 1; 
+        perso.pointsDispo--;
     } else {
         let base = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
         if (act <= base) return;
-        perso.magieInvesties[e] = act - 1; perso.pointsDispo++;
+        perso.magieInvesties[e] = act - 1; 
+        perso.pointsDispo++;
     }
     updateFicheUI();
 }
 
-function updateMagieUI_Display() {
-    for (let e in magieData) {
-        let act = perso.magieInvesties[e] || 0;
-        let id = e.replace(/\s+/g, '');
-        let el = document.getElementById('magie-val-' + id);
-        if (el) el.innerText = act + "/5";
-        
-        let btnMoins = document.querySelector(`button[onclick="modMagie('${e}', -1)"]`);
-        let base = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
-        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
 
-        for (let i = 0; i < 5; i++) {
-            let sDiv = document.getElementById(`spell-${id}-${i}`);
-            if (sDiv) sDiv.classList.toggle('learned', i < act);
-        }
-    }
-}
+
 
 // ================= GESTION TECH =================
+
+// ================= GESTION TECH =================
+
 function initTechUI() {
     const tab = document.getElementById('tab-tech');
     if (!tab) return;
@@ -644,9 +714,12 @@ function initTechUI() {
     const icons = {"Forge":"⚒️","Mécanique":"⚙️","Armurerie":"🔫","Electricité":"⚡","Botanique":"🌱","Thérapeutique":"💊","Chimie":"🧪","Explosifs":"💣"};
     let isFirst = true;
     for (let d in techData) {
+        // On crée le bouton UNE SEULE FOIS
         let btn = document.createElement('button');
+        btn.id = 'tab-btn-tech-' + d.replace(/\s+/g, '');
         btn.className = 'magic-tab-btn' + (isFirst ? ' active' : '');
-        btn.innerText = icons[d] || "🔧"; btn.title = d;
+        btn.innerText = icons[d] || "🔧"; 
+        btn.title = d;
         btn.onclick = function() { switchTechTab(d); };
         tab.querySelector('.magic-tabs').appendChild(btn);
 
@@ -654,7 +727,7 @@ function initTechUI() {
         pane.id = 'tech-pane-' + d.replace(/\s+/g, '');
         pane.className = 'magic-content-pane' + (isFirst ? ' active' : '');
         pane.innerHTML = `<div class="magic-school-header"><strong>${d}</strong>
-            <button class="btn-stat edit-only" onclick="modTech('${d}', -1)">-</button>
+            <button id="btn-moins-tech-${d.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modTech('${d}', -1)">-</button>
             <span id="tech-val-${d.replace(/\s+/g, '')}">0/7</span>
             <button class="btn-stat edit-only" onclick="modTech('${d}', 1)">+</button></div>
             <div id="schemas-${d.replace(/\s+/g, '')}"></div>`;
@@ -666,6 +739,34 @@ function initTechUI() {
         isFirst = false;
     }
 }
+
+
+
+function updateTechUI_Display() {
+    for (let d in techData) {
+        let act = perso.techInvesties[d] || 0;
+        let id = d.replace(/\s+/g, '');
+		
+		let tabBtn = document.getElementById('tab-btn-tech-' + id);
+        if (tabBtn) {
+            if (act > 0) tabBtn.classList.add('has-points');
+            else tabBtn.classList.remove('has-points');
+        }
+		
+        let el = document.getElementById('tech-val-' + id);
+        if (el) el.innerText = act + "/7";
+        
+        let btnMoins = document.getElementById('btn-moins-tech-' + id);
+        let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
+        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
+
+        for (let i = 0; i < 7; i++) {
+            let sDiv = document.getElementById(`schema-${id}-${i}`);
+            if (sDiv) sDiv.classList.toggle('learned', i < act);
+        }
+    }
+}
+
 
 function switchTechTab(d) {
     const tab = document.getElementById('tab-tech');
@@ -689,23 +790,6 @@ function modTech(d, v) {
     updateFicheUI();
 }
 
-function updateTechUI_Display() {
-    for (let d in techData) {
-        let act = perso.techInvesties[d] || 0;
-        let id = d.replace(/\s+/g, '');
-        let el = document.getElementById('tech-val-' + id);
-        if (el) el.innerText = act + "/7";
-        
-        let btnMoins = document.querySelector(`button[onclick="modTech('${d}', -1)"]`);
-        let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
-        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
-
-        for (let i = 0; i < 7; i++) {
-            let sDiv = document.getElementById(`schema-${id}-${i}`);
-            if (sDiv) sDiv.classList.toggle('learned', i < act);
-        }
-    }
-}
 
 // ================= ALIGNEMENT & SAUVEGARDE =================
 
@@ -714,15 +798,21 @@ function calculerAlignement() {
     if (perso.magieInvesties) for (let e in perso.magieInvesties) m += perso.magieInvesties[e];
     if (perso.techInvesties) for (let d in perso.techInvesties) t += perso.techInvesties[d];
     
-    // Ajout du modificateur cumulé (Race + BG)
     let total = (m * 5) - (t * 5);
-    if (perso.bonusInnes && perso.bonusInnes.align) {
-        total += perso.bonusInnes.align;
+    
+    // Bonus de Race/BG
+    if (perso.bonusInnes && perso.bonusInnes.align) total += perso.bonusInnes.align;
+
+    // AJOUT : Bonus d'équipement (ex: +10 de l'épée enchantée)
+    for (let slot in perso.equipement) {
+        let itemEq = perso.equipement[slot];
+        if (itemEq && itemsData[itemEq.id] && itemsData[itemEq.id].stats?.align) {
+            total += itemsData[itemEq.id].stats.align;
+        }
     }
 
     return Math.max(-100, Math.min(100, total));
 }
-
 
 function resetInvestissements() {
     if (!confirm("Réinitialiser tous les investissements du niveau ?")) return;
@@ -789,4 +879,455 @@ function levelUp() {
     perso.niveau = (perso.niveau || 1) + 1;
     perso.pointsDispo = (perso.pointsDispo || 0) + (perso.niveau % 5 === 0 ? 2 : 1);
     updateFicheUI();
+}
+
+
+
+
+
+// ================= GESTION INVENTAIRE & EQUIPEMENT =================
+
+const nomEmplacements = {
+    "tete": "Tête", "torse": "Torse", "gants": "Mains (Gants)", "bottes": "Pieds", 
+    "anneau": "Doigt (Anneau)", "amulette": "Cou (Amulette)",
+    "main_droite": "Main Droite", "main_gauche": "Main Gauche", "deux_mains": "Deux Mains"
+};
+
+function allerInventaire() {
+    cacherTout();
+    document.getElementById('ecran-inventaire').style.display = 'block';
+    
+    if (!perso.inventaire) perso.inventaire = [];
+    if (!perso.equipement) perso.equipement = {
+        tete: null, torse: null, gants: null, bottes: null, 
+        anneau: null, amulette: null, main_droite: null, main_gauche: null
+    };
+    updateInventaireUI();
+}
+
+function fermerInventaire() {
+    cacherTout();
+    document.getElementById('ecran-fiche').style.display = 'block';
+    updateFicheUI(); // Met à jour la fiche avec les bonus de l'équipement !
+}
+
+function ajouterItemParId() {
+    let id = document.getElementById('new-item-id').value.trim().toUpperCase();
+    if (!id || !itemsData[id]) { alert("ID d'objet inconnu !"); return; }
+    
+    let data = itemsData[id];
+    let existant = perso.inventaire.find(item => item.id === id);
+    
+    if (existant && data.stackable) {
+        existant.quantite += 1;
+    } else {
+        // NOUVEAU : Si c'est une arme ou armure (non stackable), on lui donne de la Durabilité !
+        let newItem = { id: id, quantite: 1 };
+        if (!data.stackable && (data.type.includes("arme") || data.type === "armure")) {
+            newItem.durabilite = 100;
+            newItem.durabiliteMax = 100;
+        }
+        perso.inventaire.push(newItem);
+    }
+    document.getElementById('new-item-id').value = ""; 
+    updateInventaireUI();
+}
+
+function jeterItem(index) {
+    if (confirm("Voulez-vous vraiment jeter cet objet ?")) {
+        perso.inventaire[index].quantite -= 1;
+        if (perso.inventaire[index].quantite <= 0) perso.inventaire.splice(index, 1);
+        updateInventaireUI();
+    }
+}
+
+function equiperItem(indexInventaire) {
+    let itemInv = perso.inventaire[indexInventaire];
+    let data = itemsData[itemInv.id];
+    let slot = data.equipable;
+
+    if (!slot || slot === "aucun") { alert("Cet objet ne s'équipe pas."); return; }
+
+    if (slot === "deux_mains") {
+        if (perso.equipement.main_droite) desequiperItem("main_droite", true);
+        if (perso.equipement.main_gauche) desequiperItem("main_gauche", true);
+        perso.equipement.main_droite = itemInv; // On stocke l'objet COMPLET (avec sa durabilité)
+    } else {
+        if (perso.equipement[slot]) desequiperItem(slot, true);
+        perso.equipement[slot] = itemInv; 
+    }
+
+    perso.inventaire.splice(indexInventaire, 1); // On le retire du sac
+    updateInventaireUI();
+}
+
+function desequiperItem(slot, isSilent = false) {
+    let itemEq = perso.equipement[slot];
+    if (!itemEq) return;
+
+    // Sécurité pour les vieilles sauvegardes
+    if (typeof itemEq === "string") itemEq = { id: itemEq, quantite: 1, durabilite: 100, durabiliteMax: 100 };
+
+    let data = itemsData[itemEq.id];
+    let existant = perso.inventaire.find(item => item.id === itemEq.id);
+    
+    if (existant && data.stackable) existant.quantite += 1;
+    else perso.inventaire.push(itemEq); // On remet l'objet complet dans le sac
+
+    perso.equipement[slot] = null;
+    if (!isSilent) updateInventaireUI();
+}
+
+function updateInventaireUI() {
+    let listInv = document.getElementById('inv-list-full');
+    let listEq = document.getElementById('equipement-list');
+    if (!listInv || !listEq) return 0;
+
+    let poidsTotal = 0;
+
+    // --- GENERATEUR DE STATS VISUELLES ---
+    const getStatsHtml = (data, item) => {
+        let h = `<div style="margin-top:5px; font-size:0.85em;">`;
+        if (data.degats && data.degats !== "0") h += `<span style="color:#ff5252; margin-right: 10px;">⚔️ Dégâts: ${data.degats}</span>`;
+        if (data.armure && data.armure > 0) h += `<span style="color:#4caf50; margin-right: 10px;">🛡️ Armure: ${data.armure}</span>`;
+        if (item.durabilite) h += `<span style="color:#aaa;">🔧 État: ${item.durabilite}/${item.durabiliteMax}</span>`;
+        h += `</div>`;
+        return h;
+    };
+
+  // --- 1. DESSINER LE SAC À DOS ---
+    let htmlInv = ``;
+(perso.inventaire || []).forEach((item, index) => {
+	let data = itemsData[item.id];
+        if (data) {
+            poidsTotal += data.poids * item.quantite;
+            let btnEquiper = (data.equipable && data.equipable !== "aucun") 
+                ? `<button onclick="equiperItem(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+
+            htmlInv += `
+                <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px;">
+                    <div style="display:flex; justify-content: space-between;">
+                        <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite})</strong>
+                        <span style="color:#aaa;">${data.poids} kg</span>
+                    </div>
+                    <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
+                    ${getStatsHtml(data, item)}
+                    <div style="display:flex; gap: 5px; margin-top: 8px;">
+                        ${btnEquiper}
+                        <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
+                    </div>
+                </div>`;
+        }
+    });
+    listInv.innerHTML = htmlInv || "<div style='color:#666; font-style:italic;'>Le sac est vide.</div>";
+
+    // --- 2. DESSINER L'ÉQUIPEMENT ---
+    let htmlEq = ``;
+    for (let slot in perso.equipement) {
+        let itemEq = perso.equipement[slot];
+        let nomSlot = nomEmplacements[slot] || slot;
+        
+        if (itemEq && typeof itemEq !== "string" && itemsData[itemEq.id]) {
+            let data = itemsData[itemEq.id];
+            poidsTotal += data.poids; 
+            htmlEq += `
+                <div style="background: #1a110b; border: 1px solid #4caf50; padding: 10px; border-radius: 4px; display:flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.7em; color: #4caf50; text-transform: uppercase;">${nomSlot}</div>
+                        <strong style="color: #fff;">${data.nom}</strong>
+                        ${getStatsHtml(data, itemEq)}
+                    </div>
+                    <button onclick="desequiperItem('${slot}')" style="background:#444; color:#fff; border:none; padding:5px; cursor:pointer; border-radius:3px; font-size: 0.8em;">Retirer</button>
+                </div>`;
+        } else {
+            htmlEq += `
+                <div style="background: #111; border: 1px dashed #444; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 0.7em; color: #666; text-transform: uppercase;">${nomSlot}</div>
+                    <div style="color: #444; font-style: italic;">Vide</div>
+                </div>`;
+        }
+    }
+    listEq.innerHTML = htmlEq;
+    
+    // MAJ de la charge dans l'inventaire
+    let statFO = (perso.statsBase.FO || 8) + (perso.statsInvesties.FO || 0);
+    let elPoidsInv = document.getElementById('inv-poids-total');
+    if (elPoidsInv) {
+        elPoidsInv.innerText = poidsTotal.toFixed(1) + " / " + (statFO * 2) + " kg";
+        elPoidsInv.style.color = (poidsTotal > (statFO * 2)) ? "#f44336" : "#4caf50"; 
+    }
+    return poidsTotal;
+}
+
+
+
+
+
+
+
+
+// --- FOUILLE ---
+function ouvrirPromptFouille() {
+    let id = prompt("Entrez l'ID du coffre");
+if (!id) return;
+    
+    cacherTout();
+    document.getElementById('ecran-fouille').style.display = 'block';
+    
+    // Chargement du contenu
+    contenuCoffreActuel = coffresFixes[id] ? [...coffresFixes[id].items] : genererLootAleatoire(parseInt(id) || 3);
+    
+    actualiserVisuelFouille();
+}
+
+function actualiserVisuelFouille() {
+    let list = document.getElementById('liste-fouille');
+    let btnTout = document.getElementById('btn-tout-prendre');
+    list.innerHTML = "";
+
+    if (contenuCoffreActuel.length === 0) {
+        list.innerHTML = "<div style='text-align:center; color:#666;'>Le coffre est vide.</div>";
+        btnTout.style.display = "none";
+        return;
+    }
+
+    btnTout.style.display = "block";
+    btnTout.onclick = toutPrendre;
+
+    contenuCoffreActuel.forEach((item, idx) => {
+        let data = itemsData[item.id];
+        if (!data) return;
+
+        let div = document.createElement('div');
+        div.className = "skill-row";
+        div.style = "background:#3e2d20; padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #222;";
+        
+        // Affichage des dégâts ou armure pour aider au choix
+        let infoStats = data.degats && data.degats !== "0" ? ` (⚔️${data.degats})` : (data.armure > 0 ? ` (🛡️${data.armure})` : "");
+
+        div.innerHTML = `
+            <span>${data.nom}${infoStats} x${item.qte}</span>
+            <button onclick="prendreUnObjet(${idx})" style="background:#4caf50; border:none; color:white; padding:5px 10px; cursor:pointer;">Prendre</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+
+function ramasserItem(id, qte, idx) {
+    if (!perso.inventaire) perso.inventaire = [];
+    let data = itemsData[id];
+    let existant = perso.inventaire.find(i => i.id === id);
+    
+    if (existant && data.stackable) {
+        existant.quantite += qte;
+    } else {
+        perso.inventaire.push({ id: id, quantite: qte, durabilite: 100, durabiliteMax: 100 });
+    }
+    alert(data.nom + " ajouté à l'inventaire !");
+	autoSave();
+}
+
+// --- MARCHAND ---
+let marchandActuel = null;
+
+function ouvrirPromptMarchand() {
+    let nom = prompt("Nom du marchand (ex: marchand_tuto) :");
+    if (!marchandsData[nom]) return alert("Ce marchand n'existe pas.");
+    marchandActuel = marchandsData[nom];
+    cacherTout();
+    document.getElementById('ecran-marchand').style.display = 'block';
+    updateMarchandUI();
+}
+
+function updateMarchandUI() {
+    if (!marchandActuel) return;
+
+    document.getElementById('nom-marchand').innerText = marchandActuel.nom;
+    document.getElementById('argent-marchand').innerText = marchandActuel.argent;
+    document.getElementById('votre-argent').innerText = perso.argent;
+
+    // Calcul du bonus de marchandage (ex: 2% de réduction par point investi)
+    let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
+    let reductionClient = ptsMarchandage * 0.02; // 20 pts = 40% de bonus
+
+    // --- INVENTAIRE DU MARCHAND (ACHAT DU JOUEUR) ---
+    let listM = document.getElementById('inventaire-marchand');
+    listM.innerHTML = "";
+    
+    marchandActuel.inventaire.forEach((item, idx) => {
+        let data = itemsData[item.id];
+        if (!data) return;
+
+   // Le marchand vend à 125% du prix de base, réduit par ton talent de marchandage
+let prixAchat = Math.ceil(data.prix * (1.25 - reductionClient)); 
+
+// ON VÉRIFIE SI LE STOCK EST VIDE
+let estEpuise = (item.qte <= 0);
+
+listM.innerHTML += `
+    <div class="skill-row" style="justify-content: space-between; padding: 5px 10px; opacity: ${estEpuise ? '0.5' : '1'};">
+        <span>${data.nom} (x${item.qte})</span>
+        <button 
+            onclick="${estEpuise ? '' : `acheterItem(${idx}, ${prixAchat})`}" 
+            style="background: ${estEpuise ? '#333' : '#4caf50'}; 
+                   color: ${estEpuise ? '#888' : 'white'}; 
+                   border: none; padding: 4px 8px; 
+                   cursor: ${estEpuise ? 'default' : 'pointer'};"
+            ${estEpuise ? 'disabled' : ''}>
+            ${estEpuise ? '❌ Épuisé' : `🛒 Acheter : ${prixAchat} Or`}
+        </button>
+    </div>`;
+    });
+
+    // --- VOTRE INVENTAIRE (VENTE AU MARCHAND) ---
+    let listV = document.getElementById('votre-inventaire-vente');
+    listV.innerHTML = "";
+    
+    perso.inventaire.forEach((item, idx) => {
+        let data = itemsData[item.id];
+        if (!data) return;
+
+        // Le marchand rachète à 70% du prix de base, augmenté par ton talent de marchandage
+        let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
+        // On ne peut pas vendre plus cher que le prix de base original
+        prixVente = Math.min(prixVente, data.prix);
+
+        listV.innerHTML += `
+            <div class="skill-row" style="justify-content: space-between; padding: 5px 10px;">
+                <span>${data.nom} (x${item.quantite})</span>
+                <button onclick="vendreItem(${idx}, ${prixVente})" style="background:#d4af37; color:black; border:none; padding:4px 8px; cursor:pointer;">
+                    💰 Vendre : ${prixVente} Or
+                </button>
+            </div>`;
+    });
+}
+
+
+
+
+
+
+
+
+
+function prendreUnObjet(index) {
+    let item = contenuCoffreActuel[index];
+    ramasserItem(item.id, item.qte); // Utilise ta fonction existante qui save et alerte
+    
+    // Retirer l'objet de la liste locale
+    contenuCoffreActuel.splice(index, 1);
+    
+    // Rafraîchir l'affichage
+    actualiserVisuelFouille();
+}
+
+function toutPrendre() {
+    if (contenuCoffreActuel.length === 0) return;
+    
+    contenuCoffreActuel.forEach(item => {
+        ramasserItem(item.id, item.qte);
+    });
+    
+    contenuCoffreActuel = [];
+    actualiserVisuelFouille();
+    alert("Tout a été transféré dans votre inventaire !");
+}
+
+
+function acheterItem(idx, prix) {
+    // 1. On récupère l'objet dans le stock du marchand
+    let itemEnVente = marchandActuel.inventaire[idx];
+
+    // 2. Vérifications de sécurité
+    if (!itemEnVente || itemEnVente.qte <= 0) {
+        alert("Ce marchand n'a plus cet objet en stock !");
+        return;
+    }
+    if (perso.argent < prix) {
+        alert("Vous n'avez pas assez d'argent !");
+        return;
+    }
+
+    // 3. Transaction financière
+    perso.argent -= prix;
+    marchandActuel.argent += prix;
+
+    // 4. Transfert de l'objet : ON DIMINUE LE STOCK ICI
+    ramasserItem(itemEnVente.id, 1); // On en achète 1 (tu peux adapter si tu veux un prompt de quantité)
+    itemEnVente.qte -= 1;
+
+    // 5. Si le stock tombe à 0, on peut soit laisser "x0", soit retirer l'entrée
+    if (itemEnVente.qte <= 0) {
+        marchandActuel.inventaire.splice(idx, 1);
+    }
+
+    // 6. Mise à jour et Sauvegarde
+    autoSave();
+    updateMarchandUI();
+}
+
+function vendreItem(idx, prix) {
+    if (marchandActuel.argent >= prix) {
+        perso.argent += prix;
+        marchandActuel.argent -= prix;
+        perso.inventaire[idx].quantite--;
+        if (perso.inventaire[idx].quantite <= 0) perso.inventaire.splice(idx, 1);
+        updateMarchandUI();
+    } else { alert("Le marchand n'a plus d'argent !"); }
+}
+
+
+
+
+
+function rafraichirAccueil() {
+    const zoneNouveau = document.getElementById('accueil-nouveau-jeu');
+    const zoneContinuer = document.getElementById('accueil-continuer');
+    const nomAffiche = document.getElementById('accueil-nom-perso');
+
+    // On vérifie si un personnage valide existe
+    if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
+        if (zoneNouveau) zoneNouveau.style.display = 'none';
+        if (zoneContinuer) zoneContinuer.style.display = 'block';
+        if (nomAffiche) nomAffiche.innerText = "Héros : " + perso.nom + " (Niv. " + (perso.niveau || 1) + ")";
+    } else {
+        if (zoneNouveau) zoneNouveau.style.display = 'block';
+        if (zoneContinuer) zoneContinuer.style.display = 'none';
+    }
+}
+
+// Modifie ta fonction allerAccueil pour qu'elle vérifie l'état à chaque fois
+function allerAccueil() {
+	autoSave()
+    cacherTout();
+    document.getElementById('ecran-accueil').style.display = 'block';
+    rafraichirAccueil(); // <--- Important !
+}
+
+
+function reprendrePartie() {
+    // 1. Sécurité : On s'assure que les objets vitaux existent pour ne pas crasher updateInventaireUI
+    if (!perso.inventaire) perso.inventaire = [];
+    if (!perso.equipement) perso.equipement = {
+        tete: null, torse: null, gants: null, bottes: null, 
+        anneau: null, amulette: null, main_droite: null, main_gauche: null
+    };
+
+    // 2. On cache tout proprement d'abord
+    cacherTout();
+
+    // 3. On affiche la fiche et on la met à jour
+    const ecranFiche = document.getElementById('ecran-fiche');
+    if (ecranFiche) {
+        ecranFiche.style.display = 'block';
+        updateFicheUI();
+    }
+}
+
+function autoSave() {
+    if (perso && perso.nom && perso.nom !== "Nom du Personnage") {
+        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
+        console.log("Sauvegarde automatique effectuée.");
+    }
 }

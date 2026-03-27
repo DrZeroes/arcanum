@@ -12,11 +12,11 @@ const magieData = {
     "Divination": {
         desc: "Sortilèges permettant d'obtenir des informations ou des connaissances.",
         sorts: [
-            { nom: "Détection de l'alignement", niv: 1, int: 6, cout: "?", desc: Révèle l’alignement d’une créature. },
-            { nom: "Perception du contenu", niv: 1, int: 9, cout: "?", desc: Permet de voir l’inventaire de la cible. },
-            { nom: "Perception de l'aura", niv: 5, int: 12, cout: "?", desc: Révèle certains attributs cachés de la cible. },
-            { nom: "Détection de l'invisible", niv: 10, int: 15, cout: "?", desc: Permet de voir créatures et objets invisibles. },
-            { nom: "Identification", niv: 15, int: 18, cout: "?", desc: Identifie toutes les propriétés magiques d’un objet. }
+            { nom: "Détection de l'alignement", niv: 1, int: 6, cout: "?", desc: "Révèle l’alignement d’une créature." },
+            { nom: "Perception du contenu", niv: 1, int: 9, cout: "?", desc: "Permet de voir l’inventaire de la cible." },
+            { nom: "Perception de l'aura", niv: 5, int: 12, cout: "?", desc: "Révèle certains attributs cachés de la cible." },
+            { nom: "Détection de l'invisible", niv: 10, int: 15, cout: "?", desc: "Permet de voir créatures et objets invisibles." },
+            { nom: "Identification", niv: 15, int: 18, cout: "?", desc: "Identifie toutes les propriétés magiques d’un objet." }
         ]
     },
     "Air": {
@@ -46,7 +46,7 @@ const magieData = {
             { nom: "Mur de feu", niv: 1, int: 9, cout: "?", desc: "Crée un mur de flammes infligeant des dégâts." }, 
             { nom: "Boule de feu", niv: 5, int: 12, cout: "?", desc: "Lance une boule de feu infligeant de lourds dégâts." }, 
             { nom: "Incarnation de Feu", niv: 10, int: 15, cout: "?", desc: "Transforme la cible en feu." }, 
-            { nom: "Appel d’un élémentaire de Feu, niv: 15, int: 18, cout: "?", desc: "Invoque un élémentaire de Feu." }
+            { nom: "Appel d’un élémentaire de Feu", niv: 15, int: 18, cout: "?", desc: "Invoque un élémentaire de Feu." }
         ] 
     },
     "Eau": { 

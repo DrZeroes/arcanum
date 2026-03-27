@@ -14,37 +14,37 @@ const techData = {
     "Mécanique": { 
 		desc: "Discipline consistant à fabriquer des engins en utilisant des moyens mécaniques.", 
 		schematics: [
-		{nom:"???", int:5, compo:"?", desc:"???"}, 
-		{nom:"???", int:8, compo:"?", desc:"???"}, 
-		{nom:"???", int:11, compo:"?", desc:"???"}, 
-		{nom:"???", int:13, compo:"?", desc:"???"}, 
-		{nom:"???", int:15, compo:"?", desc:"???"}, 
-		{nom:"???", int:17, compo:"?", desc:"???"}, 
-		{nom:"???", int:19, compo:"?", desc:"???"}
+		{nom:"Piège à piques", int:5, compo:"?", desc:"Dispositif simple blessant quiconque marche dessus."}, 
+		{nom:"Passe-partout auto.", int:8, compo:"?", desc:"Outil facilitant grandement le crochetage des serrures."}, 
+		{nom:"Déclencheur de piège", int:11, compo:"?", desc:"Boîtier à ressort pour activer les pièges à distance."}, 
+		{nom:"Piège à ours", int:13, compo:"?", desc:"Pince métallique immobilisant et blessant la proie."}, 
+		{nom:"Leurre mécanique", int:15, compo:"?", desc:"Dispositif à ressort créant une diversion sonore."}, 
+		{nom:"Méca-lorgnon", int:17, compo:"?", desc:"Lunettes augmentant la perception de jour comme de nuit."}, 
+		{nom:"Méca-arachnide", int:19, compo:"?", desc:"Automate de combat hydraulique à vapeur avec griffes."}
 		] 
 		},
 	"Armurerie": { 
 		desc: "Discipline couvrant tous les aspects de la conception et de la fabrication de nouvelles armes.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"}, 
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Pistolet à silex", int:5, compo:"?", desc:"Arme à feu rudimentaire fabriquée avec des pièces de récupération."}, 
+			{nom:"Revolver de choix", int:8, compo:"?", desc:"Pistolet bien équilibré destiné aux tireurs sérieux."}, 
+			{nom:"Fusil à répétition", int:11, compo:"?", desc:"Fusil permettant de tirer plusieurs coups rapidement."}, 
+			{nom:"Revolver silencieux", int:13, compo:"?", desc:"Arme à feu modifiée pour réduire le bruit de la détonation."}, 
+			{nom:"Fusil à lunette", int:15, compo:"?", desc:"Fusil de précision équipé d'un système de visée optique."}, 
+			{nom:"Canon portable", int:17, compo:"?", desc:"Arme lourde infligeant des dégâts massifs."}, 
+			{nom:"Fusil éléphant", int:19, compo:"?", desc:"Arme de très gros calibre pour les cibles les plus résistantes."}
 			] 
 			},
     "Electricité": { 
 		desc: "Discipline explorant les mystères des particules électriques et du magnétisme.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"}, 
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Lampe électrique", int:5, compo:"?", desc:"Lanterne à filament offrant un éclairage propre et constant."}, 
+			{nom:"Anneau électroactif", int:8, compo:"?", desc:"Anneau de cuivre boostant la puissance et les réflexes."}, 
+			{nom:"Spectromètre de flux", int:11, compo:"?", desc:"Appareil sensible détectant les perturbations magiques."}, 
+			{nom:"Bâton électrique", int:13, compo:"?", desc:"Bâton avec condensateur libérant un choc à l'impact."}, 
+			{nom:"Chapeau d'inversion", int:15, compo:"?", desc:"Haut-de-forme protégeant contre les balles et flèches par magnétisme."}, 
+			{nom:"Veste de soins", int:17, compo:"?", desc:"Veste utilisant l'énergie bio-électrique pour régénérer le corps."}, 
+			{nom:"Bâton Tesla", int:19, compo:"?", desc:"Arme avancée projetant des rayons d'énergie paralysants."}
 			] 
 			},
     "Botanique": { 
@@ -62,13 +62,13 @@ const techData = {
     "Thérapeutique": { 
 		desc: "Discipline qui étudie les effets bénéfiques sur le corps des matériaux créés par l'homme.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"},
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Elixir de persuasion", int:5, compo:"?", desc:"Améliore temporairement le charisme et l'élocution."}, 
+			{nom:"Elixir de prouesse", int:8, compo:"?", desc:"Augmente la force physique de l'utilisateur."}, 
+			{nom:"Liquide de perception", int:11, compo:"?", desc:"Affûte les sens et la vigilance du sujet."},
+			{nom:"Fortifiant réflexes", int:13, compo:"?", desc:"Améliore la dextérité et la vitesse de réaction."}, 
+			{nom:"Concentré de neurones", int:15, compo:"?", desc:"Augmente temporairement l'intelligence."}, 
+			{nom:"Energisant", int:17, compo:"?", desc:"Redonne de la vigueur et de l'énergie au corps."}, 
+			{nom:"Revitalisant", int:19, compo:"?", desc:"Restaure l'ensemble des facultés physiques et mentales."}
 			] 
 			},
     "Chimie": { 
@@ -88,13 +88,13 @@ const techData = {
     "Explosifs": { 
 		desc: "Discipline de recherche et de développement des substances instables.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"}, 
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Balles", int:5, compo:"?", desc:"Munitions produites à partir de salpêtre et de charbon."}, 
+			{nom:"Grenade aveuglante", int:8, compo:"", desc:"Gadget au magnésium pour désorienter les adversaires."}, 
+			{nom:"Grenade fumigène", int:11, compo:"?", desc:"Mixture générant un nuage de fumée pour couvrir une fuite."}, 
+			{nom:"Grenade étourdissante", int:13, compo:"?", desc:"Explosion de salpêtre étourdissant temporairement les ennemis."}, 
+			{nom:"Grenade offensive", int:15, compo:"?", desc:"Arme de destruction puissante utilisant du TNT et de la poudre."}, 
+			{nom:"Ecran de feu", int:17, compo:"?", desc:"Mixture inflammable créant un mur de flammes défensif."}, 
+			{nom:"Dynamite", int:19, compo:"?", desc:"Explosif puissant pouvant être fixé sur des structures."}
 			] 
 			}
 };

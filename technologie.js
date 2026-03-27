@@ -50,13 +50,13 @@ const techData = {
     "Botanique": { 
 		desc: "Discipline qui étudie les organismes vivants et les effets produits par les substances naturelles sur ces organismes.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"}, 
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Elixir de soins légers", int:5, compo:"?", desc:"Médicament de base pour soigner les blessures légères."}, 
+			{nom:"Stimulant", int:8, compo:"?", desc:"Produit augmentant temporairement les capacités physiques."}, 
+			{nom:"Antidote", int:11, compo:"?", desc:"Substance permettant de neutraliser les effets du poison."}, 
+			{nom:"Limiteur de fatigue", int:13, compo:"?", desc:"Préparation réduisant la perte de points de fatigue."}, 
+			{nom:"Accélérateur de guérison", int:15, compo:"?", desc:"Accélère la régénération naturelle des tissus."}, 
+			{nom:"Drogue merveilleuse", int:17, compo:"?", desc:"Elixir puissant aux propriétés curatives avancées."}, 
+			{nom:"Soin universel", int:19, compo:"?", desc:"Le remède technologique ultime pour tous les maux."}
 			] 
 			},
     "Thérapeutique": { 
@@ -74,13 +74,15 @@ const techData = {
     "Chimie": { 
 		desc: "Discipline qui étudie les substances élaborées par l'homme et leurs effets nuisibles.", 
 		schematics: [
-			{nom:"???", int:5, compo:"?", desc:"???"}, 
-			{nom:"???", int:8, compo:"?", desc:"???"}, 
-			{nom:"???", int:11, compo:"?", desc:"???"}, 
-			{nom:"???", int:13, compo:"?", desc:"???"}, 
-			{nom:"???", int:15, compo:"?", desc:"???"}, 
-			{nom:"???", int:17, compo:"?", desc:"???"}, 
-			{nom:"???", int:19, compo:"?", desc:"???"}
+			{nom:"Energie", int:5, compo:"?", desc:" Une électrolyse active placée dans une boîte métallique permet, même à l'utilisateur le plus ignorant, de bénéficier des avantagesd'une source énergétique portabl"}, 
+			{nom:"Poison virulent", int:8, compo:"?", desc:"Substance toxique pouvant être appliquée sur des armes."}, 
+			{nom:"Carburant", int:11, compo:"?", desc:"Liquide inflammable utilisé pour divers engins technologiques."}, 
+			{nom:"Hallucinite", int:13, compo:"?", desc:"Produit chimique provoquant des hallucinations chez la victime."}, 
+			{nom:"Acide corrosif", int:15, compo:"?", desc:"Composé (phénol et soufre) qui ronge immédiatement les surfaces."}, 
+			{nom:"Senteur animale", int:17, compo:"?", desc:"Mélange permettant de circuler parmi les bêtes sans être attaqué."}, 
+			{nom:"Paralysant", int:19, compo:"?", desc:"Liquide (champignons et eau de vie) rendant l'ennemi impuissant.
+			
+			"}
 			] 
 			},
     "Explosifs": { 

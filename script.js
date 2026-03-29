@@ -701,10 +701,6 @@ function modMagie(e, v) {
 }
 
 
-
-
-// ================= GESTION TECH =================
-
 // ================= GESTION TECH =================
 
 function initTechUI() {
@@ -713,6 +709,7 @@ function initTechUI() {
     tab.innerHTML = '<div class="magic-tabs"></div><div class="magic-contents"></div>';
     const icons = {"Forge":"⚒️","Mécanique":"⚙️","Armurerie":"🔫","Electricité":"⚡","Botanique":"🌱","Thérapeutique":"💊","Chimie":"🧪","Explosifs":"💣"};
     let isFirst = true;
+    
     for (let d in techData) {
         // On crée le bouton UNE SEULE FOIS
         let btn = document.createElement('button');
@@ -731,38 +728,46 @@ function initTechUI() {
             <span id="tech-val-${d.replace(/\s+/g, '')}">0/7</span>
             <button class="btn-stat edit-only" onclick="modTech('${d}', 1)">+</button></div>
             <div id="schemas-${d.replace(/\s+/g, '')}"></div>`;
+            
+        // --- C'EST ICI QUE ÇA SE PASSE ---
         techData[d].schematics.forEach((s, i) => {
+            // On gère les composants du schéma actuel "s"
+            let texteCompo = Array.isArray(s.compo) ? s.compo.join(" + ") : s.compo;
+
+            // On ajoute le texteCompo dans le HTML au lieu de s.compo
             pane.querySelector(`#schemas-${d.replace(/\s+/g, '')}`).innerHTML += `<div id="schema-${d.replace(/\s+/g, '')}-${i}" class="spell-item">
-                <strong>${s.nom}</strong> (Compos: ${s.compo})<br><em>${s.desc}</em></div>`;
+                <strong>${s.nom}</strong> (Compos : ${texteCompo})<br><em>${s.desc}</em></div>`;
         });
+        
         tab.querySelector('.magic-contents').appendChild(pane);
         isFirst = false;
     }
 }
 
 
-
 function updateTechUI_Display() {
     for (let d in techData) {
-        let act = perso.techInvesties[d] || 0;
+        let act = (perso.techInvesties && perso.techInvesties[d]) ? perso.techInvesties[d] : 0;
         let id = d.replace(/\s+/g, '');
-		
-		let tabBtn = document.getElementById('tab-btn-tech-' + id);
+
+        // Allume l'onglet
+        let tabBtn = document.getElementById('tab-btn-tech-' + id);
         if (tabBtn) {
             if (act > 0) tabBtn.classList.add('has-points');
             else tabBtn.classList.remove('has-points');
         }
-		
+
+        // Met à jour le texte (ex: 2/7)
         let el = document.getElementById('tech-val-' + id);
         if (el) el.innerText = act + "/7";
         
-        let btnMoins = document.getElementById('btn-moins-tech-' + id);
-        let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
-        if (btnMoins) btnMoins.style.visibility = (act > base) ? "visible" : "hidden";
-
+        // Allume les schémas appris dans la liste
         for (let i = 0; i < 7; i++) {
             let sDiv = document.getElementById(`schema-${id}-${i}`);
-            if (sDiv) sDiv.classList.toggle('learned', i < act);
+            if (sDiv) {
+                if (i < act) sDiv.classList.add('learned');
+                else sDiv.classList.remove('learned');
+            }
         }
     }
 }

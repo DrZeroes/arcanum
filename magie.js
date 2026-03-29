@@ -32,11 +32,11 @@ const magieData = {
     "Terre": { 
         desc: "Sortilèges basés sur la terre et la roche.", 
         sorts: [
-            { nom: "Force de la Terre" niv: 1, int: 6, cout: "?", desc: "Augmente la force de la cible." }, 
-            { nom: "Projectile de pierre" niv: 1, int: 9, cout: "?", desc: "Lance un projectile de pierre infligeant des dégâts." }, 
-            { nom: "Mur de pierres" niv: 5, int: 12, cout: "?", desc: "Crée un mur de pierre bloquant le passage." }, 
-            { nom: "Incarnation de Pierre" niv: 10, int: 15, cout: "?", desc: "Transforme la cible en pierre." }, 
-            { nom: "Appel d’un élémentaire de Terre" niv: 15, int: 18, cout: "?", desc: "Invoque un élémentaire de Terre." }
+            { nom: "Force de la Terre", niv: 1, int: 6, cout: "?", desc: "Augmente la force de la cible." }, 
+            { nom: "Projectile de pierre", niv: 1, int: 9, cout: "?", desc: "Lance un projectile de pierre infligeant des dégâts." }, 
+            { nom: "Mur de pierres", niv: 5, int: 12, cout: "?", desc: "Crée un mur de pierre bloquant le passage." }, 
+            { nom: "Incarnation de Pierre", niv: 10, int: 15, cout: "?", desc: "Transforme la cible en pierre." }, 
+            { nom: "Appel d’un élémentaire de Terre" , niv: 15, int: 18, cout: "?", desc: "Invoque un élémentaire de Terre." }
         ] 
     },
     "Feu": { 

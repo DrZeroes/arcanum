@@ -45,6 +45,12 @@
 			
         </div>
     </div>
+	
+	<div style="margin-top: 30px; text-align: center; opacity: 0.3;">
+    <button onclick="ouvrirCodex()" style="background: none; border: 1px solid #555; color: #555; font-size: 0.7em; cursor: pointer; padding: 5px 10px; border-radius: 5px;">
+        🔍 ACCÈS CODEX MJ
+    </button>
+</div>
 </div>
 		
 		
@@ -358,6 +364,32 @@
     <p style="text-align: center; color: #888; font-style: italic; margin-top: 20px;">
         Les documents s'ouvriront dans un nouvel onglet.
     </p>
+</div>
+
+
+
+
+
+<div id="ecran-codex" class="ecran" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="color: #4caf50; margin:0;">📜 Console MJ</h2>
+        <button class="btn-stat" onclick="allerAccueil()">⬅️</button>
+    </div>
+
+    <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+        <button onclick="genererListeCodex('items')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">💎 Objets</button>
+        <button onclick="genererListeCodex('marchands')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">⚖️ Marchands</button>
+        <button onclick="genererListeCodex('coffres')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📦 Coffres</button>
+    </div>
+
+    <input type="text" id="recherche-codex" placeholder="Rechercher..." onkeyup="filtrerCodex()" 
+           style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555;">
+
+    <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #444;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tbody id="tbody-codex"></tbody>
+        </table>
+    </div>
 </div>
 
 

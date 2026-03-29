@@ -98,7 +98,8 @@ function cacherTout() {
         'ecran-fouille',   // AJOUTÉ
         'ecran-marchand' ,  // AJOUTÉ
 		'ecran-craft' ,     // <--- AJOUTE CETTE LIGNE !
-		'ecran-aide'       // <--- AJOUTE CETTE LIGNE !
+		'ecran-aide' ,
+'ecran-codex'		// <--- AJOUTE CETTE LIGNE !
     ];
 
     ecrans.forEach(id => {
@@ -1539,6 +1540,110 @@ function rafraichirAccueil() {
 
 
 
+
+// --- FONCTION MJ : OUVRIR LE CODEX ---
+function ouvrirCodex() {
+    cacherTout();
+    document.getElementById('ecran-codex').style.display = 'block';
+    genererListeCodex('items'); // Par défaut on affiche les objets
+}
+
+function genererListeCodex(type) {
+    const tbody = document.getElementById('tbody-codex');
+    tbody.innerHTML = '';
+    
+    if (type === 'items') {
+        for (let id in itemsData) {
+            ajouterLigneCodex(id, itemsData[id].nom, "Objet", `ramasserItem('${id}', 1)`, "🎁 +1");
+        }
+    } else if (type === 'marchands') {
+        for (let id in marchandsData) {
+            ajouterLigneCodex(id, marchandsData[id].nom, "Marchand", `ouvrirMarchand('${id}')`, "💰 Voir");
+        }
+    } else if (type === 'coffres') {
+        for (let id in coffresFixes) {
+            ajouterLigneCodex(id, coffresFixes[id].nom, "Coffre", `ouvrirCoffre('${id}')`, "🔍 Ouvrir");
+        }
+    }
+}
+
+function genererListeCodex(type) {
+    const tbody = document.getElementById('tbody-codex');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    console.log("Génération du Codex type :", type); // Pour debug dans F12
+
+    if (type === 'items') {
+        for (let id in itemsData) {
+            let item = itemsData[id];
+            tbody.innerHTML += `
+                <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
+                    <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
+                    <td style="padding: 10px; color: #fff;">${item.nom}</td>
+                    <td style="padding: 10px;"><button onclick="ramasserItem('${id}', 1)" style="background:#4caf50; color:white; border:none; padding:5px; border-radius:3px;">🎁 +1</button></td>
+                </tr>`;
+        }
+    } 
+    else if (type === 'marchands') {
+        // On vérifie que marchandsData existe
+        if (typeof marchandsData !== 'undefined') {
+            for (let id in marchandsData) {
+                let m = marchandsData[id];
+                tbody.innerHTML += `
+                    <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
+                        <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
+                        <td style="padding: 10px; color: #fff;">${m.nom}</td>
+                        <td style="padding: 10px;"><button onclick="forcerOuvertureMarchand('${id}')" style="background:#2196f3; color:white; border:none; padding:5px; border-radius:3px;">💰 Voir</button></td>
+                    </tr>`;
+            }
+        }
+    } 
+    else if (type === 'coffres') {
+        // On vérifie que coffresFixes existe
+        if (typeof coffresFixes !== 'undefined') {
+            for (let id in coffresFixes) {
+                let c = coffresFixes[id];
+                tbody.innerHTML += `
+                    <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
+                        <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
+                        <td style="padding: 10px; color: #fff;">${c.nom}</td>
+                        <td style="padding: 10px;"><button onclick="forcerOuvertureCoffre('${id}')" style="background:#ff9800; color:white; border:none; padding:5px; border-radius:3px;">🔍 Ouvrir</button></td>
+                    </tr>`;
+            }
+        }
+    }
+}
+
+// --- Petites fonctions de forçage pour le MJ ---
+function forcerOuvertureMarchand(id) {
+    marchandActuel = marchandsData[id];
+    cacherTout();
+    document.getElementById('ecran-marchand').style.display = 'block';
+    updateMarchandUI();
+}
+
+function forcerOuvertureCoffre(id) {
+    cacherTout();
+    document.getElementById('ecran-fouille').style.display = 'block';
+    // On simule le contenu du coffre
+    contenuCoffreActuel = coffresFixes[id] ? [...coffresFixes[id].items] : genererLootAleatoire(20);
+    actualiserVisuelFouille();
+}
+
+
+
+
+// --- FONCTION MJ : FILTRER LA LISTE ---
+function filtrerCodex() {
+    let input = document.getElementById('recherche-codex').value.toLowerCase();
+    let lignes = document.querySelectorAll('.ligne-codex');
+
+    lignes.forEach(ligne => {
+        let texte = ligne.innerText.toLowerCase();
+        ligne.style.display = texte.includes(input) ? "" : "none";
+    });
+}
 
 
 

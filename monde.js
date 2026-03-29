@@ -58,9 +58,17 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
         });
     }
 
-    // 3. AJOUT DE L'OR (ex: 80% de chance d'avoir de l'or dans un coffre)
-    if (Math.random() < 0.8) {
-        let montantOr = Math.floor(Math.random() * 50) + 10; // Entre 10 et 59 pièces
+ if (Math.random() < 0.8) {
+        
+        // Calcul du montant basé sur la rareté :
+        // Minimum : niveauRareteMax * 2 (ex: Niv 10 = 20 Or min)
+        // Maximum : niveauRareteMax * 8 (ex: Niv 10 = 80 Or max)
+        
+        let minOr = niveauRareteMax * 5;
+        let maxOr = niveauRareteMax * 25;
+        
+        let montantOr = Math.floor(Math.random() * (maxOr - minOr + 1)) + minOr;
+        
         loot.push({ id: "OR_PIECES", qte: montantOr });
     }
     

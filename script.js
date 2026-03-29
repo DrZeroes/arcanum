@@ -97,7 +97,8 @@ function cacherTout() {
         'ecran-inventaire', 
         'ecran-fouille',   // AJOUTÉ
         'ecran-marchand' ,  // AJOUTÉ
-		'ecran-craft'      // <--- AJOUTE CETTE LIGNE !
+		'ecran-craft' ,     // <--- AJOUTE CETTE LIGNE !
+		'ecran-aide'       // <--- AJOUTE CETTE LIGNE !
     ];
 
     ecrans.forEach(id => {
@@ -120,6 +121,13 @@ function allerAccueil() {
         btnLoad.style.background = "#444";
         btnLoad.disabled = true;
     }
+}
+
+
+
+function ouvrirAide() {
+    cacherTout();
+    document.getElementById('ecran-aide').style.display = 'block';
 }
 
 function nouveauPersonnage() {

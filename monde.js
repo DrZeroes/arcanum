@@ -37,22 +37,32 @@ const marchandsData = {
 
 
 // Fonction utilitaire pour générer du loot aléatoire
-function genererLootAleatoire(niveauRareteMax = 5, nombreObjets = 3) {
+function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
     let loot = [];
-    // On vérifie que itemsData existe bien
+    
+    // 1. Filtrer les objets lootables
     let cles = Object.keys(itemsData).filter(k => {
         let item = itemsData[k];
-        return !k.startsWith("XXX") && (parseInt(item.rarete) <= niveauRareteMax);
+        return item.lootable === true && (parseInt(item.rarete) <= niveauRareteMax);
     });
     
+    // 2. Générer les objets normaux
     for (let i = 0; i < nombreObjets; i++) {
         if (cles.length === 0) break;
         let idAleatoire = cles[Math.floor(Math.random() * cles.length)];
         let itemTemplate = itemsData[idAleatoire];
+        
         loot.push({ 
             id: idAleatoire, 
-            qte: itemTemplate.stackable ? Math.floor(Math.random() * 10) + 1 : 1 
+            qte: itemTemplate.stackable ? Math.floor(Math.random() * 5) + 1 : 1 
         });
     }
+
+    // 3. AJOUT DE L'OR (ex: 80% de chance d'avoir de l'or dans un coffre)
+    if (Math.random() < 0.8) {
+        let montantOr = Math.floor(Math.random() * 50) + 10; // Entre 10 et 59 pièces
+        loot.push({ id: "OR_PIECES", qte: montantOr });
+    }
+    
     return loot;
 }

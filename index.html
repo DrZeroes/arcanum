@@ -9,7 +9,7 @@
 <body>
 
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
-    <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">COUCOU VAL</h1>
+    <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
     
     <div id="accueil-nouveau-jeu">
         <button class="next-btn" style="background: #8b0000; color: white; width: 80%; margin-bottom: 15px;" onclick="nouveauPersonnage()">✨ Créer un Personnage</button>
@@ -27,6 +27,7 @@
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
             <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
             <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
+			<button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white;">⚙️ Artisanat</button>
         </div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
@@ -323,6 +324,22 @@
 
         </div>
     </div>
+
+
+
+
+<div id="ecran-craft" class="ecran" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #ff9800;">⚙️ Atelier d'Artisanat</h2>
+        <button class="btn-stat" onclick="cacherTout(); document.getElementById('ecran-fiche').style.display='block';" style="padding: 8px 15px; cursor: pointer; font-weight: bold;">⬅️ Retour</button>
+    </div>
+    <div id="liste-crafts"></div>
+</div>
+
+
+
+
+
 
 <script src="items.js"></script>
 <script src="monde.js"></script>

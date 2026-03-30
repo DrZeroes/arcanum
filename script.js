@@ -227,7 +227,7 @@ function trouverDerniereImage(indexTest) {
     let sexePath = (raceSelect.value !== "Bedokien") ? (sexeSelect.value === 'F' ? "Femme/" : "Homme/") : "";
     
     let nomFichier = indexTest.toString().padStart(2, '0') + ".png";
-    let cheminTest = `./docs/photo/${raceDossier}/${sexePath}${nomFichier}`;
+    let cheminTest = `./docs/img/portraits/${raceDossier}/${sexePath}${nomFichier}`;
 
     let img = new Image();
     img.src = cheminComplet = encodeURI(cheminTest);
@@ -275,7 +275,7 @@ function rafraichirApercuAvatar() {
 
     // On prépare le nom du fichier (ex: 01.png)
     let nomFichier = photoIndexSelection.toString().padStart(2, '0') + ".png";
-    let cheminComplet = `./docs/photo/${raceDossier}/${sexePath}${nomFichier}`;
+    let cheminComplet = `./docs/img/portraits/${raceDossier}/${sexePath}${nomFichier}`;
 
     // --- TEST DE L'IMAGE ---
     let testImg = new Image();
@@ -295,7 +295,7 @@ function rafraichirApercuAvatar() {
             rafraichirApercuAvatar();
         } else {
             // Si même la 01.png n'existe pas, on met un placeholder
-            img.src = "./docs/photo/placeholder.png"; 
+            img.src = "./docs/img/portraits/placeholder.png"; 
         }
     };
 }
@@ -672,7 +672,7 @@ function changerPhoto(direction) {
     let apercu = document.getElementById('apercu-photo-creation');
     if (apercu) {
         let dossierRace = document.getElementById('raceSelect').value.toLowerCase();
-        apercu.src = `./docs/photo/${dossierRace}/${perso.photo}`;
+        apercu.src = `./docs/img/portraits/${dossierRace}/${perso.photo}`;
     }
 }
 
@@ -735,13 +735,13 @@ if (photoContainer && perso) {
     }
 
 // Ici perso.photo contient déjà "01.png", "02.png", etc.
-    let cheminPhoto = `./docs/photo/${raceDossier}/${sexePath}${perso.photo}`;
+    let cheminPhoto = `./docs/img/portraits/${raceDossier}/${sexePath}${perso.photo}`;
 	
 photoContainer.innerHTML = `
         <img src="${cheminPhoto}" 
              alt="Avatar" 
              style="width:100px; height:100px; border:2px solid #d4af37; border-radius:5px; object-fit:cover; background:#222;"
-             onerror="this.src='./docs/photo/placeholder.png'">`;
+             onerror="this.src='./docs/img/portraits/placeholder.png'">`;
 }
 
 

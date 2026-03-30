@@ -37,6 +37,45 @@ input[type="text"], select {
     box-sizing: border-box;
 }
 
+
+
+#ecran-accueil,
+#ecran-creation,
+#ecran-fiche,
+#ecran-inventaire,
+#ecran-fouille,
+#ecran-marchand,
+#ecran-craft,
+#ecran-aide,
+#ecran-codex,
+#ecran-carte {
+    /* Un fond noir/marron très foncé, transparent à 85% */
+    background-color: rgba(20, 15, 10, 0.85) !important; 
+    
+    /* L'EFFET RPG MODERNE (Optionnel mais génial) : 
+       Ça floute légèrement l'image de fond JUSTE derrière la fenêtre, 
+       ce qui rend tes textes super lisibles ! */
+    backdrop-filter: blur(4px); 
+    
+    /* Un peu d'ombre pour décoller la fenêtre du fond */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+}
+
+
+
+
+
+.ecran {
+    /* ... tes autres réglages ... */
+    
+    /* On remplace la couleur unie (ex: #222) par un noir transparent à 85% */
+    background: rgba(20, 20, 20, 0.85); 
+    
+    /* Petit bonus pour faire joli : un contour flou pour détacher le menu du fond */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7); 
+}
+
 input[type="text"]:focus, select:focus { border-color: #d4af37; outline: none; }
 
 .stats-container { 

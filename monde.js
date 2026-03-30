@@ -133,12 +133,12 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
 
 
 const lieuxDecouverts = {
-    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",desc: "La cité industrielle." },
-    "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",desc: "Un petit village minier." },
-    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",desc: "Une ville sombre et mystérieuse." },
-    "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, musique: "Interlude.mp3",desc: "Le Zephyr est tombé ici." },
-    "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, musique: "Wilderness.mp3",desc: "Maison d'un vieil ermite." },
-    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3", desc: "Domicile de Simon" }
+    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",fond: "tarante.jpg", desc: "La cité industrielle." },
+    "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",fond: "trist_coll.jpg", desc: "Un petit village minier." },
+    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse." },
+    "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, musique: "Interlude.mp3",fond: "crash.jpg",desc: "Le Zephyr est tombé ici." },
+    "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, musique: "Wilderness.mp3",fond: "abraham.jpg",desc: "Maison d'un vieil ermite." },
+    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Domicile de Simon" }
 };
 
 const playlistMJ = [

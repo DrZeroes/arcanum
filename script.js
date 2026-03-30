@@ -627,6 +627,8 @@ function validerCreation() {
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI();
     if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+	appliquerFondActuel();
+	
 }
 
 function changerPhoto(direction) {
@@ -1372,11 +1374,39 @@ function fermerInventaire() {
 
 
 function jeterItem(index) {
-    if (confirm("Voulez-vous vraiment jeter cet objet ?")) {
-        perso.inventaire[index].quantite -= 1;
-        if (perso.inventaire[index].quantite <= 0) perso.inventaire.splice(index, 1);
-        updateInventaireUI();
+    let item = perso.inventaire[index];
+    let data = itemsData[item.id];
+    let qteActuelle = item.quantite || item.qte || 1;
+
+    // S'il y a plus d'un objet, on demande combien en jeter
+    if (qteActuelle > 1) {
+        let rep = prompt(`Combien de "${data.nom}" voulez-vous jeter ? (Max : ${qteActuelle})`, "1");
+        if (rep === null) return; // Le joueur a cliqué sur Annuler
+        
+        let qteAJeter = parseInt(rep);
+        if (isNaN(qteAJeter) || qteAJeter <= 0) return; // Saisie invalide
+        
+        if (qteAJeter >= qteActuelle) {
+            // S'il jette tout ou plus que ce qu'il a
+            if (confirm(`Jeter TOUT votre stock de ${data.nom} ?`)) {
+                perso.inventaire.splice(index, 1);
+            } else {
+                return;
+            }
+        } else {
+            // On réduit la quantité
+            item.quantite -= qteAJeter;
+            item.qte = item.quantite; // Sécurité de synchronisation
+        }
+    } else {
+        // S'il n'y a qu'un seul objet, un simple confirm suffit
+        if (confirm(`Voulez-vous vraiment jeter : ${data.nom} ?`)) {
+            perso.inventaire.splice(index, 1);
+        }
     }
+
+    updateInventaireUI();
+    autoSave(); // On sauvegarde l'inventaire
 }
 
 function equiperItem(indexInventaire) {
@@ -1452,12 +1482,48 @@ function desequiperItem(slot, isSilent = false) {
     if (!isSilent) updateInventaireUI();
 }
 
+
+
+function trierInventaire(critere) {
+    if (!perso.inventaire || perso.inventaire.length === 0) return;
+
+    // Calcul du bonus de marchandage pour le tri par prix
+    let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
+    let reductionClient = ptsMarchandage * 0.02;
+
+    perso.inventaire.sort((a, b) => {
+        let dataA = itemsData[a.id];
+        let dataB = itemsData[b.id];
+        
+        if (!dataA || !dataB) return 0;
+
+        if (critere === 'poids') {
+            // Plus lourd en premier
+            return dataB.poids - dataA.poids; 
+        } else if (critere === 'prix') {
+            // Calcul du vrai prix de vente
+            let prixA = Math.min(Math.floor(dataA.prix * (0.7 + reductionClient)), dataA.prix);
+            let prixB = Math.min(Math.floor(dataB.prix * (0.7 + reductionClient)), dataB.prix);
+            // Plus cher en premier
+            return prixB - prixA; 
+        }
+        return 0;
+    });
+
+    // On rafraîchit l'affichage après avoir trié la liste
+    updateInventaireUI();
+}
+
 function updateInventaireUI() {
     let listInv = document.getElementById('inv-list-full');
     let listEq = document.getElementById('equipement-list');
     if (!listInv || !listEq) return 0;
 
     let poidsTotal = 0;
+
+    // --- CALCUL DU MARCHANDAGE POUR LE PRIX AFFICHE ---
+    let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
+    let reductionClient = ptsMarchandage * 0.02;
 
     // --- GENERATEUR DE STATS VISUELLES ---
     const getStatsHtml = (data, item) => {
@@ -1469,31 +1535,53 @@ function updateInventaireUI() {
         return h;
     };
 
-  // --- 1. DESSINER LE SAC À DOS ---
-    let htmlInv = ``;
-(perso.inventaire || []).forEach((item, index) => {
-	let data = itemsData[item.id];
-        if (data) {
-            poidsTotal += data.poids * item.quantite;
-            let btnEquiper = (data.equipable && data.equipable !== "aucun") 
-                ? `<button onclick="equiperItem(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+    // --- 1. DESSINER LE SAC À DOS ---
+    
+    // Ajout des boutons de tri en haut de la liste
+    let htmlInv = `
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #1a110b; padding: 10px; border-radius: 4px; border: 1px solid #444;">
+            <span style="color: #888; font-size: 0.9em; align-self: center;">Trier par :</span>
+            <button onclick="trierInventaire('poids')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">⚖️ Plus Lourd</button>
+            <button onclick="trierInventaire('prix')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">💰 Plus Cher</button>
+        </div>
+    `;
 
-            htmlInv += `
-                <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px;">
-                    <div style="display:flex; justify-content: space-between;">
-                        <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite})</strong>
-                        <span style="color:#aaa;">${data.poids} kg</span>
-                    </div>
-                    <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
-                    ${getStatsHtml(data, item)}
-                    <div style="display:flex; gap: 5px; margin-top: 8px;">
-                        ${btnEquiper}
-                        <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
-                    </div>
-                </div>`;
-        }
-    });
-    listInv.innerHTML = htmlInv || "<div style='color:#666; font-style:italic;'>Le sac est vide.</div>";
+    if (!perso.inventaire || perso.inventaire.length === 0) {
+        htmlInv = "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
+    } else {
+        perso.inventaire.forEach((item, index) => {
+            let data = itemsData[item.id];
+            if (data) {
+                poidsTotal += data.poids * item.quantite;
+                
+                // Calcul du prix de vente affiché
+                let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
+                prixVente = Math.min(prixVente, data.prix); // Capé au prix max
+                
+                let btnEquiper = (data.equipable && data.equipable !== "aucun") 
+                    ? `<button onclick="equiperItem(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+
+                htmlInv += `
+                    <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
+                        <div style="display:flex; justify-content: space-between;">
+                            <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite})</strong>
+                            <div style="text-align: right; min-width: 80px;">
+                                <span style="color:#aaa; display:block; font-size:0.9em;">⚖️ ${data.poids} kg</span>
+                                <span style="color:#d4af37; display:block; font-size:0.9em;">💰 ${prixVente} Or</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
+                        ${getStatsHtml(data, item)}
+                        <div style="display:flex; gap: 5px; margin-top: 8px;">
+                            ${btnEquiper}
+                            <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
+                        </div>
+                    </div>`;
+            }
+        });
+    }
+    
+    listInv.innerHTML = htmlInv;
 
     // --- 2. DESSINER L'ÉQUIPEMENT ---
     let htmlEq = ``;
@@ -1505,7 +1593,7 @@ function updateInventaireUI() {
             let data = itemsData[itemEq.id];
             poidsTotal += data.poids; 
             htmlEq += `
-                <div style="background: #1a110b; border: 1px solid #4caf50; padding: 10px; border-radius: 4px; display:flex; justify-content: space-between; align-items: center;">
+                <div style="background: #1a110b; border: 1px solid #4caf50; padding: 10px; border-radius: 4px; margin-bottom: 5px; display:flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 0.7em; color: #4caf50; text-transform: uppercase;">${nomSlot}</div>
                         <strong style="color: #fff;">${data.nom}</strong>
@@ -1515,7 +1603,7 @@ function updateInventaireUI() {
                 </div>`;
         } else {
             htmlEq += `
-                <div style="background: #111; border: 1px dashed #444; padding: 10px; border-radius: 4px;">
+                <div style="background: #111; border: 1px dashed #444; padding: 10px; border-radius: 4px; margin-bottom: 5px;">
                     <div style="font-size: 0.7em; color: #666; text-transform: uppercase;">${nomSlot}</div>
                     <div style="color: #444; font-style: italic;">Vide</div>
                 </div>`;
@@ -1534,10 +1622,24 @@ function updateInventaireUI() {
 }
 
 
+function appliquerFondActuel() {
+    // On sécurise le coup : si on n'a pas de perso ou pas de lieu, on met le crash ou un fond par défaut
+    const idLieu = (perso && perso.lieuActuel) ? perso.lieuActuel : "crash";
+    const lieuData = lieuxDecouverts[idLieu];
 
-
-
-
+    if (lieuData && lieuData.fond) {
+        document.body.style.backgroundImage = `url('./docs/img/fonds/${lieuData.fond}')`;
+    } else {
+        // Fond par défaut si le lieu n'a pas d'image
+        document.body.style.backgroundImage = `url('./docs/img/fonds/fond_arcanum_default.jpg')`;
+    }
+    
+    // On s'assure que l'image s'affiche bien (tu peux aussi mettre ça dans ton fichier CSS sur la balise body)
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center center";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.transition = "background-image 0.5s ease-in-out"; // Petit fondu sympa !
+}
 
 
 // --- FOUILLE ---
@@ -1834,22 +1936,25 @@ function ouvrirEcranCraft() {
                 let idC1 = trouverIdParNom(compo1Nom);
                 let idC2 = trouverIdParNom(compo2Nom);
 
-                let qteC1 = compterObjet(idC1);
+let qteC1 = compterObjet(idC1);
                 let qteC2 = compterObjet(idC2);
 
-                let hasC1 = qteC1 > 0;
-                let hasC2 = qteC2 > 0;
-                
-                let canCraft = false;
+                // Calcul de la quantité maximum fabricable
+                let maxCraftable = 0;
                 if (idC1 === idC2) {
-                    canCraft = qteC1 >= 2; 
+                    // Si le schéma demande 2 fois le même objet (ex: 2 bouts de métal)
+                    maxCraftable = Math.floor(qteC1 / 2); 
                 } else {
-                    canCraft = hasC1 && hasC2;
+                    // S'il demande 2 objets différents, on prend le plus petit nombre des deux
+                    maxCraftable = Math.min(qteC1, qteC2);
                 }
 
+                let canCraft = maxCraftable > 0;
+
+                // On modifie le bouton pour afficher le (Max : X)
                 let btnHTML = canCraft 
-                    ? `<button onclick="fabriquerObjet('${schema.nom}', '${idC1}', '${idC2}')" style="background: #4caf50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 120px;">🔨 Fabriquer</button>`
-                    : `<button disabled style="background: #444; color: #888; border: 1px solid #555; padding: 10px 15px; border-radius: 4px; cursor: not-allowed; width: 120px;">Manquant</button>`;
+                    ? `<button onclick="fabriquerObjet('${schema.nom}', '${idC1}', '${idC2}')" style="background: #4caf50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 140px;">🔨 Fabriquer (${maxCraftable})</button>`
+                    : `<button disabled style="background: #444; color: #888; border: 1px solid #555; padding: 10px 15px; border-radius: 4px; cursor: not-allowed; width: 140px;">Manquant</button>`;
 
                 div.innerHTML += `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); border: 1px solid #555; padding: 12px; margin-bottom: 10px; border-radius: 6px;">
@@ -1858,9 +1963,9 @@ function ouvrirEcranCraft() {
                             <em style="color: #bbb; font-size: 0.9em;">${schema.desc}</em>
                             <div style="margin-top: 8px; font-size: 0.95em;">
                                 Requis : 
-                                <span style="color:${hasC1 ? '#81c784' : '#e57373'}; font-weight: bold;">${compo1Nom} (${qteC1}/1)</span> 
+                                <span style="color:${qteC1 > 0 ? '#81c784' : '#e57373'}; font-weight: bold;">${compo1Nom} (${qteC1}/1)</span> 
                                 <span style="color: #888;">+</span> 
-                                <span style="color:${hasC2 ? '#81c784' : '#e57373'}; font-weight: bold;">${compo2Nom} (${qteC2}/1)</span>
+                                <span style="color:${qteC2 > 0 ? '#81c784' : '#e57373'}; font-weight: bold;">${compo2Nom} (${qteC2}/1)</span>
                             </div>
                         </div>
                         <div style="flex-shrink: 0;">
@@ -2305,9 +2410,9 @@ function rafraichirPointsCarte() {
                 
                 // Petit feedback visuel (optionnel)
                 alert("Vous voyagez vers : " + coord.nom);
-                
-                // On redessine la carte (le lieu jaune devient le nouveau vert)
-                rafraichirPointsCarte(); 
+                appliquerFondActuel();
+				
+     allerAccueil();
             } 
             // CAS C : On clique sur un point Rouge (Premier clic = SÉLECTION)
             else {
@@ -2379,6 +2484,9 @@ function reprendrePartie() {
         updateFicheUI();
         if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
     }
+	
+	
+	appliquerFondActuel();
 }
 
 

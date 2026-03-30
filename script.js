@@ -369,13 +369,6 @@ function validerCreation() {
 
 
 
-
-
-
-
-
-
-
 // ================= MISE À JOUR FICHE =================
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
@@ -384,7 +377,7 @@ function updateFicheUI() {
     // 1. Sécurités et Initialisation
     if (!perso.bonusInnes) perso.bonusInnes = { align: 0, resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
     if (perso.pointsDispo === undefined) perso.pointsDispo = 0;
-    const b = perso.bonusInnes; // On définit 'b' tôt pour pouvoir l'utiliser
+    const b = perso.bonusInnes;
 
     // 2. Gestion des points dispos
     container.classList.toggle('no-points', perso.pointsDispo <= 0);
@@ -398,7 +391,7 @@ function updateFicheUI() {
     document.getElementById('fiche-bg').innerText = perso.antecedent || "";
     if (document.getElementById('fiche-argent')) document.getElementById('fiche-argent').innerText = perso.argent ?? 400;
 
-// 4. STATISTIQUES
+    // 4. STATISTIQUES
     let finalStats = {};
     const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
     statsKeys.forEach(s => {
@@ -409,12 +402,11 @@ function updateFicheUI() {
             elVal.innerText = total;
             elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
             let btnMoins = document.getElementById('btn-moins-' + s); 
-            // MODIFICATION ICI : On regarde investissementsTemporaires.stats[s]
             if (btnMoins) btnMoins.style.visibility = (investissementsTemporaires.stats[s] > 0) ? "visible" : "hidden";
         }
     });
 
-    // 5. LECTURE DES BONUS D'ÉQUIPEMENT (Important pour l'épée enchantée)
+    // 5. LECTURE DES BONUS D'ÉQUIPEMENT
     let bonusArmure = 0, bonusResPhys = 0, bonusResMagie = 0, bonusFT = 0;
     for (let slot in perso.equipement) {
         let itemEq = perso.equipement[slot];
@@ -435,17 +427,23 @@ function updateFicheUI() {
     let statIN = finalStats.IN || 8;
 
     let pvTotal = (statFO * 2) + statIN + (perso.boostPV || 0);
-    // On ajoute bonusFT ici pour l'épée !
     let ftTotal = (statCN * 2) + statIN + (perso.boostFT || 0) + bonusFT;
 
     if (document.getElementById('fiche-pv')) document.getElementById('fiche-pv').innerText = pvTotal;
     if (document.getElementById('fiche-fatigue')) {
         const elFt = document.getElementById('fiche-fatigue');
         elFt.innerText = ftTotal;
-        elFt.style.color = (bonusFT > 0) ? "#4caf50" : "#fff"; // Vert si boosté par item
+        elFt.style.color = (bonusFT > 0) ? "#4caf50" : "#fff"; 
     }
+    
+// --- Affichage des boutons - pour PV et FT ---
+    let btnMoinsPV = document.getElementById('btn-moins-PV'); // <-- Majuscules ici !
+    if (btnMoinsPV) btnMoinsPV.style.visibility = investissementsTemporaires.pv > 0 ? "visible" : "hidden";
 
-    // 7. RÉSISTANCES (Fonction de mise à jour)
+    let btnMoinsFT = document.getElementById('btn-moins-FT'); // <-- Majuscules ici !
+    if (btnMoinsFT) btnMoinsFT.style.visibility = investissementsTemporaires.ft > 0 ? "visible" : "hidden";
+
+    // 7. RÉSISTANCES
     const setRes = (id, valBase, valBonus) => {
         const el = document.getElementById(id);
         if (el) {
@@ -503,6 +501,12 @@ function updateFicheUI() {
                 let act = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
                 let el = document.getElementById('fiche-val-' + id);
                 if (el) el.innerText = act;
+                
+                // CACHER LE BOUTON MOINS DES COMPÉTENCES
+                let btnMoins = document.getElementById('btn-moins-' + id);
+                if (btnMoins) {
+                    btnMoins.style.visibility = (investissementsTemporaires.comp[id] > 0) ? "visible" : "hidden";
+                }
             });
         }
     }
@@ -523,25 +527,44 @@ function updateFicheUI() {
 
 
 
+
+
+
 // ================= LOGIQUE STATS & VITALITÉ =================
 function modStat(stat, val) {
     if (val > 0 && perso.pointsDispo <= 0) return;
     if (val < 0 && (perso.statsInvesties[stat] || 0) <= 0) return;
+    
+    // MODIFICATION ICI : Sécurité pour le panier
+    if (!investissementsTemporaires.stats[stat]) investissementsTemporaires.stats[stat] = 0;
+    // On ne peut retirer que si on a investi temporairement
+    if (val < 0 && investissementsTemporaires.stats[stat] <= 0) return;
+
     perso.statsInvesties[stat] = (perso.statsInvesties[stat] || 0) + val;
+    investissementsTemporaires.stats[stat] += val; // Mise à jour du panier
     perso.pointsDispo -= val;
     updateFicheUI();
 }
+
 
 function boostVital(type, valeur) {
     if (valeur > 0 && perso.pointsDispo <= 0) return;
     if (type === 'PV') {
         let base = perso.boostPVBase || 0;
         if (valeur < 0 && (perso.boostPV || 0) <= base) return;
+        // Sécurité Panier
+        if (valeur < 0 && investissementsTemporaires.pv <= 0) return;
+
         perso.boostPV = (perso.boostPV || 0) + valeur;
+        investissementsTemporaires.pv += valeur; // Mise à jour du panier
     } else {
         let base = perso.boostFTBase || 0;
         if (valeur < 0 && (perso.boostFT || 0) <= base) return;
+        // Sécurité Panier
+        if (valeur < 0 && investissementsTemporaires.ft <= 0) return;
+
         perso.boostFT = (perso.boostFT || 0) + valeur;
+        investissementsTemporaires.ft += valeur; // Mise à jour du panier
     }
     perso.pointsDispo -= (valeur > 0 ? 1 : -1);
     updateFicheUI();
@@ -591,6 +614,11 @@ function modComp(id, val) {
     
     if (val < 0 && act <= base) return;
     if (val > 0 && act >= 20) return;
+	
+	
+	// --- AJOUT PANIER ---
+    if (!investissementsTemporaires.comp[id]) investissementsTemporaires.comp[id] = 0;
+    if (val < 0 && investissementsTemporaires.comp[id] <= 0) return; // Empêche de retirer si pas dans le panier
     
     // --- VÉRIFICATION DES PRÉREQUIS ---
     if (val > 0) {
@@ -619,9 +647,11 @@ function modComp(id, val) {
     }
 
     // --- APPLICATION ---
-  perso.compInvesties[id] = act + val;
+perso.compInvesties[id] = act + val;
+  investissementsTemporaires.comp[id] += (val > 0 ? 1 : -1); // AJOUT PANIER (Note: l'incrément dépend de ta logique, si 1 clic = 4 pts, le panier compte les "clics")
     perso.pointsDispo -= (val > 0 ? 1 : -1);
     updateFicheUI();
+    // IL FAUDRA AUSSI CACHER LE BOUTON "-" DE LA COMP DANS initCompetencesUI
 }
 
 
@@ -648,7 +678,7 @@ function initMagieUI() {
         pane.innerHTML = `<div class="magic-school-header"><strong>${ecole}</strong>
             <button id="btn-moins-magie-${ecole.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
             <span id="magie-val-${ecole.replace(/\s+/g, '')}">0/5</span>
-            <button class="btn-stat edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
+            <button class="btn-stat btn-plus edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
             <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
         magieData[ecole].sorts.forEach((s, i) => {
             pane.querySelector(`#spells-${ecole.replace(/\s+/g, '')}`).innerHTML += `<div id="spell-${ecole.replace(/\s+/g, '')}-${i}" class="spell-item">
@@ -662,17 +692,22 @@ function initMagieUI() {
 function updateMagieUI_Display() {
     for (let e in magieData) {
         let act = (perso.magieInvesties && perso.magieInvesties[e]) ? perso.magieInvesties[e] : 0;
-        let id = e.replace(/\s+/g, ''); 
+        let id = e.replace(/\s+/g, '');
 
-        // --- AJOUT : Allumer/Éteindre l'icône de l'onglet ---
         let tabBtn = document.getElementById('tab-btn-magie-' + id);
         if (tabBtn) {
-            if (act > 0) tabBtn.classList.add('has-points'); // Utilise ta classe CSS
+            if (act > 0) tabBtn.classList.add('has-points');
             else tabBtn.classList.remove('has-points');
         }
 
         let el = document.getElementById('magie-val-' + id);
         if (el) el.innerText = act + "/5";
+        
+        // --- AJOUT : CACHER LE BOUTON MOINS ---
+        let btnMoins = document.getElementById('btn-moins-magie-' + id);
+        if (btnMoins) {
+            btnMoins.style.visibility = (investissementsTemporaires.magie[e] > 0) ? "visible" : "hidden";
+        }
         
         for (let i = 0; i < 5; i++) {
             let sDiv = document.getElementById(`spell-${id}-${i}`);
@@ -684,33 +719,41 @@ function updateMagieUI_Display() {
     }
 }
 
-function switchMagicTab(e) {
-    document.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === e));
-    document.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'magic-pane-' + e.replace(/\s+/g, '')));
-}
-
 function modMagie(e, v) {
     if (!perso.magieInvesties) perso.magieInvesties = {};
     let act = perso.magieInvesties[e] || 0;
+    
+    // Initialisation dans le panier
+    if (!investissementsTemporaires.magie[e]) investissementsTemporaires.magie[e] = 0;
+
     if (v > 0) {
         if (perso.pointsDispo <= 0 || act >= 5) return;
         let s = magieData[e].sorts[act];
-        // Calcul de l'intelligence totale (Base + Investie)
         let intel = (perso.statsBase.IN || 8) + (perso.statsInvesties.IN || 0);
         if (perso.niveau < s.niv || intel < s.int) { 
             alert("Niveau ou Intelligence insuffisante pour ce sort !"); 
             return; 
         }
         perso.magieInvesties[e] = act + 1; 
+        investissementsTemporaires.magie[e] += 1; // ON AJOUTE AU PANIER
         perso.pointsDispo--;
     } else {
         let base = (perso.magieBase && perso.magieBase[e]) ? perso.magieBase[e] : 0;
-        if (act <= base) return;
+        // ON BLOQUE SI CE N'EST PAS DANS LE PANIER
+        if (act <= base || investissementsTemporaires.magie[e] <= 0) return; 
         perso.magieInvesties[e] = act - 1; 
+        investissementsTemporaires.magie[e] -= 1; // ON RETIRE DU PANIER
         perso.pointsDispo++;
     }
     updateFicheUI();
 }
+
+
+function switchMagicTab(e) {
+    document.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === e));
+    document.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'magic-pane-' + e.replace(/\s+/g, '')));
+}
+
 
 
 // ================= GESTION TECH =================
@@ -738,7 +781,7 @@ function initTechUI() {
         pane.innerHTML = `<div class="magic-school-header"><strong>${d}</strong>
             <button id="btn-moins-tech-${d.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modTech('${d}', -1)">-</button>
             <span id="tech-val-${d.replace(/\s+/g, '')}">0/7</span>
-            <button class="btn-stat edit-only" onclick="modTech('${d}', 1)">+</button></div>
+            <button class="btn-stat btn-plus edit-only" onclick="modTech('${d}', 1)">+</button></div>
             <div id="schemas-${d.replace(/\s+/g, '')}"></div>`;
             
         // --- C'EST ICI QUE ÇA SE PASSE ---
@@ -756,24 +799,26 @@ function initTechUI() {
     }
 }
 
-
 function updateTechUI_Display() {
     for (let d in techData) {
         let act = (perso.techInvesties && perso.techInvesties[d]) ? perso.techInvesties[d] : 0;
         let id = d.replace(/\s+/g, '');
 
-        // Allume l'onglet
         let tabBtn = document.getElementById('tab-btn-tech-' + id);
         if (tabBtn) {
             if (act > 0) tabBtn.classList.add('has-points');
             else tabBtn.classList.remove('has-points');
         }
 
-        // Met à jour le texte (ex: 2/7)
         let el = document.getElementById('tech-val-' + id);
         if (el) el.innerText = act + "/7";
         
-        // Allume les schémas appris dans la liste
+        // --- AJOUT : CACHER LE BOUTON MOINS ---
+        let btnMoins = document.getElementById('btn-moins-tech-' + id);
+        if (btnMoins) {
+            btnMoins.style.visibility = (investissementsTemporaires.tech[d] > 0) ? "visible" : "hidden";
+        }
+        
         for (let i = 0; i < 7; i++) {
             let sDiv = document.getElementById(`schema-${id}-${i}`);
             if (sDiv) {
@@ -784,32 +829,37 @@ function updateTechUI_Display() {
     }
 }
 
-
-function switchTechTab(d) {
-    const tab = document.getElementById('tab-tech');
-    tab.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === d));
-    tab.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'tech-pane-' + d.replace(/\s+/g, '')));
-}
-
 function modTech(d, v) {
     if (!perso.techInvesties) perso.techInvesties = {};
     let act = perso.techInvesties[d] || 0;
+    
+    // Initialisation dans le panier
+    if (!investissementsTemporaires.tech[d]) investissementsTemporaires.tech[d] = 0;
     
     if (v > 0) {
         if (perso.pointsDispo <= 0 || act >= 7) return;
         let intel = perso.statsBase.IN + (perso.statsInvesties.IN || 0);
         if (intel < techData[d].schematics[act].int) { alert("IN insuffisante"); return; }
         perso.techInvesties[d] = act + 1; 
+        investissementsTemporaires.tech[d] += 1; // ON AJOUTE AU PANIER
         perso.pointsDispo--;
     } else {
         let base = (perso.techBase && perso.techBase[d]) ? perso.techBase[d] : 0;
-        if (act <= base) return;
+        // ON BLOQUE SI CE N'EST PAS DANS LE PANIER
+        if (act <= base || investissementsTemporaires.tech[d] <= 0) return; 
         perso.techInvesties[d] = act - 1; 
+        investissementsTemporaires.tech[d] -= 1; // ON RETIRE DU PANIER
         perso.pointsDispo++;
     }
     
-    updateFicheUI(); // Met à jour tes points et tes stats
-    verifierBoutonCraft(); // <--- NOUVEAU : Vérifie si on doit afficher le bouton Craft
+    updateFicheUI(); 
+    verifierBoutonCraft(); 
+}
+
+function switchTechTab(d) {
+    const tab = document.getElementById('tab-tech');
+    tab.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === d));
+    tab.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'tech-pane-' + d.replace(/\s+/g, '')));
 }
 
 
@@ -836,8 +886,41 @@ function calculerAlignement() {
     return Math.max(-100, Math.min(100, total));
 }
 
+function validerChangements() {
+    if (perso.pointsDispo > 0) { alert("Dépensez tous vos points !"); return; }
+    if (confirm("Valider définitivement ?")) {
+        
+        // --- ON VIDE LE PANIER TEMPORAIRE ---
+        investissementsTemporaires = {
+            pv: 0, ft: 0, stats: {}, comp: {}, magie: {}, tech: {}
+        };
+
+        for (let s in perso.statsInvesties) { perso.statsBase[s] += (perso.statsInvesties[s] || 0); perso.statsInvesties[s] = 0; }
+        if (!perso.compBase) perso.compBase = {}; 
+        for (let c in perso.compInvesties) perso.compBase[c] = perso.compInvesties[c];
+        perso.boostPVBase = perso.boostPV; 
+        perso.boostFTBase = perso.boostFT;
+        
+        if (!perso.magieBase) perso.magieBase = {}; 
+        for (let e in perso.magieInvesties) perso.magieBase[e] = perso.magieInvesties[e];
+        
+        if (!perso.techBase) perso.techBase = {}; 
+        for (let d in perso.techInvesties) perso.techBase[d] = perso.techInvesties[d];
+        
+        document.getElementById('ecran-fiche').classList.add('is-locked');
+        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
+        updateFicheUI();
+    }
+}
+
 function resetInvestissements() {
     if (!confirm("Réinitialiser tous les investissements du niveau ?")) return;
+    
+    // --- ON VIDE LE PANIER TEMPORAIRE ---
+    investissementsTemporaires = {
+        pv: 0, ft: 0, stats: {}, comp: {}, magie: {}, tech: {}
+    };
+
     for (let s in perso.statsInvesties) { perso.pointsDispo += perso.statsInvesties[s]; perso.statsInvesties[s] = 0; }
     for (let id in perso.compInvesties) {
         let act = perso.compInvesties[id], base = (perso.compBase && perso.compBase[id]) ? perso.compBase[id] : 0;
@@ -856,19 +939,7 @@ function resetInvestissements() {
     updateFicheUI();
 }
 
-function validerChangements() {
-    if (perso.pointsDispo > 0) { alert("Dépensez tous vos points !"); return; }
-    if (confirm("Valider définitivement ?")) {
-        for (let s in perso.statsInvesties) { perso.statsBase[s] += (perso.statsInvesties[s] || 0); perso.statsInvesties[s] = 0; }
-        if (!perso.compBase) perso.compBase = {}; for (let c in perso.compInvesties) perso.compBase[c] = perso.compInvesties[c];
-        perso.boostPVBase = perso.boostPV; perso.boostFTBase = perso.boostFT;
-        if (!perso.magieBase) perso.magieBase = {}; for (let e in perso.magieInvesties) perso.magieBase[e] = perso.magieInvesties[e];
-        if (!perso.techBase) perso.techBase = {}; for (let d in perso.techInvesties) perso.techBase[d] = perso.techInvesties[d];
-        document.getElementById('ecran-fiche').classList.add('is-locked');
-        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
-        updateFicheUI();
-    }
-}
+
 
 function switchSkillTab(id) {
     ["tab-comp", "tab-tech", "tab-magie"].forEach(t => {

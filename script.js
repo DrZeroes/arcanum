@@ -189,6 +189,34 @@ function changerPhotoSelection(direction) {
     rafraichirApercuAvatar();
 }
 
+
+function changerQte(inputId, delta, max) {
+    let input = document.getElementById(inputId);
+    if (!input) return;
+    let val = parseInt(input.value) || 1;
+    val += delta;
+    
+    // On bloque aux limites
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    
+    input.value = val;
+}
+
+function verifierQte(inputId, max) {
+    let input = document.getElementById(inputId);
+    if (!input) return;
+    let val = parseInt(input.value);
+    
+    // Si l'utilisateur tape n'importe quoi ou un nombre négatif
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > max) val = max;
+    
+    input.value = val;
+}
+
+
+
 // Fonction utilitaire pour trouver la dernière image existante dans le dossier
 function trouverDerniereImage(indexTest) {
     const raceSelect = document.getElementById('raceSelect');
@@ -1734,11 +1762,10 @@ function updateMarchandUI() {
     document.getElementById('argent-marchand').innerText = marchandActuel.argent;
     document.getElementById('votre-argent').innerText = perso.argent;
 
-    // Calcul du bonus de marchandage (ex: 2% de réduction par point investi)
     let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
-    let reductionClient = ptsMarchandage * 0.02; // 20 pts = 40% de bonus
+    let reductionClient = ptsMarchandage * 0.02;
 
-    // --- INVENTAIRE DU MARCHAND (ACHAT DU JOUEUR) ---
+    // --- INVENTAIRE DU MARCHAND (ACHAT) ---
     let listM = document.getElementById('inventaire-marchand');
     listM.innerHTML = "";
     
@@ -1746,28 +1773,38 @@ function updateMarchandUI() {
         let data = itemsData[item.id];
         if (!data) return;
 
-   // Le marchand vend à 125% du prix de base, réduit par ton talent de marchandage
-let prixAchat = Math.ceil(data.prix * (1.25 - reductionClient)); 
+        let prixAchat = Math.ceil(data.prix * (1.25 - reductionClient)); 
+        let estEpuise = (item.qte <= 0);
 
-// ON VÉRIFIE SI LE STOCK EST VIDE
-let estEpuise = (item.qte <= 0);
+        // Code HTML du compteur de quantité (seulement si stock > 1)
+        let inputHTML = "";
+        if (item.qte > 1) {
+            inputHTML = `
+            <div style="display:flex; align-items:center; gap:5px; margin-right:15px;">
+                <button onclick="changerQte('buy-qte-${idx}', -1, ${item.qte})" style="background:#555; color:white; border:none; width:25px; height:25px; cursor:pointer; font-weight:bold; border-radius:3px;">-</button>
+                <input type="number" id="buy-qte-${idx}" value="1" min="1" max="${item.qte}" onchange="verifierQte('buy-qte-${idx}', ${item.qte})" style="width:45px; text-align:center; background:#111; color:white; border:1px solid #4caf50; height:25px; border-radius:3px;">
+                <button onclick="changerQte('buy-qte-${idx}', 1, ${item.qte})" style="background:#555; color:white; border:none; width:25px; height:25px; cursor:pointer; font-weight:bold; border-radius:3px;">+</button>
+            </div>`;
+        }
 
-listM.innerHTML += `
-    <div class="skill-row" style="justify-content: space-between; padding: 5px 10px; opacity: ${estEpuise ? '0.5' : '1'};">
-        <span>${data.nom} (x${item.qte})</span>
-        <button 
-            onclick="${estEpuise ? '' : `acheterItem(${idx}, ${prixAchat})`}" 
-            style="background: ${estEpuise ? '#333' : '#4caf50'}; 
-                   color: ${estEpuise ? '#888' : 'white'}; 
-                   border: none; padding: 4px 8px; 
-                   cursor: ${estEpuise ? 'default' : 'pointer'};"
-            ${estEpuise ? 'disabled' : ''}>
-            ${estEpuise ? '❌ Épuisé' : `🛒 Acheter : ${prixAchat} Or`}
-        </button>
-    </div>`;
+        listM.innerHTML += `
+            <div class="skill-row" style="justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; opacity: ${estEpuise ? '0.5' : '1'};">
+                <div style="display:flex; flex-direction:column;">
+                    <span>${data.nom} <span style="color:#aaa; font-size:0.8em;">(Stock: ${item.qte})</span></span>
+                    <span style="color:#d4af37; font-size:0.85em;">Unité: ${prixAchat} Or</span>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    ${!estEpuise ? inputHTML : ''}
+                    <button onclick="${estEpuise ? '' : `acheterItem(${idx}, ${prixAchat})`}" 
+                            style="background: ${estEpuise ? '#333' : '#4caf50'}; color: ${estEpuise ? '#888' : 'white'}; border: none; padding: 6px 12px; cursor: ${estEpuise ? 'default' : 'pointer'}; border-radius:3px;"
+                            ${estEpuise ? 'disabled' : ''}>
+                        ${estEpuise ? '❌ Épuisé' : `🛒 Acheter`}
+                    </button>
+                </div>
+            </div>`;
     });
 
-    // --- VOTRE INVENTAIRE (VENTE AU MARCHAND) ---
+    // --- VOTRE INVENTAIRE (VENTE) ---
     let listV = document.getElementById('votre-inventaire-vente');
     listV.innerHTML = "";
     
@@ -1775,24 +1812,35 @@ listM.innerHTML += `
         let data = itemsData[item.id];
         if (!data) return;
 
-        // Le marchand rachète à 70% du prix de base, augmenté par ton talent de marchandage
-        let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
-        // On ne peut pas vendre plus cher que le prix de base original
-        prixVente = Math.min(prixVente, data.prix);
+        let prixVente = Math.min(Math.floor(data.prix * (0.7 + reductionClient)), data.prix);
+        let qteActuelle = item.quantite || item.qte || 1;
+
+        // Code HTML du compteur (seulement si on en a > 1)
+        let inputHTML = "";
+        if (qteActuelle > 1) {
+            inputHTML = `
+            <div style="display:flex; align-items:center; gap:5px; margin-right:15px;">
+                <button onclick="changerQte('sell-qte-${idx}', -1, ${qteActuelle})" style="background:#555; color:white; border:none; width:25px; height:25px; cursor:pointer; font-weight:bold; border-radius:3px;">-</button>
+                <input type="number" id="sell-qte-${idx}" value="1" min="1" max="${qteActuelle}" onchange="verifierQte('sell-qte-${idx}', ${qteActuelle})" style="width:45px; text-align:center; background:#111; color:white; border:1px solid #d4af37; height:25px; border-radius:3px;">
+                <button onclick="changerQte('sell-qte-${idx}', 1, ${qteActuelle})" style="background:#555; color:white; border:none; width:25px; height:25px; cursor:pointer; font-weight:bold; border-radius:3px;">+</button>
+            </div>`;
+        }
 
         listV.innerHTML += `
-            <div class="skill-row" style="justify-content: space-between; padding: 5px 10px;">
-                <span>${data.nom} (x${item.quantite})</span>
-                <button onclick="vendreItem(${idx}, ${prixVente})" style="background:#d4af37; color:black; border:none; padding:4px 8px; cursor:pointer;">
-                    💰 Vendre : ${prixVente} Or
-                </button>
+            <div class="skill-row" style="justify-content: space-between; padding: 10px; border-bottom: 1px solid #333;">
+                <div style="display:flex; flex-direction:column;">
+                    <span>${data.nom} <span style="color:#aaa; font-size:0.8em;">(Vous avez: ${qteActuelle})</span></span>
+                    <span style="color:#d4af37; font-size:0.85em;">Unité: ${prixVente} Or</span>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    ${inputHTML}
+                    <button onclick="vendreItem(${idx}, ${prixVente})" style="background:#d4af37; color:black; font-weight:bold; border:none; padding:6px 12px; cursor:pointer; border-radius:3px;">
+                        💰 Vendre
+                    </button>
+                </div>
             </div>`;
     });
 }
-
-
-
-
 
 
 
@@ -1820,96 +1868,63 @@ function toutPrendre() {
     actualiserVisuelFouille();
 }
 
-
 function acheterItem(idx, prixUnitaire) {
-    // 1. On récupère l'objet dans le stock du marchand
     let itemEnVente = marchandActuel.inventaire[idx];
+    if (!itemEnVente || itemEnVente.qte <= 0) return;
 
-    // 2. Vérifications de base
-    if (!itemEnVente || itemEnVente.qte <= 0) {
-        alert("Ce marchand n'a plus cet objet en stock !");
-        return;
-    }
-
-    // 3. Demander la quantité si le stock est > 1
+    // On récupère la quantité dans le petit champ de texte (par défaut 1 si le champ n'existe pas)
     let qteAAcheter = 1;
-    if (itemEnVente.qte > 1) {
-        let rep = prompt(`Combien voulez-vous en acheter ? (Prix unitaire : ${prixUnitaire} Or | Stock : ${itemEnVente.qte})`, "1");
-        if (rep === null) return; // Le joueur a annulé
-        
-        qteAAcheter = parseInt(rep);
-        if (isNaN(qteAAcheter) || qteAAcheter <= 0) return; // Saisie invalide
-        if (qteAAcheter > itemEnVente.qte) qteAAcheter = itemEnVente.qte; // On bloque au max du stock
+    let inputElement = document.getElementById(`buy-qte-${idx}`);
+    if (inputElement) {
+        qteAAcheter = parseInt(inputElement.value) || 1;
     }
 
-    // 4. Calcul du prix total
     let prixTotal = prixUnitaire * qteAAcheter;
 
     if (perso.argent < prixTotal) {
-        alert(`Vous n'avez pas assez d'argent ! (Il vous faut ${prixTotal} Or)`);
+        alert(`Vous n'avez pas assez d'argent ! (${prixTotal} Or requis)`);
         return;
     }
 
-    // 5. Transaction financière
     perso.argent -= prixTotal;
     marchandActuel.argent += prixTotal;
-
-    // 6. Transfert de l'objet
     ramasserItem(itemEnVente.id, qteAAcheter); 
     itemEnVente.qte -= qteAAcheter;
 
-    // 7. Si le stock tombe à 0, on retire l'entrée
-    if (itemEnVente.qte <= 0) {
-        marchandActuel.inventaire.splice(idx, 1);
-    }
+    if (itemEnVente.qte <= 0) marchandActuel.inventaire.splice(idx, 1);
 
-    // 8. Mise à jour et Sauvegarde
     autoSave();
     updateMarchandUI();
 }
 
 function vendreItem(idx, prixUnitaire) {
     let item = perso.inventaire[idx];
-    let data = itemsData[item.id];
     let qteActuelle = item.quantite || item.qte || 1;
 
-    // 1. Demander la quantité si on en a > 1
+    // On récupère la quantité dans le petit champ de texte
     let qteAVendre = 1;
-    if (qteActuelle > 1) {
-        let rep = prompt(`Combien de "${data.nom}" voulez-vous vendre ? (Prix unitaire : ${prixUnitaire} Or | Vous en avez : ${qteActuelle})`, "1");
-        if (rep === null) return; // Le joueur a annulé
-        
-        qteAVendre = parseInt(rep);
-        if (isNaN(qteAVendre) || qteAVendre <= 0) return; // Saisie invalide
-        if (qteAVendre > qteActuelle) qteAVendre = qteActuelle; // On bloque au max de l'inventaire
+    let inputElement = document.getElementById(`sell-qte-${idx}`);
+    if (inputElement) {
+        qteAVendre = parseInt(inputElement.value) || 1;
     }
 
-    // 2. Calcul du prix total
     let prixTotal = prixUnitaire * qteAVendre;
 
-    // 3. Vérifier l'or du marchand
     if (marchandActuel.argent < prixTotal) {
-        alert(`Le marchand n'a pas assez d'argent pour acheter tout ça ! (Il lui reste ${marchandActuel.argent} Or)`);
+        alert(`Le marchand n'a pas assez d'argent ! (Il lui reste ${marchandActuel.argent} Or)`);
         return;
     }
 
-    // 4. Transaction financière
     perso.argent += prixTotal;
     marchandActuel.argent -= prixTotal;
-
-    // 5. Retirer de l'inventaire
     item.quantite -= qteAVendre;
-    item.qte = item.quantite; // Sécurité de synchronisation
+    item.qte = item.quantite; 
     
-    if (item.quantite <= 0) {
-        perso.inventaire.splice(idx, 1);
-    }
+    if (item.quantite <= 0) perso.inventaire.splice(idx, 1);
 
-    // 6. Mise à jour UI et sauvegarde
     autoSave();
     updateMarchandUI();
 }
-
 
 
 

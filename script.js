@@ -99,7 +99,8 @@ function cacherTout() {
         'ecran-marchand' ,  // AJOUTÉ
 		'ecran-craft' ,     // <--- AJOUTE CETTE LIGNE !
 		'ecran-aide' ,
-'ecran-codex'		// <--- AJOUTE CETTE LIGNE !
+'ecran-codex',		// <--- AJOUTE CETTE LIGNE !
+'ecran-carte'
     ];
 
     ecrans.forEach(id => {
@@ -126,10 +127,8 @@ function allerAccueil() {
 
 
 
-function ouvrirAide() {
-    cacherTout();
-    document.getElementById('ecran-aide').style.display = 'block';
-}
+
+
 
 function nouveauPersonnage() {
     // 1. Sécurité anti-écrasement
@@ -151,7 +150,9 @@ function nouveauPersonnage() {
         experience: 0,
         argent: 400,
         inventaire: [], // On vide le sac proprement
-        equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null }
+        equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null },
+		lieuxConnus: ["crash"] // <-- AJOUTE CETTE LIGNE ICI
+
     };
 
     // 3. Affichage de l'écran de création
@@ -289,7 +290,8 @@ function validerCreation() {
             resMagie: (race.mod.resMagie || 0) + (bg.mod.resMagie || 0), 
             resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),       
             resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)     
-        }
+        },
+		lieuxConnus: ["crash"]
     };
     
     if (!perso.inventaire) perso.inventaire = [];
@@ -917,27 +919,8 @@ function fermerInventaire() {
     updateFicheUI(); // Met à jour la fiche avec les bonus de l'équipement !
 }
 
-function ajouterItemParId() {
-    let id = document.getElementById('new-item-id').value.trim().toUpperCase();
-    if (!id || !itemsData[id]) { alert("ID d'objet inconnu !"); return; }
-    
-    let data = itemsData[id];
-    let existant = perso.inventaire.find(item => item.id === id);
-    
-    if (existant && data.stackable) {
-        existant.quantite += 1;
-    } else {
-        // NOUVEAU : Si c'est une arme ou armure (non stackable), on lui donne de la Durabilité !
-        let newItem = { id: id, quantite: 1 };
-        if (!data.stackable && (data.type.includes("arme") || data.type === "armure")) {
-            newItem.durabilite = 100;
-            newItem.durabiliteMax = 100;
-        }
-        perso.inventaire.push(newItem);
-    }
-    document.getElementById('new-item-id').value = ""; 
-    updateInventaireUI();
-}
+
+
 
 function jeterItem(index) {
     if (confirm("Voulez-vous vraiment jeter cet objet ?")) {
@@ -1550,68 +1533,82 @@ function ouvrirCodex() {
 
 function genererListeCodex(type) {
     const tbody = document.getElementById('tbody-codex');
+    if (!tbody) return;
     tbody.innerHTML = '';
     
+    console.log("Génération du Codex type :", type);
+
     if (type === 'items') {
         for (let id in itemsData) {
             ajouterLigneCodex(id, itemsData[id].nom, "Objet", `ramasserItem('${id}', 1)`, "🎁 +1");
         }
-    } else if (type === 'marchands') {
-        for (let id in marchandsData) {
-            ajouterLigneCodex(id, marchandsData[id].nom, "Marchand", `ouvrirMarchand('${id}')`, "💰 Voir");
-        }
-    } else if (type === 'coffres') {
-        for (let id in coffresFixes) {
-            ajouterLigneCodex(id, coffresFixes[id].nom, "Coffre", `ouvrirCoffre('${id}')`, "🔍 Ouvrir");
-        }
-    }
-}
-
-function genererListeCodex(type) {
-    const tbody = document.getElementById('tbody-codex');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    console.log("Génération du Codex type :", type); // Pour debug dans F12
-
-    if (type === 'items') {
-        for (let id in itemsData) {
-            let item = itemsData[id];
-            tbody.innerHTML += `
-                <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
-                    <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
-                    <td style="padding: 10px; color: #fff;">${item.nom}</td>
-                    <td style="padding: 10px;"><button onclick="ramasserItem('${id}', 1)" style="background:#4caf50; color:white; border:none; padding:5px; border-radius:3px;">🎁 +1</button></td>
-                </tr>`;
-        }
     } 
     else if (type === 'marchands') {
-        // On vérifie que marchandsData existe
         if (typeof marchandsData !== 'undefined') {
             for (let id in marchandsData) {
-                let m = marchandsData[id];
-                tbody.innerHTML += `
-                    <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
-                        <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
-                        <td style="padding: 10px; color: #fff;">${m.nom}</td>
-                        <td style="padding: 10px;"><button onclick="forcerOuvertureMarchand('${id}')" style="background:#2196f3; color:white; border:none; padding:5px; border-radius:3px;">💰 Voir</button></td>
-                    </tr>`;
+                ajouterLigneCodex(id, marchandsData[id].nom, "Marchand", `forcerOuvertureMarchand('${id}')`, "💰 Voir");
             }
         }
     } 
     else if (type === 'coffres') {
-        // On vérifie que coffresFixes existe
         if (typeof coffresFixes !== 'undefined') {
             for (let id in coffresFixes) {
-                let c = coffresFixes[id];
+                ajouterLigneCodex(id, coffresFixes[id].nom, "Coffre", `forcerOuvertureCoffre('${id}')`, "🔍 Ouvrir");
+            }
+        }
+    } 
+
+else if (type === 'lieux') {
+        if (typeof lieuxDecouverts !== 'undefined') {
+            // J'ai renommé la variable en 'idLieu' pour que ce soit plus clair
+            for (let idLieu in lieuxDecouverts) {
+                let l = lieuxDecouverts[idLieu];
+                
                 tbody.innerHTML += `
                     <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
-                        <td style="padding: 10px; color: #ffb74d; font-family: monospace;">${id}</td>
-                        <td style="padding: 10px; color: #fff;">${c.nom}</td>
-                        <td style="padding: 10px;"><button onclick="forcerOuvertureCoffre('${id}')" style="background:#ff9800; color:white; border:none; padding:5px; border-radius:3px;">🔍 Ouvrir</button></td>
+                        <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em;">
+                            ${idLieu}
+                        </td>
+                        
+                        <td style="padding: 10px; color: #fff;">
+                            ${l.nom} <br>
+                            <span style="color: #aaa; font-size: 0.8em;">Pos: ${l.x}%, ${l.y}%</span>
+                        </td>
+                        
+                        <td style="padding: 10px; text-align:right;">
+                            <button onclick="forcerDecouverteLieu('${idLieu}')" style="background: #2196f3; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size:0.8em;">
+                                📍 Révéler
+                            </button>
+                        </td>
                     </tr>`;
             }
         }
+    }
+
+}
+
+// Vérifie que tu as bien cette fonction utilitaire aussi !
+function ajouterLigneCodex(id, nom, categorie, actionFn, texteAction) {
+    const tbody = document.getElementById('tbody-codex');
+    tbody.innerHTML += `
+        <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
+            <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em;">${id}</td>
+            <td style="padding: 10px; color: #fff;">${nom}</td>
+            <td style="padding: 10px; text-align:right;">
+                <button onclick="${actionFn}" style="background: #4caf50; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; white-space: nowrap;">${texteAction}</button>
+            </td>
+        </tr>
+    `;
+}
+
+// Fonction pour forcer l'apparition d'un lieu sur la carte (MJ)
+function forcerDecouverteLieu(nom) {
+    if (!perso.lieuxConnus.includes(nom)) {
+        perso.lieuxConnus.push(nom);
+        alert(`${nom} a été ajouté à la carte.`);
+        autoSave();
+    } else {
+        alert("Ce lieu est déjà visible.");
     }
 }
 
@@ -1651,6 +1648,144 @@ function filtrerCodex() {
 
 
 
+
+
+// --- FONCTION D'OUVERTURE ---
+
+function ouvrirCarte() {
+    // Sécurité de base
+    if (!perso) perso = { lieuxConnus: [] };
+    if (!perso.lieuxConnus) perso.lieuxConnus = [];
+
+    cacherTout();
+    const ecran = document.getElementById('ecran-carte');
+    if (ecran) {
+        ecran.style.display = 'block';
+        rafraichirPointsCarte();
+
+        // --- OUTIL DE MJ : RÉCUPÉRER LES COORDONNÉES ---
+        // On cible le conteneur complet (comme ça, vitre ou pas, ça marche)
+        const conteneur = document.getElementById('conteneur-carte');
+        if (conteneur) {
+            conteneur.onclick = function(e) {
+                // Si tu cliques sur une étiquette ou un point existant, on ignore
+                if (e.target.style.cursor === "pointer" && e.target.id !== "calque-points") return;
+
+                let rect = conteneur.getBoundingClientRect();
+                let x = ((e.clientX - rect.left) / rect.width) * 100;
+                let y = ((e.clientY - rect.top) / rect.height) * 100;
+                
+                // Affiche dans F12 en vert pomme pour bien le voir
+                console.log(`%c📍 Clic aux coordonnées : x: ${x.toFixed(1)}, y: ${y.toFixed(1)}`, 'background: #222; color: #bada55; font-size: 14px;');
+                
+                // Pop-up direct sur ton écran !
+               // alert(`Nouveau Lieu :\nx: ${x.toFixed(1)}\ny: ${y.toFixed(1)}`);
+            };
+        }
+    }
+}
+
+// --- DÉCOUVRIR UN LIEU VIA INPUT ---
+function decouvrirLieu() {
+    // On récupère le texte, on enlève les espaces en trop, et on force en minuscules
+    let motClef = document.getElementById('input-decouverte').value.trim().toLowerCase();
+    
+    if (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[motClef]) {
+        let lieu = lieuxDecouverts[motClef];
+        
+        if (!perso.lieuxConnus.includes(motClef)) {
+            perso.lieuxConnus.push(motClef);
+            alert(`📍 Nouveau lieu découvert : ${lieu.nom} !`);
+            autoSave();
+        } else {
+            alert("Ce lieu est déjà sur votre carte.");
+        }
+        document.getElementById('input-decouverte').value = "";
+        rafraichirPointsCarte();
+    } else {
+        alert("Aucun lieu ne correspond à ce mot-clé.");
+    }
+}
+
+// --- DESSINER LES POINTS SUR LE PNG ---
+function rafraichirPointsCarte() {
+    const calque = document.getElementById('calque-points');
+    if (!calque) return;
+    calque.innerHTML = ""; 
+
+    // --- 1. GESTION DU CLIC À CÔTÉ (POUR TOUT FERMER) ---
+    // Si le joueur clique sur le fond de la carte (pas sur un point), on cache toutes les étiquettes.
+    document.getElementById('conteneur-carte').onclick = function(e) {
+        if (e.target.id === 'conteneur-carte' || e.target.id === 'img-carte' || e.target.id === 'calque-points') {
+            document.querySelectorAll('.label-carte').forEach(lbl => lbl.style.display = 'none');
+            // Optionnel : Vider la description en bas
+            // document.getElementById('carte-info').innerHTML = "Entrez le nom d'un lieu pour le révéler sur l'atlas.";
+        }
+    };
+
+    (perso.lieuxConnus || []).forEach(nomLieu => {
+        let coord = lieuxDecouverts[nomLieu];
+        if (!coord) return;
+
+        let marqueurGroup = document.createElement('div');
+        marqueurGroup.style.position = "absolute";
+        marqueurGroup.style.left = coord.x + "%";
+        marqueurGroup.style.top = coord.y + "%";
+        marqueurGroup.style.transform = "translate(-50%, -50%)";
+        marqueurGroup.style.display = "flex";
+        marqueurGroup.style.flexDirection = "column";
+        marqueurGroup.style.alignItems = "center";
+        marqueurGroup.style.pointerEvents = "auto";
+        marqueurGroup.style.cursor = "pointer";
+        marqueurGroup.style.zIndex = "10";
+
+        let point = document.createElement('div');
+        point.style.width = "14px"; // Un peu plus gros pour les gros doigts sur mobile
+        point.style.height = "14px";
+        point.style.background = "#ff4444";
+        point.style.borderRadius = "50%";
+        point.style.border = "2px solid white";
+        point.style.boxShadow = "0 0 8px #ff4444";
+
+        let label = document.createElement('div');
+        label.innerText = coord.nom;
+        label.className = "label-carte"; // On lui donne une classe pour pouvoir les fermer tous d'un coup
+        label.style.color = "white";
+        label.style.fontSize = "12px";
+        label.style.fontWeight = "bold";
+        label.style.marginTop = "6px";
+        label.style.whiteSpace = "nowrap";
+        label.style.backgroundColor = "rgba(0, 0, 0, 0.9)";
+        label.style.padding = "4px 8px";
+        label.style.borderRadius = "4px";
+        label.style.border = "1px solid #555";
+        label.style.display = "none"; // Caché par défaut
+        label.style.pointerEvents = "none"; // Empêche le label de bloquer le clic sur un point très proche
+
+        marqueurGroup.appendChild(point);
+        marqueurGroup.appendChild(label);
+
+        // --- 2. LE CLIC / TAP (LA MAGIE OPÈRE ICI) ---
+        marqueurGroup.onclick = (e) => {
+            e.stopPropagation(); // Empêche le clic de se propager au fond de la carte (qui fermerait le label aussitôt)
+            
+            // On commence par cacher TOUTES les étiquettes...
+            document.querySelectorAll('.label-carte').forEach(lbl => {
+                lbl.style.display = 'none';
+                lbl.parentNode.style.zIndex = "10";
+            });
+            
+            // ... Puis on affiche SEULEMENT celle qu'on vient de cliquer
+            label.style.display = "block";
+            marqueurGroup.style.zIndex = "100"; // On le met au premier plan
+            
+            // Mise à jour du texte en bas
+            document.getElementById('carte-info').innerHTML = `<strong style="color:#2196f3;">${coord.nom}</strong> : ${coord.desc}`;
+        };
+
+        calque.appendChild(marqueurGroup);
+    });
+}
 
 
 

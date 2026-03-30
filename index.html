@@ -23,12 +23,22 @@
     <div id="accueil-continuer" style="display: none;">
         <h3 id="accueil-nom-perso" style="color: #aaa; margin-bottom: 20px;">Personnage : -</h3>
         
-<button class="next-btn" style="background: #4caf50; color: white; width: 80%; margin-bottom: 10px;" onclick="reprendrePartie()">📜 Reprendre l'Aventure</button>        
+		        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
+
+<button class="next-btn" style="background: #4caf50; color: white; width: 80%; margin-bottom: 10px;" onclick="reprendrePartie()">📜 Reprendre l'Aventure</button> 
+<button onclick="ouvrirCarte()" style="background: #2196f3; color: white; width: 80%; margin-bottom: 15px; cursor: pointer; padding: 12px; border: none; border-radius: 5px; font-weight: bold;">
+    🗺️ Explorer la Carte d'Arcanum
+</button>       
+        </div>
+
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
             <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
             <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
 			<button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white;">⚙️ Artisanat</button>
+			
         </div>
+
+
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
             <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
@@ -376,11 +386,12 @@
         <button class="btn-stat" onclick="allerAccueil()">⬅️</button>
     </div>
 
-    <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-        <button onclick="genererListeCodex('items')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">💎 Objets</button>
-        <button onclick="genererListeCodex('marchands')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">⚖️ Marchands</button>
-        <button onclick="genererListeCodex('coffres')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📦 Coffres</button>
-    </div>
+<div style="display: flex; gap: 5px; margin-bottom: 15px;">
+    <button onclick="genererListeCodex('items')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">💎 Objets</button>
+    <button onclick="genererListeCodex('marchands')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">⚖️ Marchands</button>
+    <button onclick="genererListeCodex('coffres')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📦 Coffres</button>
+    <button onclick="genererListeCodex('lieux')" style="flex:1; padding:10px; cursor:pointer; background:#4caf50; color:white; border:none;">📍 Lieux</button>
+</div>
 
     <input type="text" id="recherche-codex" placeholder="Rechercher..." onkeyup="filtrerCodex()" 
            style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555;">
@@ -389,6 +400,30 @@
         <table style="width: 100%; border-collapse: collapse;">
             <tbody id="tbody-codex"></tbody>
         </table>
+    </div>
+</div>
+
+
+
+<div id="ecran-carte" class="ecran" style="display: none; background: #1a1a1a; color: white; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="color: #2196f3; margin: 0;">🗺️ Atlas d'Arcanum</h2>
+        <button class="btn-stat" onclick="allerAccueil()" style="padding: 8px 15px; cursor: pointer;">⬅️ Menu Principal</button>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <input type="text" id="input-decouverte" placeholder="Nom de la ville (ex: Tarente)..." 
+               style="flex-grow: 1; padding: 10px; background: #222; color: white; border: 1px solid #444;">
+        <button onclick="decouvrirLieu()" style="background: #4caf50; color: white; border: none; padding: 10px 20px; cursor: pointer;">📍 Localiser</button>
+    </div>
+
+    <div id="conteneur-carte" style="position: relative; width: 100%; border: 3px solid #333; border-radius: 8px; overflow: hidden; background: black;">
+        <img src="./docs/carte_monde.png" id="img-carte" style="width: 100%; display: block; opacity: 0.9;">
+        <div id="calque-points" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+    </div>
+
+    <div id="carte-info" style="margin-top: 15px; text-align: center; color: #888; font-style: italic; min-height: 20px;">
+        Entrez le nom d'un lieu pour le révéler sur l'atlas.
     </div>
 </div>
 

@@ -130,3 +130,13 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
     
     return loot;
 }
+
+
+const lieuxDecouverts = {
+    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, desc: "La cité industrielle." },
+    "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, desc: "Un petit village minier." },
+    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, desc: "Une ville sombre et mystérieuse." },
+    "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, desc: "Le Zephyr est tombé ici." },
+    "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, desc: "Maison d'un vieil ermite." },
+    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, desc: "Domicile de Simon" }
+};

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArcanumRP</title>
-    <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -82,7 +82,26 @@
     <button id="btn-tout-prendre" class="next-btn" style="background: #d4af37; color: #000; margin-bottom: 15px; width: 100%; display: none;">💰 Tout prendre</button>
     
     <div id="liste-fouille" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
-    <button class="next-btn" onclick="allerAccueil()">Fermer</button>
+    <button <button onclick="allerAccueil()" 
+        style="
+            position: absolute; /* Ou fixed selon ta structure */
+            top: 20px; 
+            right: 20px; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            background: #8b0000; 
+            color: white; 
+            border: 2px solid #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1.5em;
+        ">
+    &lt;
+</button>
 </div>
 
 <div id="ecran-marchand" class="app-card" style="display:none; width:900px; background:#2b1d14; border:4px solid #795548;">
@@ -97,7 +116,26 @@
             <div id="votre-inventaire-vente"></div>
         </div>
     </div>
-    <button class="next-btn" onclick="allerAccueil()" style="margin-top:20px;">Quitter le magasin</button>
+    <button onclick="allerAccueil()" 
+        style="
+            position: absolute; /* Ou fixed selon ta structure */
+            top: 20px; 
+            right: 20px; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            background: #8b0000; 
+            color: white; 
+            border: 2px solid #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1.5em;
+        ">
+    &lt;
+</button>
 </div>
 		
 		
@@ -381,7 +419,25 @@
 <div id="ecran-craft" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 10px;">
         <h2 style="margin: 0; color: #ff9800;">⚙️ Atelier d'Artisanat</h2>
-        <button class="btn-stat" onclick="cacherTout(); document.getElementById('ecran-fiche').style.display='block';" style="padding: 8px 15px; cursor: pointer; font-weight: bold;">⬅️ Retour</button>
+        
+        <button onclick="allerAccueil()" 
+        style="
+            background: #8b0000;
+            border: 2px solid #555;
+            color: white; 
+            font-size: 1.3em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1; /* Aligne mieux le texte verticalement */
+        ">
+            &lt;
+        </button>
     </div>
     <div id="liste-crafts"></div>
 </div>
@@ -392,15 +448,32 @@
 <div id="ecran-aide" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 10px;">
         <h2 style="margin: 0; color: #2196f3;">📖 Bibliothèque d'Arcanum</h2>
-        <button class="btn-stat" onclick="allerAccueil()" style="padding: 8px 15px; cursor: pointer; font-weight: bold;">⬅️ Retour</button>
+        <button onclick="allerAccueil()" 
+        style="
+            background: #8b0000;
+            border: 2px solid #555;
+            color: white; 
+            font-size: 1.3em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1; /* Aligne mieux le texte verticalement */
+        ">
+            &lt;
+        </button>
     </div>
     
   <div style="display: flex; flex-direction: column; gap: 15px;">
-    <a href="./docs/manuel.pdf" target="_blank" style="...">📘 Manuel du Jeu</a>
-    <a href="./docs/carte.pdf" target="_blank" style="...">🗺️ Carte du Monde</a>
-    <a href="./docs/races.pdf" target="_blank" style="...">🧑‍🤝‍🧑 Guide des Races</a>
-    <a href="./docs/magies.pdf" target="_blank" style="...">🔮 Guide des Magies</a>
-    <a href="./docs/schemas.pdf" target="_blank" style="...">⚙️ Schémas Technologiques</a>
+    <a href="./docs/pdf/manuel.pdf" target="_blank" style="...">📘 Manuel du Jeu</a>
+    <a href="./docs/pdf/carte.pdf" target="_blank" style="...">🗺️ Carte du Monde</a>
+    <a href="./docs/pdf/races.pdf" target="_blank" style="...">🧑‍🤝‍🧑 Guide des Races</a>
+    <a href="./docs/pdf/magies.pdf" target="_blank" style="...">🔮 Guide des Magies</a>
+    <a href="./docs/pdf/schemas.pdf" target="_blank" style="...">⚙️ Schémas Technologiques</a>
 </div>
     
     <p style="text-align: center; color: #888; font-style: italic; margin-top: 20px;">
@@ -415,7 +488,23 @@
 <div id="ecran-codex" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h2 style="color: #4caf50; margin:0;">📜 Console MJ</h2>
-        <button class="btn-stat" onclick="allerAccueil()">⬅️</button>
+        <button onclick="allerAccueil()" style="
+            background: #8b0000;
+            border: 2px solid #555;
+            color: white; 
+            font-size: 1.3em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1; /* Aligne mieux le texte verticalement */
+        ">
+            &lt;
+        </button>
     </div>
 
 <div style="display: flex; gap: 5px; margin-bottom: 15px;">
@@ -451,7 +540,7 @@
     </div>
 
     <div id="conteneur-carte" style="position: relative; width: 100%; border: 3px solid #333; border-radius: 8px; overflow: hidden; background: black;">
-        <img src="./docs/carte_monde.png" id="img-carte" style="width: 100%; display: block; opacity: 0.9;">
+        <img src="./docs/img/carte_monde.png" id="img-carte" style="width: 100%; display: block; opacity: 0.9;">
         <div id="calque-points" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
     </div>
 
@@ -464,13 +553,23 @@
 
 
 
-<script src="items.js"></script>
-<script src="monde.js"></script>
+<script src="js/racesData.js"></script>
+<script src="js/items.js"></script>
+<script src="js/monde.js"></script>
+<script src="js/magie.js"></script>
+<script src="js/technologie.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/backgrounds.js"></script>
 
-<script src="backgrounds.js"></script>
-    <script src="skills.js"></script>
-    <script src="technologie.js"></script>
-    <script src="magie.js"></script>
-    <script src="script.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/creation.js"></script>
+<script src="js/fiche.js"></script>
+<script src="js/inventaire.js"></script>
+<script src="js/marchand_fouille.js"></script>
+<script src="js/crafting.js"></script>
+<script src="js/carte.js"></script>
+<script src="js/codex.js"></script>
+
+<script src="js/main.js"></script>
 </body>
 </html>

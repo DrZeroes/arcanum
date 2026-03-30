@@ -55,6 +55,13 @@ const racesData = {
 
 
 
+let estMuet = false;
+function toggleMute() {
+    estMuet = !estMuet;
+    AudioEngine.setVolume(estMuet ? 0 : 0.3);
+    document.getElementById('btn-audio').innerText = estMuet ? "🔇" : "🔊";
+}
+
 
 let perso = {}; 
 let statsCalculees = {}; 
@@ -82,6 +89,14 @@ let investissementsTemporaires = {
 
 // ================= INITIALISATION =================
 window.onload = function() {
+	
+		//cahrgemtn music accueil
+	document.body.addEventListener('click', function() {
+        AudioEngine.jouerMusique('Arcanum.mp3');
+    }, { once: true }); // Ne s'exécute qu'une fois
+	
+
+	
     // 1. Initialisation des menus (ton code existant)
     const raceSelect = document.getElementById('raceSelect');
     if (raceSelect) {
@@ -156,12 +171,56 @@ let photoIndexSelection = 1;
 function changerPhotoSelection(direction) {
     photoIndexSelection += direction;
 
-    // Sécurité de base (on ne dépasse pas 10 pour éviter les boucles infinies)
-    if (photoIndexSelection > 10) photoIndexSelection = 1;
-    if (photoIndexSelection < 1) photoIndexSelection = 4; // On repart de 4 si on recule
-    
+    // 1. Si on dépasse vers le haut (ex: clic droit sur 04 alors qu'il n'y a pas de 05)
+    // On met une limite haute arbitraire (10), le testImg.onerror s'occupera de revenir à 01
+    if (photoIndexSelection > 10) {
+        photoIndexSelection = 1;
+        rafraichirApercuAvatar();
+        return;
+    }
+
+    // 2. Si on recule sous la 01 (clic gauche sur la 01)
+    if (photoIndexSelection < 1) {
+        // On va chercher la dernière image possible (on teste à partir de 04)
+        trouverDerniereImage(4); 
+        return;
+    }
+
     rafraichirApercuAvatar();
 }
+
+// Fonction utilitaire pour trouver la dernière image existante dans le dossier
+function trouverDerniereImage(indexTest) {
+    const raceSelect = document.getElementById('raceSelect');
+    const sexeSelect = document.getElementById('sexeSelect');
+    if (!raceSelect || !sexeSelect) return;
+
+    let raceDossier = raceSelect.value.toLowerCase().replace(/\s+/g, '');
+    let sexePath = (raceSelect.value !== "Bedokien") ? (sexeSelect.value === 'F' ? "Femme/" : "Homme/") : "";
+    
+    let nomFichier = indexTest.toString().padStart(2, '0') + ".png";
+    let cheminTest = `./docs/photo/${raceDossier}/${sexePath}${nomFichier}`;
+
+    let img = new Image();
+    img.src = cheminComplet = encodeURI(cheminTest);
+
+    img.onload = function() {
+        // L'image existe ! C'est donc notre "dernière" (ou on a trouvé la fin)
+        photoIndexSelection = indexTest;
+        rafraichirApercuAvatar();
+    };
+
+    img.onerror = function() {
+        // L'image n'existe pas (ex: pas de 04.png), on tente la 03.png
+        if (indexTest > 1) {
+            trouverDerniereImage(indexTest - 1);
+        } else {
+            photoIndexSelection = 1;
+            rafraichirApercuAvatar();
+        }
+    };
+}
+
 
 // Fonction appelée quand on change de Race ou de Sexe
 function resetEtRafraichir() {
@@ -218,6 +277,8 @@ function rafraichirApercuAvatar() {
 
 
 function nouveauPersonnage() {
+	
+	AudioEngine.jouerMusique('arcanum.mp3');
     // 1. Sécurité anti-écrasement
     if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
         if (!confirm("Attention : Créer un nouveau personnage effacera votre progression. Continuer ?")) {
@@ -236,9 +297,10 @@ function nouveauPersonnage() {
         niveau: 1,
         experience: 0,
         argent: 400,
-		photo: "px1.png", // Par défaut la première
+		photo: "01.png", // Par défaut la première
         inventaire: [], // On vide le sac proprement
         equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null },
+		lieuActuel: "crash", // Lieu de départ
 		lieuxConnus: ["crash"] // <-- AJOUTE CETTE LIGNE ICI
 
     };
@@ -343,6 +405,75 @@ document.getElementById('raceTraits').innerHTML = `
 rafraichirApercuAvatar(); // <--- AJOUTE CETTE LIGNE ICI	
 }
 
+const AudioEngine = {
+    musiqueActuelle: null,
+    volumeCible: 0.3, // Le volume que tu souhaites au final
+    fadeInterval: null,
+
+    jouerMusique(nomFichier) {
+        const url = `./docs/audio/${nomFichier}`;
+        
+        // Sécurité : Si c'est déjà la même musique qui tourne, on ignore
+        if (this.musiqueActuelle && this.musiqueActuelle.src.includes(nomFichier)) return;
+
+        // On arrête tout fondu en cours avant de commencer
+        clearInterval(this.fadeInterval);
+
+        if (this.musiqueActuelle) {
+            // FADE OUT (Sortie)
+            this.fadeInterval = setInterval(() => {
+                if (this.musiqueActuelle.volume > 0.02) {
+                    this.musiqueActuelle.volume -= 0.02;
+                } else {
+                    clearInterval(this.fadeInterval);
+                    this.musiqueActuelle.pause();
+                    this.lancerNouvellePiste(url);
+                }
+            }, 30); // 30ms pour un fondu plus réactif
+        } else {
+            this.lancerNouvellePiste(url);
+        }
+    },
+
+    lancerNouvellePiste(url) {
+        this.musiqueActuelle = new Audio(url);
+        this.musiqueActuelle.loop = true;
+        this.musiqueActuelle.volume = 0;
+        
+        // Jouer la musique (catch pour l'interaction navigateur)
+        this.musiqueActuelle.play().catch(e => {
+            console.warn("L'audio attend un clic utilisateur pour démarrer.");
+        });
+
+        // FADE IN (Entrée)
+        this.fadeInterval = setInterval(() => {
+            if (this.musiqueActuelle.volume < this.volumeCible) {
+                // On augmente progressivement vers le volume cible
+                let nouveauVol = this.musiqueActuelle.volume + 0.01;
+                this.musiqueActuelle.volume = Math.min(nouveauVol, this.volumeCible);
+            } else {
+                clearInterval(this.fadeInterval);
+            }
+        }, 50);
+    },
+
+	setVolume(val) {
+        this.volumeCible = val;
+        // Si une musique joue déjà, on ajuste son volume immédiatement
+        if (this.musiqueActuelle) {
+            this.musiqueActuelle.volume = val;
+        }
+    },
+
+
+    stopMusique() {
+        if (this.musiqueActuelle) {
+            this.musiqueActuelle.pause();
+            this.musiqueActuelle = null;
+            clearInterval(this.fadeInterval);
+        }
+    }
+};
 
 
 function validerCreation() {
@@ -396,6 +527,7 @@ function validerCreation() {
             tete: null, torse: null, gants: null, bottes: null, 
             anneau: null, amulette: null, main_droite: null, main_gauche: null
         },
+		lieuActuel: "crash",
         lieuxConnus: ["crash"]
     };
 
@@ -482,15 +614,19 @@ function validerCreation() {
     ajouterPointsInit(race.mod);
     ajouterPointsInit(bg.mod);
 
-    // 7. Sauvegarde et Changement d'écran
+// --- CHANGEMENT DE MUSIQUE : DU MENU VERS LE MONDE ---
+    // On va chercher la musique du lieu "crash" dans tes données
+    if (lieuxDecouverts["crash"] && lieuxDecouverts["crash"].musique) {
+        AudioEngine.jouerMusique(lieuxDecouverts["crash"].musique);
+    }
+
+    // 8. Sauvegarde finale et Changement d'écran
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
     
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI();
-    
-    // Rafraîchir l'accueil si la fonction existe
-    if (typeof rafraichirAccueil === 'function') rafraichirAccueil(); 
+    if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
 }
 
 function changerPhoto(direction) {
@@ -509,6 +645,45 @@ function changerPhoto(direction) {
         apercu.src = `./docs/photo/${dossierRace}/${perso.photo}`;
     }
 }
+
+function genererListeMusiquesMJ() {
+    const tbody = document.getElementById('tbody-codex');
+    tbody.innerHTML = ""; 
+
+    playlistMJ.forEach(piste => {
+        let tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid #444";
+        
+        tr.innerHTML = `
+            <td style="padding: 10px; color: #fff;">🎵 <b>${piste.nom}</b></td>
+            <td style="padding: 10px; color: #aaa; font-size: 0.8em; font-family: monospace;">${piste.fichier}</td>
+            <td style="padding: 10px; text-align: right;">
+                <button onclick="AudioEngine.jouerMusique('${piste.fichier}')" 
+                        style="padding: 5px 15px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 3px; transition: 0.2s;">
+                    ▶ Lancer
+                </button>
+            </td>
+        `;
+        
+        // Petit effet au survol pour savoir quelle ligne on regarde
+        tr.onmouseover = () => tr.style.background = "#333";
+        tr.onmouseout = () => tr.style.background = "transparent";
+        
+        tbody.appendChild(tr);
+    });
+
+    // Bouton STOP global en bas de liste
+    let trStop = document.createElement('tr');
+    trStop.innerHTML = `
+        <td colspan="3" style="padding:15px; text-align:center;">
+            <button onclick="AudioEngine.stopMusique()" 
+                    style="background:#8b0000; color:white; border:none; padding:10px 30px; cursor:pointer; font-weight:bold; border-radius:5px;">
+                ⏹ ARRÊTER LE SON
+            </button>
+        </td>`;
+    tbody.appendChild(trStop);
+}
+
 
 
 // ================= MISE À JOUR FICHE =================
@@ -1911,6 +2086,35 @@ function ajouterLigneCodex(id, nom, categorie, actionFn, texteAction) {
     `;
 }
 
+
+
+function deplacerVers(idLieu) {
+    const lieu = locations[idLieu];
+    if (!lieu) return;
+
+    // 1. Mise à jour du personnage
+    perso.lieuActuel = idLieu;
+    if (!perso.lieuxConnus.includes(idLieu)) {
+        perso.lieuxConnus.push(idLieu);
+    }
+
+    // 2. Mise à jour de l'UI (Description, Titre)
+    document.getElementById('lieu-titre').innerText = lieu.nom;
+    document.getElementById('lieu-desc').innerText = lieu.desc;
+
+    // 3. CHANGEMENT DE MUSIQUE AUTOMATIQUE
+    if (lieu.musique) {
+        AudioEngine.jouerMusique(lieu.musique);
+    }
+
+    // Sauvegarde auto après déplacement
+    localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
+    
+    console.log("Voyage vers : " + lieu.nom);
+}
+
+
+
 // Fonction pour forcer l'apparition d'un lieu sur la carte (MJ)
 function forcerDecouverteLieu(nom) {
     if (!perso.lieuxConnus.includes(nom)) {
@@ -2018,18 +2222,16 @@ function decouvrirLieu() {
 }
 
 // --- DESSINER LES POINTS SUR LE PNG ---
+// --- DESSINER LES POINTS SUR LE PNG (VERSION ÉPURÉE) ---
 function rafraichirPointsCarte() {
     const calque = document.getElementById('calque-points');
     if (!calque) return;
     calque.innerHTML = ""; 
 
-    // --- 1. GESTION DU CLIC À CÔTÉ (POUR TOUT FERMER) ---
-    // Si le joueur clique sur le fond de la carte (pas sur un point), on cache toutes les étiquettes.
+    // Gestion du clic sur le fond pour vider les infos
     document.getElementById('conteneur-carte').onclick = function(e) {
         if (e.target.id === 'conteneur-carte' || e.target.id === 'img-carte' || e.target.id === 'calque-points') {
-            document.querySelectorAll('.label-carte').forEach(lbl => lbl.style.display = 'none');
-            // Optionnel : Vider la description en bas
-            // document.getElementById('carte-info').innerHTML = "Entrez le nom d'un lieu pour le révéler sur l'atlas.";
+            document.getElementById('carte-info').innerHTML = "Sélectionnez un lieu sur l'atlas.";
         }
     };
 
@@ -2042,63 +2244,54 @@ function rafraichirPointsCarte() {
         marqueurGroup.style.left = coord.x + "%";
         marqueurGroup.style.top = coord.y + "%";
         marqueurGroup.style.transform = "translate(-50%, -50%)";
-        marqueurGroup.style.display = "flex";
-        marqueurGroup.style.flexDirection = "column";
-        marqueurGroup.style.alignItems = "center";
-        marqueurGroup.style.pointerEvents = "auto";
         marqueurGroup.style.cursor = "pointer";
         marqueurGroup.style.zIndex = "10";
+        
+        // Tooltip natif (apparaît au survol de la souris)
+        marqueurGroup.title = coord.nom; 
 
-let point = document.createElement('div');
-        // clamp(Taille Minimum, Taille Idéale selon l'écran, Taille Maximum)
-        point.style.width = "clamp(6px, 1.5vw, 14px)"; 
-        point.style.height = "clamp(6px, 1.5vw, 14px)";
+        // Le point rouge
+        let point = document.createElement('div');
+        point.style.width = "clamp(8px, 1.2vw, 14px)"; 
+        point.style.height = "clamp(8px, 1.2vw, 14px)";
         point.style.background = "#ff4444";
         point.style.borderRadius = "50%";
         point.style.border = "2px solid white";
-        point.style.boxShadow = "0 0 8px #ff4444";
+        point.style.boxShadow = "0 0 8px rgba(255, 68, 68, 0.8)";
+        point.style.transition = "transform 0.2s";
 
-        let label = document.createElement('div');
-        label.innerText = coord.nom;
-        label.className = "label-carte"; // On lui donne une classe pour pouvoir les fermer tous d'un coup
-        label.style.color = "white";
-        label.style.fontSize = "12px";
-        label.style.fontWeight = "bold";
-        label.style.marginTop = "6px";
-        label.style.whiteSpace = "nowrap";
-        label.style.backgroundColor = "rgba(0, 0, 0, 0.9)";
-        label.style.padding = "4px 8px";
-        label.style.borderRadius = "4px";
-        label.style.border = "1px solid #555";
-        label.style.display = "none"; // Caché par défaut
-        label.style.pointerEvents = "none"; // Empêche le label de bloquer le clic sur un point très proche
+        // Effet de survol visuel
+        point.onmouseover = () => point.style.transform = "scale(1.3)";
+        point.onmouseout = () => point.style.transform = "scale(1)";
 
         marqueurGroup.appendChild(point);
-        marqueurGroup.appendChild(label);
 
-        // --- 2. LE CLIC / TAP (LA MAGIE OPÈRE ICI) ---
+        // --- LE CLIC (DÉPLACEMENT + MUSIQUE + INFOS) ---
         marqueurGroup.onclick = (e) => {
-            e.stopPropagation(); // Empêche le clic de se propager au fond de la carte (qui fermerait le label aussitôt)
+            e.stopPropagation();
             
-            // On commence par cacher TOUTES les étiquettes...
-            document.querySelectorAll('.label-carte').forEach(lbl => {
-                lbl.style.display = 'none';
-                lbl.parentNode.style.zIndex = "10";
-            });
+            // 1. Mise à jour des infos textuelles en bas
+            const infoBox = document.getElementById('carte-info');
+            if(infoBox) {
+                infoBox.innerHTML = `<strong style="color:#ff4444;">${coord.nom}</strong> : ${coord.desc}`;
+            }
             
-            // ... Puis on affiche SEULEMENT celle qu'on vient de cliquer
-            label.style.display = "block";
-            marqueurGroup.style.zIndex = "100"; // On le met au premier plan
-            
-            // Mise à jour du texte en bas
-            document.getElementById('carte-info').innerHTML = `<strong style="color:#2196f3;">${coord.nom}</strong> : ${coord.desc}`;
+            // 2. CHANGEMENT DE MUSIQUE AUTOMATIQUE
+            if (coord.musique) {
+                AudioEngine.jouerMusique(coord.musique);
+            }
+
+            // 3. Logique de déplacement (Optionnel : tu peux appeler ta fonction de voyage ici)
+            // deplacerVers(nomLieu); 
+            perso.lieuActuel = nomLieu; // On stocke l'ID du lieu (ex: "tarente")
+			autoSave(); // On sauvegarde immédiatement
+	
+            console.log("Voyage vers : " + coord.nom + " | Musique : " + coord.musique);
         };
 
         calque.appendChild(marqueurGroup);
     });
 }
-
-
 
 
 // Modifie ta fonction allerAccueil pour qu'elle vérifie l'état à chaque fois
@@ -2109,32 +2302,38 @@ function allerAccueil() {
     rafraichirAccueil(); // <--- Important !
 }
 
-
 function reprendrePartie() {
-    // 1. Sécurité : On s'assure que les objets vitaux existent pour ne pas crasher updateInventaireUI
+    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
+    if (!sauvegarde) return;
+
+    perso = JSON.parse(sauvegarde);
+
+    // Sécurités inventaire
     if (!perso.inventaire) perso.inventaire = [];
     if (!perso.equipement) perso.equipement = {
         tete: null, torse: null, gants: null, bottes: null, 
         anneau: null, amulette: null, main_droite: null, main_gauche: null
     };
 
-    // 2. On cache tout proprement d'abord
-    cacherTout();
+    // --- GESTION DE LA MUSIQUE AU CHARGEMENT ---
+    // On cherche le lieu actuel dans tes données
+    const idLieu = perso.lieuActuel || "crash"; 
+    const lieuData = lieuxDecouverts[idLieu];
 
-    // 3. On affiche la fiche et on la met à jour
- const ecranFiche = document.getElementById('ecran-fiche');
+    if (lieuData && lieuData.musique) {
+        AudioEngine.jouerMusique(lieuData.musique);
+    } else {
+        AudioEngine.jouerMusique('Interlude.mp3'); // Secours
+    }
+
+    cacherTout();
+    const ecranFiche = document.getElementById('ecran-fiche');
     if (ecranFiche) {
         ecranFiche.style.display = 'block';
         updateFicheUI();
-        
-        // On vérifie le bouton craft au moment de reprendre le jeu
         if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
     }
 }
-
-
-
-
 
 
 

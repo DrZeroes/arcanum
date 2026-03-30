@@ -32,13 +32,13 @@ const itemsData = {
         nom: "Marteau de qualité", desc: "Un marteau de forgeron parfaitement équilibré.",
         type: "arme_melee", rarete: "6", poids: 4.5, prix: 150,
         equipable: "main_droite", stackable: false, degats: "2-12", armure: 0, vitesse: 11, portee: 1,
-        stats: { align: -5 }, prerequis: { FO: 9 }, lootable: true, nbUsages: null
+        stats: { }, prerequis: { FO: 9 }, lootable: true, nbUsages: null
     },
     "AM03": {
         nom: "Épée enchantée", desc: "Une lame luisante qui palpite d'une énergie arcanique.",
         type: "arme_melee", rarete: "8", poids: 2.0, prix: 600,
         equipable: "main_droite", stackable: false, degats: "4-14", armure: 0, vitesse: 14, portee: 1,
-        stats: { resMagie: 10, FT: 2, align: 10 }, prerequis: { FO: 6 }, lootable: true, nbUsages: null
+        stats: { resMagie: 10, FT: 20, align: 10 }, prerequis: { FO: 6 }, lootable: true, nbUsages: null
     },
     "AM04": {
         nom: "Dague simple", desc: "Une petite lame facile à dissimuler.",
@@ -50,7 +50,7 @@ const itemsData = {
         nom: "Bâton", desc: "Un long bâton en bois robuste, souvent utilisé par les voyageurs.",
         type: "arme_melee", rarete: "2", poids: 1.5, prix: 20,
         equipable: "deux_mains", stackable: false, degats: "1-6", armure: 0, vitesse: 12, portee: 1,
-        stats: { FT: 2 }, prerequis: {}, lootable: true, nbUsages: null
+        stats: { FT: 5 }, prerequis: {}, lootable: true, nbUsages: null
     },
     "AM06": {
         nom: "Épée simple", desc: "Une lame droite standard en fer.",
@@ -87,13 +87,13 @@ const itemsData = {
         nom: "Épée équilibrée", desc: "Arme rapide et précise utilisant les propriétés du pur alliage.",
         type: "arme_melee", rarete: "7", poids: 1.5, prix: 450,
         equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 18, portee: 1,
-        stats: { align: -10 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
+        stats: { }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
     },
     "AM12": {
         nom: "Hache ultralégère", desc: "Arme mortelle en minerai nain pesant moitié moins.",
         type: "arme_melee", rarete: "7", poids: 1.8, prix: 500,
         equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 14, portee: 1,
-        stats: { align: -15 }, prerequis: { FO: 7 }, lootable: false, nbUsages: null
+        stats: { }, prerequis: { FO: 7 }, lootable: false, nbUsages: null
     },
     "AM13": {
         nom: "Bâton électrique", desc: "Bâton avec condensateur libérant un choc à l'impact.",
@@ -105,7 +105,7 @@ const itemsData = {
         nom: "Bâton Tesla", desc: "Arme avancée projetant des rayons d'énergie paralysants.",
         type: "arme_melee", rarete: "9", poids: 2.5, prix: 1200,
         equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 15, portee: 3,
-        stats: { align: -30 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
+        stats: { resElec: 15, align: -20 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
     },
 	
 	
@@ -140,13 +140,13 @@ const itemsData = {
         nom: "Revolver de qualité", desc: "Le barillet tourne avec une précision mortelle.",
         type: "arme_feu", rarete: "6", poids: 1.8, prix: 350,
         equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 15, portee: 12,
-        stats: { align: -20 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
+        stats: { align: -10 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
     "AF02": {
         nom: "Revolver rouillé", desc: "Le barillet a du mal à tourner, mais ça fera l'affaire.",
         type: "arme_feu", rarete: "3", poids: 1.8, prix: 220,
         equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 12, portee: 12,
-        stats: { align: -20 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
+        stats: { align: -5 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
     // --- Armes à Feu (Craft) ---
     "AF03": {
@@ -159,49 +159,49 @@ const itemsData = {
         nom: "Revolver de choix", desc: "Pistolet bien équilibré destiné aux tireurs sérieux.",
         type: "arme_feu", rarete: "7", poids: 1.6, prix: 450,
         equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 18, portee: 15,
-        stats: { align: -25 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
+        stats: { align: -15 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
     },
     "AF05": {
         nom: "Fusil à répétition", desc: "Fusil permettant de tirer plusieurs coups rapidement.",
         type: "arme_feu", rarete: "8", poids: 3.5, prix: 800,
         equipable: "deux_mains", stackable: false, degats: "8-20", armure: 0, vitesse: 18, portee: 20,
-        stats: { align: -35 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
+        stats: { align: -20 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
     },
     "AF06": {
         nom: "Revolver silencieux", desc: "Arme à feu modifiée pour réduire le bruit de la détonation.",
         type: "arme_feu", rarete: "7", poids: 1.7, prix: 600,
         equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 16, portee: 12,
-        stats: { align: -25 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
+        stats: { align: -15 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
     },
     "AF07": {
         nom: "Fusil à lunette", desc: "Fusil de précision équipé d'un système de visée optique.",
         type: "arme_feu", rarete: "8", poids: 4.0, prix: 950,
         equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 8, portee: 30,
-        stats: { align: -35 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
+        stats: { align: -20 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
     },
     "AF08": {
         nom: "Canon portable", desc: "Arme lourde infligeant des dégâts massifs.",
         type: "arme_feu", rarete: "9", poids: 8.0, prix: 1500,
         equipable: "deux_mains", stackable: false, degats: "20-40", armure: 0, vitesse: 5, portee: 15,
-        stats: { align: -40 }, prerequis: { FO: 12, DX: 8 }, lootable: false, nbUsages: null
+        stats: { align: -25 }, prerequis: { FO: 12, DX: 8 }, lootable: false, nbUsages: null
     },
     "AF09": {
         nom: "Fusil éléphant", desc: "Arme de très gros calibre pour les cibles les plus résistantes.",
         type: "arme_feu", rarete: "10", poids: 5.5, prix: 2200,
         equipable: "deux_mains", stackable: false, degats: "25-50", armure: 0, vitesse: 6, portee: 25,
-        stats: { align: -50 }, prerequis: { FO: 10, DX: 10 }, lootable: false, nbUsages: null
+        stats: { align: -30 }, prerequis: { FO: 10, DX: 10 }, lootable: false, nbUsages: null
     },
 
 
 
 
-    "AF10": { nom: "Fusil de chasse", desc: "Arme de base.", type: "arme_feu", rarete: "4", poids: 3.0, prix: 80, equipable: "deux_mains", stackable: false, degats: "5-12", armure: 0, vitesse: 5, portee: 8, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF10": { nom: "Fusil de chasse", desc: "Arme de base.", type: "arme_feu", rarete: "4", poids: 3.0, prix: 80, equipable: "deux_mains", stackable: false, degats: "5-12", armure: 0, vitesse: 5, portee: 8, stats: {align: -10}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF11": { nom: "Fusil précis ", desc: "Fusil long canon.", type: "arme_feu", rarete: "6", poids: 3.5, prix: 150, equipable: "deux_mains", stackable: false, degats: "8-16", armure: 0, vitesse: 6, portee: 20, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF11": { nom: "Fusil précis ", desc: "Fusil long canon.", type: "arme_feu", rarete: "6", poids: 3.5, prix: 150, equipable: "deux_mains", stackable: false, degats: "8-16", armure: 0, vitesse: 6, portee: 20, stats: {align: -15}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF12": { nom: "Fusil Clarington", desc: "Fusil de haute qualité.", type: "arme_feu", rarete: "7", poids: 4.0, prix: 300, equipable: "deux_mains", stackable: false, degats: "10-15", armure: 6, vitesse: 15, portee: 15, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF12": { nom: "Fusil Clarington", desc: "Fusil de haute qualité.", type: "arme_feu", rarete: "7", poids: 4.0, prix: 300, equipable: "deux_mains", stackable: false, degats: "10-15", armure: 6, vitesse: 15, portee: 15, stats: {align: -20}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF13": { nom: "Pistolet chic", desc: "Arme de noble.", type: "arme_feu", rarete: "5", poids: 1.5, prix: 200, equipable: "aucun", stackable: false, degats: "0", armure: 4-12, vitesse: 5, portee: 12, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF13": { nom: "Pistolet chic", desc: "Arme de noble.", type: "arme_feu", rarete: "3", poids: 1.5, prix: 200, equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 5, portee: 12, stats: {align: -5, CH:1}, prerequis: {}, lootable: true, nbUsages: null },
 
 
 
@@ -227,7 +227,7 @@ const itemsData = {
         nom: "Cotte de mailles elfique", desc: "Un maillage incroyablement léger qui brille d'un éclat bleuté.",
         type: "armure", rarete: "8", poids: 3.5, prix: 1050,
         equipable: "torse", stackable: false, degats: "0", armure: 12, vitesse: 0, portee: 0,
-        stats: { resMagie: 15, resPhys: 10, align: 40 }, prerequis: { DX: 8 }, lootable: true, nbUsages: null
+        stats: { resMagie: 15, resPhys: 10, align: 15 }, prerequis: { DX: 8 }, lootable: true, nbUsages: null
     },
     "DEF04": {
         nom: "Robe simple", desc: "Une robe ample et confortable, prisée par les mages débutants.",
@@ -239,7 +239,7 @@ const itemsData = {
         nom: "Veste en tissu", desc: "Une veste épaisse d'ouvrier.",
         type: "armure", rarete: "1", poids: 1.2, prix: 100,
         equipable: "torse", stackable: false, degats: "0", armure: 2, vitesse: 0, portee: 0,
-        stats: {}, prerequis: {}, lootable: true, nbUsages: null
+        stats: {resPhys : 10 }, prerequis: {}, lootable: true, nbUsages: null
     },
     "DEF06": {
         nom: "Bottes usagées", desc: "De vieilles bottes en cuir avec des trous dans les semelles.",
@@ -260,16 +260,16 @@ const itemsData = {
         stats: { resPhys: 10 }, prerequis: { FO: 10 }, lootable: true, nbUsages: null
     },
     "DEF09": {
-        nom: "Uniforme de soldat", desc: "Tenue réglementaire des gardes de Tarente.",
+        nom: "Uniforme de soldat", desc: "Tenue réglementaire des gardes de Tarante.",
         type: "armure", rarete: "5", poids: 5.0, prix: 150,
         equipable: "torse", stackable: false, degats: "0", armure: 10, vitesse: 0, portee: 0,
-        stats: { resPhys: 5, align: -5 }, prerequis: { FO: 8 }, lootable: true, nbUsages: null
+        stats: { resPhys: 5 }, prerequis: { FO: 8 }, lootable: true, nbUsages: null
     },
     "DEF10": {
         nom: "Robe élégante", desc: "Faite d'une soie fine. Très prisée dans les hautes sphères.",
         type: "armure", rarete: "6", poids: 1.0, prix: 200,
         equipable: "torse", stackable: false, degats: "0", armure: 2, vitesse: 0, portee: 0,
-        stats: { resMagie: 5, align: 10 }, prerequis: {}, lootable: true, nbUsages: null
+        stats: { resMagie: 5 , CH:1 }, prerequis: {}, lootable: true, nbUsages: null
     },
     "DEF11": {
         nom: "Casque de fer", desc: "Une protection crânienne simple mais efficace.",
@@ -281,8 +281,8 @@ const itemsData = {
     "DEF12": {
         nom: "Gantelets de nain", desc: "Gants métalliques boostant la puissance au corps à corps.",
         type: "armure", rarete: "6", poids: 1.5, prix: 350,
-        equipable: "gants", stackable: false, degats: "0", armure: 4, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: { FO: 8 }, lootable: false, nbUsages: null
+        equipable: "gants", stackable: false, degats: "1", armure: 4, vitesse: 0, portee: 0,
+        stats: { align: -5 }, prerequis: { FO: 8 }, lootable: false, nbUsages: null
     },
     "DEF13": {
         nom: "Heaume de vision", desc: "Casque de protection améliorant la visibilité.",
@@ -294,13 +294,13 @@ const itemsData = {
         nom: "Cotte de mailles légère", desc: "Armure de mailles offrant une protection agile.",
         type: "armure", rarete: "7", poids: 5.0, prix: 800,
         equipable: "torse", stackable: false, degats: "0", armure: 15, vitesse: 0, portee: 0,
-        stats: { resPhys: 15, align: -25 }, prerequis: { FO: 9 }, lootable: false, nbUsages: null
+        stats: { resPhys: 15,  }, prerequis: { FO: 9 }, lootable: false, nbUsages: null
     },
     "DEF15": {
         nom: "Cuirasse d'élite", desc: "L'armure de plaques technologique la plus aboutie.",
         type: "armure", rarete: "9", poids: 8.0, prix: 2000,
         equipable: "torse", stackable: false, degats: "0", armure: 25, vitesse: -1, portee: 0,
-        stats: { resPhys: 30, resFeu: 15, align: -40 }, prerequis: { FO: 12 }, lootable: false, nbUsages: null
+        stats: { resPhys: 30, resFeu: 15}, prerequis: { FO: 12 }, lootable: false, nbUsages: null
     },
     "DEF16": {
         nom: "Chapeau d'inversion", desc: "Haut-de-forme protégeant contre les balles et flèches par magnétisme.",
@@ -331,7 +331,7 @@ const itemsData = {
         nom: "Méca-lorgnon", desc: "Lunettes augmentant la perception de jour comme de nuit.",
         type: "armure", rarete: "8", poids: 0.2, prix: 500,
         equipable: "tete", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -30 }, prerequis: {}, lootable: false, nbUsages: null // Bonus perception
+        stats: { align: -30, bonusComp: { marchandage :4, crochetage:4, detection_piege:4 } }, prerequis: {}, lootable: false, nbUsages: null // Bonus perception
     },
 	
 	
@@ -344,14 +344,19 @@ const itemsData = {
         nom: "Lampe électrique", desc: "Lanterne à filament offrant un éclairage propre et constant.",
         type: "armure", rarete: "4", poids: 1.0, prix: 100,
         equipable: "main_gauche", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: null
+        stats: { align: -10, bonusComp: { detection_piege:4 } }, prerequis: {}, lootable: false, nbUsages: null
     },
 	
 	
-	    "DEF25": { nom: "lanterne", desc: "Lampe à huile classique.", type: "armure", rarete: "2", poids: 1.0, prix: 15, equipable: "main_gauche", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "DEF25": { nom: "lanterne", desc: "Lampe à huile classique.", type: "armure", rarete: "2", poids: 1.0, prix: 15, equipable: "main_gauche", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {bonusComp: { detection_piege:2 }}, prerequis: {}, lootable: true, nbUsages: null },
 
 	
-	
+	    "DEF26": {
+        nom: "Spectromètre de flux", desc: "Appareil sensible détectant les perturbations magiques.",
+        type: "armure", rarete: "7", poids: 1.5, prix: 600,
+        equipable: "main_gauche", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
+        stats: { align: -10, resFeu: 5 , resElec: 5 , resMagie: 5 }, prerequis: {}, lootable: false, nbUsages: null
+    },
 	
 	
 	
@@ -364,7 +369,7 @@ const itemsData = {
         nom: "Anneau électroactif", desc: "Anneau de cuivre boostant la puissance et les réflexes.",
         type: "divers", rarete: "6", poids: 0.1, prix: 500,
         equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: null // Bonus à coder
+        stats: { align: -15, DX:2, FO:2 }, prerequis: {}, lootable: false, nbUsages: null // Bonus à coder
     },
 	    "BIJ02": { nom: "Anneau de cuivre", desc: "Bijou brillant.", type: "divers", rarete: "2", poids: 0.1, prix: 45, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
 	    "BIJ03": { nom: "Anneau de argent", desc: "Bijou brillant.", type: "divers", rarete: "4", poids: 0.1, prix: 145, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
@@ -373,200 +378,195 @@ const itemsData = {
     
     // ---------------- MUNITIONS (MUN) ----------------
     "MUN01": {
-        nom: "Balles de pistolet", desc: "Munitions classiques (poudre et plomb).",
-        type: "munition", rarete: "2", poids: 0.01, prix: 1,
-        equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: true, nbUsages: null
-    },
-    "MUN02": {
-        nom: "Flèche", desc: "Flèche empennée basique.",
-        type: "munition", rarete: "2", poids: 0.05, prix: 1,
+		nom: "Balles", desc: "Munitions produites à partir de salpêtre et de charbon.",
+        type: "munition", rarete: "2", poids: 0.01, prix: 5,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {}, prerequis: {}, lootable: true, nbUsages: null
     },
-    "MUN03": { // Craft Explosifs
-        nom: "Balles", desc: "Munitions produites à partir de salpêtre et de charbon.",
-        type: "munition", rarete: "2", poids: 0.01, prix: 1,
+    "MUN02": {
+        nom: "Flèche", desc: "Flèche empennée basique.",
+        type: "munition", rarete: "2", poids: 0.05, prix: 5,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: null
+        stats: {}, prerequis: {}, lootable: true, nbUsages: null
     },
+
 
     // ---------------- CONSOMMABLES & EXPLOSIFS (CONS) ----------------
     "CONS01": {
         nom: "Cocktail Molotov", desc: "Bouteille inflammable. Explose à l'impact.",
         type: "consommable", rarete: "6", poids: 0.5, prix: 100,
         equipable: "main_droite", stackable: true, degats: "4-16", armure: 0, vitesse: 8, portee: 8,
-        stats: { align: -15 }, prerequis: { DX: 6 }, lootable: true, nbUsages: 1
+        stats: {  }, prerequis: { DX: 6 }, lootable: true, nbUsages: 1
     },
     "CONS02": {
         nom: "Dynamite", desc: "Bâton explosif puissant. Ne restez pas à côté.",
         type: "consommable", rarete: "7", poids: 1.0, prix: 150,
         equipable: "main_droite", stackable: true, degats: "10-30", armure: 0, vitesse: 5, portee: 6,
-        stats: { align: -25 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { }, prerequis: {}, lootable: true, nbUsages: 1
     },
     "CONS03": {
         nom: "Potion de soin", desc: "Un liquide rouge effervescent qui referme les plaies.",
         type: "consommable", rarete: "3", poids: 0.5, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 20, align: 10 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { soinPV: 20, align: 2 }, prerequis: {}, lootable: true, nbUsages: 1
     },
     "CONS04": {
         nom: "Potion d'énergie", desc: "Restaure la fatigue accumulée. Goût de menthe forte.",
         type: "consommable", rarete: "3", poids: 0.5, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 20, align: 10 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { soinFT: 20, align: 2 }, prerequis: {}, lootable: true, nbUsages: 1
     },
     // --- Botanique & Thérapeutique (Craft) ---
     "CONS05": {
         nom: "Elixir de soins légers", desc: "Médicament de base pour soigner les blessures légères.",
         type: "consommable", rarete: "3", poids: 0.2, prix: 60,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 30, align: -5 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 30, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS06": {
         nom: "Stimulant", desc: "Produit augmentant temporairement les capacités physiques.",
         type: "consommable", rarete: "5", poids: 0.2, prix: 120,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: 1 // Bonus à coder
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Bonus à coder
     },
     "CONS07": {
         nom: "Antidote", desc: "Substance permettant de neutraliser les effets du poison.",
         type: "consommable", rarete: "4", poids: 0.2, prix: 80,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -5 }, prerequis: {}, lootable: false, nbUsages: 1 // Soin poison à coder
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Soin poison à coder
     },
     "CONS08": {
         nom: "Limiteur de fatigue", desc: "Préparation réduisant la perte de points de fatigue.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 50, align: -10 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinFT: 50, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS09": {
         nom: "Accélérateur de guérison", desc: "Accélère la régénération naturelle des tissus.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1 // Regen à coder
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Regen à coder
     },
     "CONS10": {
         nom: "Drogue merveilleuse", desc: "Elixir puissant aux propriétés curatives avancées.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 300,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 80, align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 80, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS11": {
         nom: "Soin universel", desc: "Le remède technologique ultime pour tous les maux.",
         type: "consommable", rarete: "10", poids: 0.2, prix: 500,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 150, soinFT: 150, align: -30 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 150, soinFT: 150, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS12": {
         nom: "Elixir de persuasion", desc: "Améliore temporairement le charisme et l'élocution.",
         type: "consommable", rarete: "5", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS13": {
         nom: "Elixir de prouesse", desc: "Augmente la force physique de l'utilisateur.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS14": {
         nom: "Liquide de perception", desc: "Affûte les sens et la vigilance du sujet.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS15": {
         nom: "Fortifiant réflexes", desc: "Améliore la dextérité et la vitesse de réaction.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS16": {
         nom: "Concentré de neurones", desc: "Augmente temporairement l'intelligence.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 220,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS17": {
         nom: "Energisant", desc: "Redonne de la vigueur et de l'énergie au corps.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 250,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 80, align: -25 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinFT: 80, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS18": {
         nom: "Revitalisant", desc: "Restaure l'ensemble des facultés physiques et mentales.",
         type: "consommable", rarete: "9", poids: 0.2, prix: 400,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 100, soinFT: 100, align: -30 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 100, soinFT: 100, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     // --- Explosifs & Chimie (Craft) ---
     "CONS19": {
         nom: "Poison virulent", desc: "Substance toxique pouvant être appliquée sur des armes.",
         type: "consommable", rarete: "5", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS20": {
         nom: "Carburant", desc: "Liquide inflammable utilisé pour divers engins technologiques.",
         type: "consommable", rarete: "4", poids: 1.0, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: null // Sert souvent de composant
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Sert souvent de composant
     },
     "CONS21": {
         nom: "Hallucinite", desc: "Produit chimique provoquant des hallucinations chez la victime.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 10, portee: 5,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS22": {
         nom: "Acide corrosif", desc: "Composé qui ronge immédiatement les surfaces et armures.",
         type: "consommable", rarete: "7", poids: 0.5, prix: 250,
         equipable: "main_droite", stackable: true, degats: "5-25", armure: 0, vitesse: 8, portee: 6,
-        stats: { align: -25 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS23": {
         nom: "Senteur animale", desc: "Mélange permettant de circuler parmi les bêtes sans être attaqué.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS24": {
         nom: "Paralysant", desc: "Liquide rendant l'ennemi impuissant temporairement.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 350,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 10, portee: 5,
-        stats: { align: -30 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS25": {
         nom: "Grenade aveuglante", desc: "Gadget au magnésium pour désorienter les adversaires.",
         type: "consommable", rarete: "5", poids: 0.5, prix: 150,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 12, portee: 8,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS26": {
         nom: "Grenade fumigène", desc: "Mixture générant un nuage de fumée pour couvrir une fuite.",
         type: "consommable", rarete: "5", poids: 0.5, prix: 150,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 12, portee: 8,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS27": {
         nom: "Grenade étourdissante", desc: "Explosion de salpêtre étourdissant temporairement les ennemis.",
         type: "consommable", rarete: "6", poids: 0.5, prix: 200,
         equipable: "main_droite", stackable: true, degats: "2-8", armure: 0, vitesse: 12, portee: 8,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS28": {
         nom: "Grenade offensive", desc: "Arme de destruction puissante utilisant du TNT et de la poudre.",
         type: "consommable", rarete: "7", poids: 0.8, prix: 300,
         equipable: "main_droite", stackable: true, degats: "15-35", armure: 0, vitesse: 10, portee: 8,
-        stats: { align: -25 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS29": {
         nom: "Ecran de feu", desc: "Mixture inflammable créant un mur de flammes défensif.",
         type: "consommable", rarete: "8", poids: 1.0, prix: 400,
         equipable: "main_droite", stackable: true, degats: "10-20", armure: 0, vitesse: 8, portee: 5,
-        stats: { align: -30 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { align: -3 }, prerequis: {}, lootable: false, nbUsages: 1
     },
 
     // ---------------- OBJETS DE QUÊTE / UNIQUES (XXX) ----------------
@@ -600,60 +600,55 @@ const itemsData = {
         nom: "Outil de crochetage", desc: "Un ensemble de rossignols pour les serrures récalcitrantes.",
         type: "divers", rarete: "5", poids: 0.2, prix: 100,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: { DX: 8 }, lootable: true, nbUsages: null
+        stats: {  }, prerequis: { DX: 8 }, lootable: true, nbUsages: null
     },
     // --- Mécanique (Craft) ---
     "DIV02": {
         nom: "Piège à piques", desc: "Dispositif simple blessant quiconque marche dessus.",
         type: "divers", rarete: "4", poids: 2.0, prix: 150,
         equipable: "aucun", stackable: true, degats: "10-20", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "DIV03": {
         nom: "Passe-partout auto.", desc: "Outil facilitant grandement le crochetage des serrures.",
         type: "divers", rarete: "6", poids: 0.5, prix: 300,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: null // Bonus crochetage à coder
+        stats: { }, prerequis: {}, lootable: false, nbUsages: null // Bonus crochetage à coder
     },
     "DIV04": {
         nom: "Déclencheur de piège", desc: "Boîtier à ressort pour activer les pièges à distance.",
         type: "divers", rarete: "5", poids: 0.5, prix: 200,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -15 }, prerequis: {}, lootable: false, nbUsages: null
+        stats: { }, prerequis: {}, lootable: false, nbUsages: null
     },
     "DIV05": {
         nom: "Piège à ours", desc: "Pince métallique immobilisant et blessant la proie.",
         type: "divers", rarete: "6", poids: 3.0, prix: 250,
         equipable: "aucun", stackable: true, degats: "15-30", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "DIV06": {
         nom: "Leurre mécanique", desc: "Dispositif à ressort créant une diversion sonore.",
         type: "divers", rarete: "7", poids: 1.0, prix: 350,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -25 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
 
     "DIV08": {
         nom: "Méca-arachnide", desc: "Automate de combat hydraulique à vapeur avec griffes.",
         type: "divers", rarete: "10", poids: 15.0, prix: 1500,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -50 }, prerequis: {}, lootable: false, nbUsages: null // Invocation à coder
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Invocation à coder
     },
     // --- Électricité (Craft) ---
 
-    "DIV10": {
-        nom: "Spectromètre de flux", desc: "Appareil sensible détectant les perturbations magiques.",
-        type: "divers", rarete: "7", poids: 1.5, prix: 600,
-        equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -20 }, prerequis: {}, lootable: false, nbUsages: null
-    },
+
     // --- Chimie (Craft) ---
     "DIV11": {
         nom: "Energie", desc: "Source énergétique portable (Batterie).",
         type: "divers", rarete: "4", poids: 1.0, prix: 80,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -10 }, prerequis: {}, lootable: false, nbUsages: null // Souvent composant
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Souvent composant
     },
     "DIV12": {
         nom: "Pelle", desc: "Parfait pour creuser des trous.",
@@ -779,3 +774,4 @@ const itemsData = {
     "COMP78": { nom: "Savon liquide", desc: "Produit glissant.", type: "composant", rarete: "2", poids: 0.5, prix: 5, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP79": { nom: "Nitroglycérine", desc: "Liquide extrêmement instable.", type: "composant", rarete: "8", poids: 0.5, prix: 200, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null }
 };
+

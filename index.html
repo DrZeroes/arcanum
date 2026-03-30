@@ -8,6 +8,9 @@
 </head>
 <body>
 
+<button onclick="toggleMute()" id="btn-audio" style="position:fixed; top:10px; right:10px; z-index:1000;">🔊</button>
+
+
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
     <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
     
@@ -416,7 +419,8 @@
     <button onclick="genererListeCodex('items')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">💎 Objets</button>
     <button onclick="genererListeCodex('marchands')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">⚖️ Marchands</button>
     <button onclick="genererListeCodex('coffres')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📦 Coffres</button>
-    <button onclick="genererListeCodex('lieux')" style="flex:1; padding:10px; cursor:pointer; background:#4caf50; color:white; border:none;">📍 Lieux</button>
+    <button onclick="genererListeCodex('lieux')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📍 Lieux</button>
+    <button onclick="genererListeMusiquesMJ()" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">🎵 Musiques</button>
 </div>
 
     <input type="text" id="recherche-codex" placeholder="Rechercher..." onkeyup="filtrerCodex()" 
@@ -438,7 +442,7 @@
     </div>
 
     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <input type="text" id="input-decouverte" placeholder="Nom de la ville (ex: Tarente)..." 
+        <input type="text" id="input-decouverte" placeholder="Nom de la ville " 
                style="flex-grow: 1; padding: 10px; background: #222; color: white; border: 1px solid #444;">
         <button onclick="decouvrirLieu()" style="background: #4caf50; color: white; border: none; padding: 10px 20px; cursor: pointer;">📍 Localiser</button>
     </div>

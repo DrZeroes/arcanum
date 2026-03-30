@@ -133,10 +133,37 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
 
 
 const lieuxDecouverts = {
-    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, desc: "La cité industrielle." },
-    "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, desc: "Un petit village minier." },
-    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, desc: "Une ville sombre et mystérieuse." },
-    "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, desc: "Le Zephyr est tombé ici." },
-    "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, desc: "Maison d'un vieil ermite." },
-    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, desc: "Domicile de Simon" }
+    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",desc: "La cité industrielle." },
+    "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",desc: "Un petit village minier." },
+    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",desc: "Une ville sombre et mystérieuse." },
+    "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, musique: "Interlude.mp3",desc: "Le Zephyr est tombé ici." },
+    "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, musique: "Wilderness.mp3",desc: "Maison d'un vieil ermite." },
+    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3", desc: "Domicile de Simon" }
 };
+
+const playlistMJ = [
+	{ nom: "Titre", fichier: "Arcanum.mp3" },
+	{ nom: "Zephyr - story", fichier: "Zephyr.mp3" },
+	 { nom: "Combat START ", fichier: "Combat_start.mp3" },
+    { nom: "Combat ", fichier: "Combat.mp3" },
+    { nom: "Ambiance Calme - site crash", fichier: "Interlude.mp3" },
+	{ nom: "Grandes villes", fichier: "Cities.mp3" },
+	{ nom: "Petites villes", fichier: "Towns.mp3" },
+    { nom: "Ambiance Village", fichier: "Villages.mp3" },
+    { nom: "Exploration Sauvage", fichier: "Wilderness.mp3" },
+	{ nom: "Mines", fichier: "Mines.mp3" },
+	{ nom: "Dungeons", fichier: "Dungeons.mp3" },
+    { nom: "Nains - mines", fichier: "DwarvenMusic.mp3" },
+	{ nom: "Tarante", fichier: "Tarant.mp3" },
+	{ nom: "Egouts de Tarante", fichier: "Tarant_Sewers.mp3" },
+	{ nom: "Caladon", fichier: "Caladon.mp3" },
+	{ nom: "Caladon catacombes", fichier: "Caladon_Catacombs.mp3" },
+	{ nom: "Qintara", fichier: "Qintara.mp3" },
+    { nom: "Tulla", fichier: "Tulla.mp3" },
+    { nom: "The Vendigroth Wastes", fichier: "Vendegoth.mp3" },
+    { nom: "The Void", fichier: "Void.mp3" },
+    { nom: "Ile du désespoir", fichier: "Isle_of_Despair.mp3" },
+	{ nom: "Chateau de Kerghan", fichier: "Kerghan.mp3" },
+    { nom: "Ile du désespoir", fichier: "Isle_of_Despair.mp3" }
+
+];

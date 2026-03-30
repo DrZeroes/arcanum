@@ -110,10 +110,30 @@
             <div class="col"><input type="text" id="charName" placeholder="NOM DU PERSONNAGE"></div>
         </div>
 
-        <div class="row">
-            <div class="col"><label>RACE</label><select id="raceSelect"></select></div>
-            <div class="col"><label>SEXE</label><select id="sexeSelect"></select></div>
-        </div>
+<div class="row">
+    <div class="col">
+        <label>RACE</label>
+        <select id="raceSelect" onchange="resetEtRafraichir()"></select>
+    </div>
+    <div class="col">
+        <label>SEXE</label>
+        <select id="sexeSelect" onchange="resetEtRafraichir()"></select>
+    </div>
+</div>
+		
+		
+<div id="selecteur-avatar" style="text-align: center; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+    <div style="font-size: 0.8em; color: #aaa; margin-bottom: 5px; text-transform: uppercase;">Choisissez votre apparence</div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+        <button class="btn-stat" onclick="changerPhotoSelection(-1)" style="width: 30px; height: 30px;">◀</button>
+        
+        <img id="apercu-photo-creation" src="./docs/photo/humain/px1.png" 
+             style="width: 120px; height: 120px; border: 3px solid #d4af37; border-radius: 8px; object-fit: cover; background: #222;">
+        
+        <button class="btn-stat" onclick="changerPhotoSelection(1)" style="width: 30px; height: 30px;">▶</button>
+    </div>
+</div>
+
 
         <div class="row">
             <div class="col"><label>ANTÉCÉDENT</label><select id="bgSelect"></select></div>
@@ -183,6 +203,12 @@
         <div><strong>Sexe :</strong> <span id="fiche-sexe">-</span></div>
         <div><strong>Antécédent :</strong> <span id="fiche-bg" style="font-style: italic; color: #aaa;">-</span></div>
     </div>
+	<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+    <div id="fiche-photo"></div> <div>
+        <h2 id="fiche-name" style="margin: 0;"></h2>
+        <div id="fiche-race" style="color: #aaa;"></div>
+    </div>
+</div>
 </div>
 
 

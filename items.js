@@ -335,7 +335,7 @@ const itemsData = {
     },
 	
 	
-	    "DEF23": { nom: "Paire de lunettes", desc: "Verres correcteurs.", type: "armure", rarete: "3", poids: 0.1, prix: 25, equipable: "tete", stackable: false, degats: "0", armure: 1, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "DEF23": { nom: "Paire de lunettes", desc: "Verres correcteurs.", type: "armure", rarete: "3", poids: 0.1, prix: 25, equipable: "tete", stackable: false, degats: "0", armure: 1, vitesse: 0, portee: 0, stats: {bonusComp: { marchandage : 1}}, prerequis: {}, lootable: true, nbUsages: null },
 
 	
 	

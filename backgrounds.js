@@ -44,16 +44,25 @@ const backgrounds = [
     { 
         nom: "Bandit", 
         rest: {races:["Humain", "Demi-Orque", "Orque", "Demi-Elfe"]}, 
-		mod: { CH: -1, bonusComp: { armes_a_feu: 2 }, argent: 0 },
+		mod: { CH: -1, bonusComp: { armes_a_feu: 2 }, argent: 0, 
+		items: [
+                { id: "AF01", qte: 1 },
+                { id: "MUN01", qte: 10 }
+            ]
+			},
         desc: "Vous êtes un bandit armé. Votre style de vie vous a valu un bonus en Armes à feu, ainsi qu'une pénalité de Charisme. Vous avez enfreint la loi et êtes arrivé à l'IFS Zephyr avec une longueur d'avance sur les autorités. Vous avez votre arme et quelques munitions, mais vous n'avez pas d'argent.",
-        effets: "Revolver de qualité / 50 balles"
+        effets: "-"
     },
     { 
         nom: "Barbare", 
         rest: {pasRaces:["Elfe"]}, 
-		mod: { FO: 2, CN: 1, IN: -1, CH: -2, bonusComp: { melee: 1, marchandage: -2 }, argent: 100 }, 
+		mod: { FO: 2, CN: 1, IN: -1, CH: -2, bonusComp: { melee: 1, marchandage: -2 }, argent: 100, 		
+		items: [
+                { id: "DEF02", qte: 1 }
+            ]
+			},
 		desc: "Vous avez été élevé au sein d’une tribu barbare sauvage dans un pays lointain. Personne ne sait comment ni pourquoi vous êtes devenu passager à bord de l'IFS Zephyr, mais compte tenu de votre comportement féroce, personne n'a essayé de le découvrir. Vous gagnez des bonus de Force et Constitution et un léger bonus en Mêlée, tout en subissant des sanctions en Intelligence, Charisme, et une pénalité à Marchander. Vous possédez également armure barbare mais moins d'argent que les autres personnages.",
-        effets: "vêtements barbares"
+        effets: "-"
     },
     { 
         nom: "Battu avec un bâton moche", 
@@ -107,16 +116,24 @@ const backgrounds = [
     { 
         nom: "Élevé dans les fosses", 
         rest: {}, 
-        mod: {IN:-6, FO:2, DX:2, bonusCompCat: { cat: "Combat", val: 1 }, argent : 100 }, 
+        mod: {IN:-6, FO:2, DX:2, bonusCompCat: { cat: "Combat", val: 1 }, argent :100, 
+		items: [
+                { id: "AM01", qte: 1 }
+            ]
+			}, 
         desc: "En tant que vétéran des combats locaux, vous gagnez un bonus en Force, Dextérité, et un bonus à toutes les Compétences de combat. Les combats acharnés ont également eu des conséquences néfastes. Un traumatisme crânien vous donne une lourde pénalité en Intelligence. En conséquence, vous n’êtes pas particulièrement doué avec l’argent. Toutes vos économies s'élèvent à seulement 100 pièces et votre arme de combat.",
-        effets: "Hache rouillée"
+        effets: "-"
     },
     { 
         nom: "Élevé par des elfes", 
         rest: {races:["Humain"]}, 
-        mod: {bonusCompCat: { cat: "Technologie", val: -1 }}, 
+        mod: {bonusCompCat: { cat: "Technologie", val: -1 },
+				items: [
+                { id: "DEF03", qte: 1 }
+            ]
+			}, 
         desc: "Vous commencez avec un magnifique costume de cotte de mailles elfique magique, mais subir une légère pénalité pour tous Compétences technologiques.",
-        effets: "Cotte de mailles elfique"
+        effets: "-"
     },
     { 
         nom: "Élevé par des maîtres-serpents", 
@@ -136,7 +153,7 @@ const backgrounds = [
         nom: "Élevé par des orcs", 
         rest: {races:["Humain", "Gnome", "Halfelin", "Demi-Orque", "Orque", "Demi-Ogre", "Ogre"]}, 
         mod: {CH:-6, FO:2, DX:1 , bonusCompCat: { cat: "Combat", val: 1 }}, 
-        desc: "Vous étiez un orphelin en fuite, sans abri et affamé, lorsqu'une famille orque dans la nature vous a accueilli et élevé. Leurs manières brutales vous ont laissé avec une augmentation en Force et Dexterité, et vous a également accordé un léger bonus à toutexs les Compétences de combat. Malheureusement, votre éducation a également eu des conséquences néfastes sur votre personnalité, et vous êtes passible d'une lourde sanction en Charisme.",
+        desc: "Vous étiez un orphelin en fuite, sans abri et affamé, lorsqu'une famille orque dans la nature vous a accueilli et élevé. Leurs manières brutales vous ont laissé avec une augmentation en Force et Dexterité, et vous a également accordé un léger bonus à toutes les Compétences de combat. Malheureusement, votre éducation a également eu des conséquences néfastes sur votre personnalité, et vous êtes passible d'une lourde sanction en Charisme.",
         effets: "-"
     },
     { 
@@ -156,9 +173,13 @@ const backgrounds = [
     { 
         nom: "Enfant d'un héros", 
         rest: {}, 
-        mod: {}, 
+        mod: {
+				items: [
+                { id: "AM03", qte: 1 }
+            ]
+		}, 
         desc: "Vous commencez avec l'épée de votre père et êtes connu dans tout le pays comme l'enfant d'un héros. Par conséquent, vous subirez une terrible réaction négative pour tout acte maléfique.",
-        effets: "Mauvaise réaction x2 / Épée enchantée"
+        effets: "Mauvaise réaction x2"
     },
     { 
         nom: "Enfant sauvage", 
@@ -324,9 +345,13 @@ const backgrounds = [
     { 
         nom: "Nain sans clan", 
         rest: {races:["Nain"]}, 
-        mod: {bonusCompCat: { cat: "Technologie", val: -2 }, align: 15}, 
+        mod: {bonusCompCat: { cat: "Technologie", val: -2 }, align: 15,
+		items: [
+                { id: "AM02", qte: 1 }
+            ]
+			}, 
         desc: "Vos parents n’appartenaient pas à un clan et ne voulaient pas en discuter les raisons. Vous ne gagnez aucun bonus nain à Compétences technologiques, mais vous commencez avec un excellent marteau de guerre nain.",
-        effets: "Marteau de qualité"
+        effets: "-"
     },
     { 
         nom: "Naissance rare d'un demi-ogre", 
@@ -387,14 +412,22 @@ const backgrounds = [
     { 
         nom: "Pyromane", 
         rest: {races:["Humain", "Gnome", "Demi-Orque"]}, 
-        mod: {FO:-1, CN:-1, resFeu:30, bonusComp: { lancer : 2}, techInit: { "Explosifs": 1 }}, 
+        mod: {FO:-1, CN:-1, resFeu:30, bonusComp: { lancer : 2}, techInit: { "Explosifs": 1 },
+		items: [
+                { id: "CONS01", qte: 1 }
+            ]
+			}, 
         desc: "Tu aimes le feu. Non, tu aimes le feu ! Feu ! Feu ! FEU ! Enfant, on vous harcelait toujours parce que vous étiez maigre et que vous receviez des pénalités en Force et Constitution, mais tu leur as montré ! Tu as étudié Explosifs et vous avez brûlé leurs maisons ! Je les ai brûlés jusqu'au sol ! Ha ha! Ensuite, vous vous êtes enfui de chez vous et vous êtes faufilé à bord de l'IFS Zephyr, qui semblait hautement inflammable et une excellente cible. Vous auriez probablement incendié le zeppelin s'il n'avait pas été abattu.",
-        effets: "un coktail molotov"
+        effets: "-"
     },
     { 
         nom: "Rat de bibliothèque", 
         rest: {pasRaces:["Orque", "Demi-Orque", "Ogre", "Demi-Ogre"]}, 
-        mod: {IN:1,  bonusCompCat: { cat: "Combat", val: -1 }}, 
+        mod: {IN:1,  bonusCompCat: { cat: "Combat", val: -1 },
+				items: [
+                { id: "DEF23", qte: 1 }
+            ]
+			},		
         desc: "Vous avez passé la majeure partie de votre vie à lire. Vous gagnez un bonus en Intelligence. Malheureusement, la myopie s'est installée et vous perdez en compétence de combats.",
         effets: "-"
     },
@@ -452,7 +485,7 @@ const backgrounds = [
         rest: {races:["Ogre"]}, 
         mod: {FO:4, CN:4, DX:4, CH:-1, IN:-1, argent:0 , bonusComp: { melee : 2, esquive:2}}, 
         desc: "Vous vivez dans votre grotte quand vous avez entendu un gros crash dehors.",
-        effets: "Vêtements en tissu"
+        effets: "-"
     },
     { 
         nom: "Ogre cultivé", 

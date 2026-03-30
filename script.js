@@ -9,11 +9,11 @@ const racesData = {
         mod: { align: -15, resPoison: 0, resPhys: 0, bonusCompCat: { cat: "Technologie", val: 2 } }
     },
     "Gnome": { 
-        FO:8, IN:10, CN:6, DX:8, CH:8, peutEtreFemme: true,
+        FO:8, IN:10, CN:6, DX:8, CH:8, peutEtreFemme: false,
         mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { marchandage: 2 } }
     },
     "Halfelin": { 
-        FO:5, IN:8, CN:8, DX:10, CH:8, peutEtreFemme: true,
+        FO:5, IN:8, CN:8, DX:10, CH:8, peutEtreFemme: false,
         mod: { align: 0, resPoison: 0, resPhys: 0, bonusComp: { discretion: 2, esquive: 1, vol_a_la_tire:1 } }
     },
     "Ogre": { 
@@ -69,6 +69,16 @@ let investissementsTemporaires = {
     magie: {},
     tech: {}
 };
+
+
+
+
+
+
+
+
+
+
 
 // ================= INITIALISATION =================
 window.onload = function() {
@@ -140,6 +150,70 @@ function allerAccueil() {
 
 
 
+// Variable temporaire pour stocker l'index pendant la création
+let photoIndexSelection = 1;
+
+function changerPhotoSelection(direction) {
+    photoIndexSelection += direction;
+
+    // Sécurité de base (on ne dépasse pas 10 pour éviter les boucles infinies)
+    if (photoIndexSelection > 10) photoIndexSelection = 1;
+    if (photoIndexSelection < 1) photoIndexSelection = 4; // On repart de 4 si on recule
+    
+    rafraichirApercuAvatar();
+}
+
+// Fonction appelée quand on change de Race ou de Sexe
+function resetEtRafraichir() {
+    photoIndexSelection = 1; // On revient à la première photo
+    rafraichirApercuAvatar();
+}
+
+function rafraichirApercuAvatar() {
+    const img = document.getElementById('apercu-photo-creation');
+    const raceSelect = document.getElementById('raceSelect');
+    const sexeSelect = document.getElementById('sexeSelect');
+    
+    if (!img || !raceSelect || !sexeSelect) return;
+
+    let raceNom = raceSelect.value;
+    let raceDossier = raceNom.toLowerCase().replace(/\s+/g, '');
+    let sexeVal = sexeSelect.value; // "M" ou "F"
+    let sexePath = "";
+
+    // Exception pour les Bedokiens (pas de sous-dossier Homme/Femme)
+    if (raceNom !== "Bedokien") {
+        sexePath = (sexeVal === 'F') ? "Femme/" : "Homme/";
+    }
+
+    // On prépare le nom du fichier (ex: 01.png)
+    let nomFichier = photoIndexSelection.toString().padStart(2, '0') + ".png";
+    let cheminComplet = `./docs/photo/${raceDossier}/${sexePath}${nomFichier}`;
+
+    // --- TEST DE L'IMAGE ---
+    let testImg = new Image();
+    testImg.src = cheminComplet;
+    
+    testImg.onload = function() {
+        // L'image existe : on l'affiche
+        img.src = cheminComplet;
+        // On stocke le nom dans l'objet perso temporaire
+        if (typeof perso !== 'undefined' && perso) perso.photo = nomFichier;
+    };
+    
+    testImg.onerror = function() {
+        // L'image n'existe pas (ex: on a demandé 05.png alors qu'il n'y en a que 4)
+        if (photoIndexSelection > 1) {
+            photoIndexSelection = 1; // On boucle vers la 1ère
+            rafraichirApercuAvatar();
+        } else {
+            // Si même la 01.png n'existe pas, on met un placeholder
+            img.src = "./docs/photo/placeholder.png"; 
+        }
+    };
+}
+
+
 
 
 
@@ -162,6 +236,7 @@ function nouveauPersonnage() {
         niveau: 1,
         experience: 0,
         argent: 400,
+		photo: "px1.png", // Par défaut la première
         inventaire: [], // On vide le sac proprement
         equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null },
 		lieuxConnus: ["crash"] // <-- AJOUTE CETTE LIGNE ICI
@@ -265,33 +340,45 @@ document.getElementById('raceTraits').innerHTML = `
 `;
 
 
-	
+rafraichirApercuAvatar(); // <--- AJOUTE CETTE LIGNE ICI	
 }
 
 
 
 function validerCreation() {
+    // 1. Récupération et vérification du nom
     const nom = document.getElementById('charName').value.trim();
-    if (nom === "") { alert("Veuillez entrer un nom !"); return; }
+    if (nom === "") { 
+        alert("Veuillez entrer un nom pour votre personnage !"); 
+        return; 
+    }
 
+    // 2. Récupération des données de base (Race et Background)
     const rKey = document.getElementById('raceSelect').value;
     const race = racesData[rKey];
     const bgName = document.getElementById('bgSelect').value;
     const bg = backgrounds.find(b => b.nom === bgName) || { mod: {} };
+    const sexe = document.getElementById('sexeSelect').value;
 
+    // 3. Formatage du nom de la photo (ex: 01.png, 02.png...)
+    // On utilise la variable globale photoIndexSelection pilotée par tes flèches
+    const nomPhoto = photoIndexSelection.toString().padStart(2, '0') + ".png";
+
+    // 4. Initialisation de l'objet personnage
     perso = {
         nom: nom,
         race: rKey,
-        sexe: document.getElementById('sexeSelect').value,
+        sexe: sexe,
+        photo: nomPhoto, 
         antecedent: bgName,
         niveau: 1,
         pointsDispo: 5,
         argent: (bg.mod && bg.mod.argent !== undefined) ? bg.mod.argent : 400,
         boostVitesseInne: (bg.mod && bg.mod.vitesse) ? bg.mod.vitesse : 0,
-        boostPV: 0, boostFT: 0,
-        boostPVBase: 0, boostFTBase: 0,
-        statsBase: JSON.parse(JSON.stringify(statsCalculees)), 
-        statsInvesties: { FO:0, IN:0, CN:0, DX:0, CH:0 },
+        boostPV: 0, 
+        boostFT: 0,
+        statsBase: JSON.parse(JSON.stringify(statsCalculees)), // Copie des stats après bonus raciaux
+        statsInvesties: { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 },
         compInvesties: {}, 
         compBase: {},
         magieInvesties: {},
@@ -301,18 +388,62 @@ function validerCreation() {
             resPhys: (race.mod.resPhys || 0) + (bg.mod.resPhys || 0),
             resPoison: (race.mod.resPoison || 0) + (bg.mod.resPoison || 0),
             resMagie: (race.mod.resMagie || 0) + (bg.mod.resMagie || 0), 
-            resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),       
-            resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)     
+            resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),        
+            resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)      
         },
-		lieuxConnus: ["crash"]
-    };
-    
-    if (!perso.inventaire) perso.inventaire = [];
-    if (!perso.equipement) perso.equipement = {
-        tete: null, torse: null, gants: null, bottes: null, 
-        anneau: null, amulette: null, main_droite: null, main_gauche: null
+        inventaire: [],
+        equipement: {
+            tete: null, torse: null, gants: null, bottes: null, 
+            anneau: null, amulette: null, main_droite: null, main_gauche: null
+        },
+        lieuxConnus: ["crash"]
     };
 
+    // ========================================================
+    // --- GESTION DE L'ÉQUIPEMENT DE DÉPART ---
+    
+    // 1. Tenue par défaut (Remplace par tes vrais IDs : ex "ARM01")
+    let idVetementTorse = (sexe === 'F') ? "ARM_ROBE" : "ARM_TISSU";
+
+    // Exceptions : Pas de vêtement pour Bedokien ou Ogre des montagnes
+    if (rKey === "Bedokien" || bgName === "Ogre des montagnes") {
+        idVetementTorse = null; 
+    }
+
+    // 2. Objets donnés par le Background (Armes, munitions, armures spéciales)
+    if (bg.mod && bg.mod.items) {
+        bg.mod.items.forEach(itemBg => {
+            if (itemsData[itemBg.id]) {
+                // Si l'objet est une armure de torse, il remplace la tenue par défaut
+                if (itemsData[itemBg.id].equipable === "torse") {
+                    idVetementTorse = itemBg.id;
+                } else {
+                    // Sinon, on le met dans le sac
+                    perso.inventaire.push({
+                        id: itemBg.id,
+                        qte: itemBg.qte,
+                        quantite: itemBg.qte,
+                        durabilite: itemsData[itemBg.id].durabiliteMax || 100,
+                        durabiliteMax: itemsData[itemBg.id].durabiliteMax || 100
+                    });
+                }
+            }
+        });
+    }
+
+    // 3. Équipement automatique de la tenue de torse finale
+    if (idVetementTorse && itemsData[idVetementTorse]) {
+        perso.equipement.torse = {
+            id: idVetementTorse,
+            qte: 1,
+            quantite: 1,
+            durabilite: itemsData[idVetementTorse].durabiliteMax || 100,
+            durabiliteMax: itemsData[idVetementTorse].durabiliteMax || 100
+        };
+    }
+    // ========================================================
+
+    // 5. Application des bonus de compétences (Race + BG)
     const appliquerComp = (source) => {
         if (!source) return;
         if (source.bonusComp) {
@@ -332,47 +463,82 @@ function validerCreation() {
             }
         }
     };
-
     appliquerComp(race.mod);
     appliquerComp(bg.mod);
 
-    if (!perso.techInvesties) perso.techInvesties = {};
-    if (!perso.magieInvesties) perso.magieInvesties = {};
-
+    // 6. Application des maîtrises Magie/Tech initiales
     const ajouterPointsInit = (source) => {
         if (source && source.techInit) {
             for (let discipline in source.techInit) {
-                perso.techInvesties[discipline] = source.techInit[discipline];
+                perso.techInvesties[discipline] = (perso.techInvesties[discipline] || 0) + source.techInit[discipline];
             }
         }
         if (source && source.magieInit) {
             for (let ecole in source.magieInit) {
-                perso.magieInvesties[ecole] = source.magieInit[ecole];
+                perso.magieInvesties[ecole] = (perso.magieInvesties[ecole] || 0) + source.magieInit[ecole];
             }
         }
     };
-
     ajouterPointsInit(race.mod);
     ajouterPointsInit(bg.mod);
 
+    // 7. Sauvegarde et Changement d'écran
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
     
-    // On affiche la fiche de personnage et on arrête là !
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI();
-    rafraichirAccueil(); 
+    
+    // Rafraîchir l'accueil si la fonction existe
+    if (typeof rafraichirAccueil === 'function') rafraichirAccueil(); 
 }
 
-
-
-
+function changerPhoto(direction) {
+    // On suppose que tu as 3 photos par race pour l'instant
+    let num = parseInt(perso.photo.replace('px', '').replace('.png', ''));
+    num += direction;
+    if (num > 3) num = 1;
+    if (num < 1) num = 3;
+    
+    perso.photo = "px" + num + ".png";
+    
+    // Si on est sur l'écran de création, on rafraîchit l'aperçu
+    let apercu = document.getElementById('apercu-photo-creation');
+    if (apercu) {
+        let dossierRace = document.getElementById('raceSelect').value.toLowerCase();
+        apercu.src = `./docs/photo/${dossierRace}/${perso.photo}`;
+    }
+}
 
 
 // ================= MISE À JOUR FICHE =================
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
     if (!container || !perso) return;
+
+
+// --- DANS TA FONCTION updateFicheUI() ---
+
+const photoContainer = document.getElementById('fiche-photo');
+if (photoContainer && perso) {
+    let raceDossier = perso.race.toLowerCase().replace(/\s+/g, '');
+    let sexePath = "";
+
+    // Exception Bedokien
+    if (perso.race !== "Bedokien") {
+        sexePath = (perso.sexe === 'F') ? "Femme/" : "Homme/";
+    }
+
+// Ici perso.photo contient déjà "01.png", "02.png", etc.
+    let cheminPhoto = `./docs/photo/${raceDossier}/${sexePath}${perso.photo}`;
+	
+photoContainer.innerHTML = `
+        <img src="${cheminPhoto}" 
+             alt="Avatar" 
+             style="width:100px; height:100px; border:2px solid #d4af37; border-radius:5px; object-fit:cover; background:#222;"
+             onerror="this.src='./docs/photo/placeholder.png'">`;
+}
+
 
     // 1. Sécurités et Initialisation
     if (!perso.bonusInnes) perso.bonusInnes = { align: 0, resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
@@ -493,16 +659,35 @@ function updateFicheUI() {
     }
     if (document.getElementById('der-compagnons')) document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(statCH / 4));
 
-    // 9. COMPÉTENCES, MAGIE, TECH
+ // 9. COMPÉTENCES, MAGIE, TECH
     if (typeof competencesData !== 'undefined') {
         for (let cat in competencesData) {
             competencesData[cat].forEach(c => {
                 let id = c.id;
-                let act = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
-                let el = document.getElementById('fiche-val-' + id);
-                if (el) el.innerText = act;
                 
-                // CACHER LE BOUTON MOINS DES COMPÉTENCES
+                // --- CALCUL DU TOTAL (Investi + Équipement) ---
+                let investi = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
+                let bonusEquip = 0;
+
+                // On parcourt l'équipement pour trouver des bonusComp
+                for (let slot in perso.equipement) {
+                    let itemEq = perso.equipement[slot];
+                    if (itemEq && itemsData[itemEq.id] && itemsData[itemEq.id].stats?.bonusComp) {
+                        let b = itemsData[itemEq.id].stats.bonusComp[id];
+                        if (b) bonusEquip += b;
+                    }
+                }
+
+                let totalFinal = investi + bonusEquip;
+                // ----------------------------------------------
+
+                let el = document.getElementById('fiche-val-' + id);
+                if (el) {
+                    el.innerText = totalFinal;
+                    // On met en vert si il y a un bonus d'équipement
+                    el.style.color = (bonusEquip > 0) ? "#4caf50" : "#fff";
+                }
+                
                 let btnMoins = document.getElementById('btn-moins-' + id);
                 if (btnMoins) {
                     btnMoins.style.visibility = (investissementsTemporaires.comp[id] > 0) ? "visible" : "hidden";
@@ -510,6 +695,10 @@ function updateFicheUI() {
             });
         }
     }
+ 
+ 
+ 
+ 
     if (typeof magieData !== 'undefined') updateMagieUI_Display();
     if (typeof techData !== 'undefined') updateTechUI_Display();
     
@@ -1020,18 +1209,54 @@ function equiperItem(indexInventaire) {
     let data = itemsData[itemInv.id];
     let slot = data.equipable;
 
-    if (!slot || slot === "aucun") { alert("Cet objet ne s'équipe pas."); return; }
+    if (!slot || slot === "aucun") { 
+        alert("Cet objet ne s'équipe pas."); 
+        return; 
+    }
 
+  let alignObjet = (data.stats && data.stats.align) ? data.stats.align : 0;
+
+    // --- RESTRICTIONS DE BACKGROUND (Tes codes précédents) ---
+    if (perso.antecedent === "Allergie à la magie" && alignObjet > 0) {
+        alert("💥 Votre allergie à la magie vous empêche de toucher cet objet !");
+        return;
+    }
+    if (perso.antecedent === "Technophobie" && alignObjet < 0) {
+        alert("⚙️ Votre technophobie vous empêche de manipuler cet engin !");
+        return;
+    }
+
+    // --- NOUVEAU : RESTRICTIONS RACIALES ---
+
+    // 1. Ogre et Demi-Ogre : Pas d'armes à distance (type "arme_feu" ou "arc")
+    const estOgreOuDemi = (perso.race === "Ogre" || perso.race === "Demi-Ogre");
+    const estArmeADistance = (data.type === "arme_feu" || data.type === "arc");
+    
+    if (estOgreOuDemi && estArmeADistance) {
+        alert("🚫 Vos doigts sont bien trop gros et maladroits pour manipuler une arme aussi délicate !");
+        return;
+    }
+
+    // 2. Bedokien : Pas d'armure de torse (Coutume/Morphologie)
+    if (perso.race === "Bedokien" && slot === "torse") {
+        // Optionnel : On peut autoriser les vêtements simples mais bloquer les armures
+        // Ici on bloque tout ce qui va sur le torse :
+        alert("🛡️ La tradition Bedokienne interdit le port d'armures lourdes ou de vêtements de torse encombrants.");
+        return;
+    }
+    // --------------------------------------------------
+
+    // Reste du code d'équipement habituel
     if (slot === "deux_mains") {
         if (perso.equipement.main_droite) desequiperItem("main_droite", true);
         if (perso.equipement.main_gauche) desequiperItem("main_gauche", true);
-        perso.equipement.main_droite = itemInv; // On stocke l'objet COMPLET (avec sa durabilité)
+        perso.equipement.main_droite = itemInv;
     } else {
         if (perso.equipement[slot]) desequiperItem(slot, true);
         perso.equipement[slot] = itemInv; 
     }
 
-    perso.inventaire.splice(indexInventaire, 1); // On le retire du sac
+    perso.inventaire.splice(indexInventaire, 1);
     updateInventaireUI();
 }
 

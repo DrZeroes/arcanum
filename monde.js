@@ -149,7 +149,7 @@ const playlistMJ = [
     { nom: "Ambiance Calme - site crash", fichier: "Interlude.mp3" },
 	{ nom: "Grandes villes", fichier: "Cities.mp3" },
 	{ nom: "Petites villes", fichier: "Towns.mp3" },
-    { nom: "Ambiance Village", fichier: "Villages.mp3" },
+    { nom: "Village", fichier: "Villages.mp3" },
     { nom: "Exploration Sauvage", fichier: "Wilderness.mp3" },
 	{ nom: "Mines", fichier: "Mines.mp3" },
 	{ nom: "Dungeons", fichier: "Dungeons.mp3" },

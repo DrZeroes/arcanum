@@ -1609,7 +1609,6 @@ function ramasserItem(id, qteAjoutee) {
         // Ajout au sac avec les DEUX mots
         perso.inventaire.push({ id: id, qte: qteAjoutee, quantite: qteAjoutee, durabilite: 100, durabiliteMax: 100 });
     }
-    alert(data.nom + " ajouté à l'inventaire !");
     autoSave();
 }
 
@@ -1717,7 +1716,6 @@ function toutPrendre() {
     
     contenuCoffreActuel = [];
     actualiserVisuelFouille();
-    alert("Tout a été transféré dans votre inventaire !");
 }
 
 
@@ -1988,13 +1986,20 @@ function rafraichirAccueil() {
     const zoneNouveau = document.getElementById('accueil-nouveau-jeu');
     const zoneContinuer = document.getElementById('accueil-continuer');
     const nomAffiche = document.getElementById('accueil-nom-perso');
+    const lieuAffiche = document.getElementById('accueil-lieu-perso'); // Ajoute cet ID dans ton HTML
 
     if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
         if (zoneNouveau) zoneNouveau.style.display = 'none';
         if (zoneContinuer) zoneContinuer.style.display = 'block';
+        
         if (nomAffiche) nomAffiche.innerText = "Héros : " + perso.nom + " (Niv. " + (perso.niveau || 1) + ")";
         
-        // On vérifie le bouton craft car le perso existe !
+        // --- AJOUT DU LIEU ACTUEL ---
+        if (lieuAffiche) {
+            const lieuData = lieuxDecouverts[perso.lieuActuel || "crash"];
+            lieuAffiche.innerText = "Lieu actuel : " + (lieuData ? lieuData.nom : "Inconnu");
+        }
+        
         if (typeof verifierBoutonCraft === "function") verifierBoutonCraft(); 
     } else {
         if (zoneNouveau) zoneNouveau.style.display = 'block';
@@ -2209,7 +2214,6 @@ function decouvrirLieu() {
         
         if (!perso.lieuxConnus.includes(motClef)) {
             perso.lieuxConnus.push(motClef);
-            alert(`📍 Nouveau lieu découvert : ${lieu.nom} !`);
             autoSave();
         } else {
             alert("Ce lieu est déjà sur votre carte.");
@@ -2222,21 +2226,35 @@ function decouvrirLieu() {
 }
 
 // --- DESSINER LES POINTS SUR LE PNG ---
-// --- DESSINER LES POINTS SUR LE PNG (VERSION ÉPURÉE) ---
+
+let lieuSelectionne = null; // Stocke le lieu cliqué une fois (le point jaune)
+
 function rafraichirPointsCarte() {
     const calque = document.getElementById('calque-points');
     if (!calque) return;
     calque.innerHTML = ""; 
+    lieuSelectionne = null; // On réinitialise la sélection à chaque ouverture
 
-    // Gestion du clic sur le fond pour vider les infos
+    // --- 1. AFFICHAGE PAR DÉFAUT (Le lieu Actuel) ---
+    const infoBox = document.getElementById('carte-info');
+    const lieuActuelData = lieuxDecouverts[perso.lieuActuel];
+    
+    if (infoBox && lieuActuelData) {
+        infoBox.innerHTML = `<strong style="color:#4caf50;">[VOUS ÊTES ICI] ${lieuActuelData.nom}</strong> : ${lieuActuelData.desc}`;
+    }
+
+    // --- 2. GESTION DU CLIC SUR LE FOND DE CARTE ---
     document.getElementById('conteneur-carte').onclick = function(e) {
         if (e.target.id === 'conteneur-carte' || e.target.id === 'img-carte' || e.target.id === 'calque-points') {
-            document.getElementById('carte-info').innerHTML = "Sélectionnez un lieu sur l'atlas.";
+            // Si on clique dans le vide, on annule la sélection jaune et on redessine
+            lieuSelectionne = null;
+            rafraichirPointsCarte(); 
         }
     };
 
-    (perso.lieuxConnus || []).forEach(nomLieu => {
-        let coord = lieuxDecouverts[nomLieu];
+    // --- 3. DESSIN DES POINTS ---
+    (perso.lieuxConnus || []).forEach(idLieu => {
+        let coord = lieuxDecouverts[idLieu];
         if (!coord) return;
 
         let marqueurGroup = document.createElement('div');
@@ -2246,47 +2264,75 @@ function rafraichirPointsCarte() {
         marqueurGroup.style.transform = "translate(-50%, -50%)";
         marqueurGroup.style.cursor = "pointer";
         marqueurGroup.style.zIndex = "10";
-        
-        // Tooltip natif (apparaît au survol de la souris)
         marqueurGroup.title = coord.nom; 
 
-        // Le point rouge
         let point = document.createElement('div');
-        point.style.width = "clamp(8px, 1.2vw, 14px)"; 
-        point.style.height = "clamp(8px, 1.2vw, 14px)";
-        point.style.background = "#ff4444";
+        point.className = "point-carte-physique"; 
+        point.dataset.id = idLieu; // On stocke l'ID dans le HTML pour le retrouver facilement
+        point.style.width = "12px"; 
+        point.style.height = "12px";
         point.style.borderRadius = "50%";
         point.style.border = "2px solid white";
-        point.style.boxShadow = "0 0 8px rgba(255, 68, 68, 0.8)";
-        point.style.transition = "transform 0.2s";
-
-        // Effet de survol visuel
-        point.onmouseover = () => point.style.transform = "scale(1.3)";
-        point.onmouseout = () => point.style.transform = "scale(1)";
+        point.style.transition = "background 0.2s, box-shadow 0.2s";
+        
+        // COULEUR INITIALE 
+        if (idLieu === perso.lieuActuel) {
+            point.style.background = "#4caf50"; // VERT (Position actuelle)
+            point.style.boxShadow = "0 0 10px #4caf50";
+        } else {
+            point.style.background = "#ff4444"; // ROUGE (Autres lieux)
+            point.style.boxShadow = "0 0 8px rgba(255, 68, 68, 0.8)";
+        }
 
         marqueurGroup.appendChild(point);
 
-        // --- LE CLIC (DÉPLACEMENT + MUSIQUE + INFOS) ---
+        // --- 4. LOGIQUE DES CLICS SUR LES POINTS ---
         marqueurGroup.onclick = (e) => {
-            e.stopPropagation();
-            
-            // 1. Mise à jour des infos textuelles en bas
-            const infoBox = document.getElementById('carte-info');
-            if(infoBox) {
-                infoBox.innerHTML = `<strong style="color:#ff4444;">${coord.nom}</strong> : ${coord.desc}`;
-            }
-            
-            // 2. CHANGEMENT DE MUSIQUE AUTOMATIQUE
-            if (coord.musique) {
-                AudioEngine.jouerMusique(coord.musique);
+            e.stopPropagation(); // Empêche le clic de se propager au fond de carte
+
+            // CAS A : On clique sur le lieu où on est DÉJÀ (Vert)
+            if (idLieu === perso.lieuActuel) {
+                lieuSelectionne = null; 
+                rafraichirPointsCarte(); // On redessine pour annuler d'éventuels points jaunes
+                return; // On arrête là, le point reste vert
             }
 
-            // 3. Logique de déplacement (Optionnel : tu peux appeler ta fonction de voyage ici)
-            // deplacerVers(nomLieu); 
-            perso.lieuActuel = nomLieu; // On stocke l'ID du lieu (ex: "tarente")
-			autoSave(); // On sauvegarde immédiatement
-	
-            console.log("Voyage vers : " + coord.nom + " | Musique : " + coord.musique);
+            // CAS B : On clique sur un point Jaune (Deuxième clic = VOYAGE)
+            if (lieuSelectionne === idLieu) {
+                perso.lieuActuel = idLieu;
+                AudioEngine.jouerMusique(coord.musique);
+                autoSave();
+                
+                // Petit feedback visuel (optionnel)
+                alert("Vous voyagez vers : " + coord.nom);
+                
+                // On redessine la carte (le lieu jaune devient le nouveau vert)
+                rafraichirPointsCarte(); 
+            } 
+            // CAS C : On clique sur un point Rouge (Premier clic = SÉLECTION)
+            else {
+                lieuSelectionne = idLieu;
+                
+                // On met à jour les couleurs de TOUS les points
+                document.querySelectorAll('.point-carte-physique').forEach(p => {
+                    let pid = p.dataset.id;
+                    if (pid === perso.lieuActuel) {
+                        p.style.background = "#4caf50"; // Le lieu actuel reste VERT
+                        p.style.boxShadow = "0 0 10px #4caf50";
+                    } else if (pid === lieuSelectionne) {
+                        p.style.background = "#ffff00"; // La nouvelle cible devient JAUNE
+                        p.style.boxShadow = "0 0 15px #ffff00";
+                    } else {
+                        p.style.background = "#ff4444"; // Les autres (re)deviennent ROUGES
+                        p.style.boxShadow = "0 0 5px rgba(255,0,0,0.5)";
+                    }
+                });
+
+                // Mise à jour de la zone de texte en bas avec la description de la cible
+                if(infoBox) {
+                    infoBox.innerHTML = `<b style="color:#ffff00;">${coord.nom}</b><br>${coord.desc}<br><i style="font-size:0.9em; color:#aaa;">(Cliquez à nouveau pour voyager)</i>`;
+                }
+            }
         };
 
         calque.appendChild(marqueurGroup);

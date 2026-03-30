@@ -1821,46 +1821,93 @@ function toutPrendre() {
 }
 
 
-function acheterItem(idx, prix) {
+function acheterItem(idx, prixUnitaire) {
     // 1. On récupère l'objet dans le stock du marchand
     let itemEnVente = marchandActuel.inventaire[idx];
 
-    // 2. Vérifications de sécurité
+    // 2. Vérifications de base
     if (!itemEnVente || itemEnVente.qte <= 0) {
         alert("Ce marchand n'a plus cet objet en stock !");
         return;
     }
-    if (perso.argent < prix) {
-        alert("Vous n'avez pas assez d'argent !");
+
+    // 3. Demander la quantité si le stock est > 1
+    let qteAAcheter = 1;
+    if (itemEnVente.qte > 1) {
+        let rep = prompt(`Combien voulez-vous en acheter ? (Prix unitaire : ${prixUnitaire} Or | Stock : ${itemEnVente.qte})`, "1");
+        if (rep === null) return; // Le joueur a annulé
+        
+        qteAAcheter = parseInt(rep);
+        if (isNaN(qteAAcheter) || qteAAcheter <= 0) return; // Saisie invalide
+        if (qteAAcheter > itemEnVente.qte) qteAAcheter = itemEnVente.qte; // On bloque au max du stock
+    }
+
+    // 4. Calcul du prix total
+    let prixTotal = prixUnitaire * qteAAcheter;
+
+    if (perso.argent < prixTotal) {
+        alert(`Vous n'avez pas assez d'argent ! (Il vous faut ${prixTotal} Or)`);
         return;
     }
 
-    // 3. Transaction financière
-    perso.argent -= prix;
-    marchandActuel.argent += prix;
+    // 5. Transaction financière
+    perso.argent -= prixTotal;
+    marchandActuel.argent += prixTotal;
 
-    // 4. Transfert de l'objet : ON DIMINUE LE STOCK ICI
-    ramasserItem(itemEnVente.id, 1); // On en achète 1 (tu peux adapter si tu veux un prompt de quantité)
-    itemEnVente.qte -= 1;
+    // 6. Transfert de l'objet
+    ramasserItem(itemEnVente.id, qteAAcheter); 
+    itemEnVente.qte -= qteAAcheter;
 
-    // 5. Si le stock tombe à 0, on peut soit laisser "x0", soit retirer l'entrée
+    // 7. Si le stock tombe à 0, on retire l'entrée
     if (itemEnVente.qte <= 0) {
         marchandActuel.inventaire.splice(idx, 1);
     }
 
-    // 6. Mise à jour et Sauvegarde
+    // 8. Mise à jour et Sauvegarde
     autoSave();
     updateMarchandUI();
 }
 
-function vendreItem(idx, prix) {
-    if (marchandActuel.argent >= prix) {
-        perso.argent += prix;
-        marchandActuel.argent -= prix;
-        perso.inventaire[idx].quantite--;
-        if (perso.inventaire[idx].quantite <= 0) perso.inventaire.splice(idx, 1);
-        updateMarchandUI();
-    } else { alert("Le marchand n'a plus d'argent !"); }
+function vendreItem(idx, prixUnitaire) {
+    let item = perso.inventaire[idx];
+    let data = itemsData[item.id];
+    let qteActuelle = item.quantite || item.qte || 1;
+
+    // 1. Demander la quantité si on en a > 1
+    let qteAVendre = 1;
+    if (qteActuelle > 1) {
+        let rep = prompt(`Combien de "${data.nom}" voulez-vous vendre ? (Prix unitaire : ${prixUnitaire} Or | Vous en avez : ${qteActuelle})`, "1");
+        if (rep === null) return; // Le joueur a annulé
+        
+        qteAVendre = parseInt(rep);
+        if (isNaN(qteAVendre) || qteAVendre <= 0) return; // Saisie invalide
+        if (qteAVendre > qteActuelle) qteAVendre = qteActuelle; // On bloque au max de l'inventaire
+    }
+
+    // 2. Calcul du prix total
+    let prixTotal = prixUnitaire * qteAVendre;
+
+    // 3. Vérifier l'or du marchand
+    if (marchandActuel.argent < prixTotal) {
+        alert(`Le marchand n'a pas assez d'argent pour acheter tout ça ! (Il lui reste ${marchandActuel.argent} Or)`);
+        return;
+    }
+
+    // 4. Transaction financière
+    perso.argent += prixTotal;
+    marchandActuel.argent -= prixTotal;
+
+    // 5. Retirer de l'inventaire
+    item.quantite -= qteAVendre;
+    item.qte = item.quantite; // Sécurité de synchronisation
+    
+    if (item.quantite <= 0) {
+        perso.inventaire.splice(idx, 1);
+    }
+
+    // 6. Mise à jour UI et sauvegarde
+    autoSave();
+    updateMarchandUI();
 }
 
 

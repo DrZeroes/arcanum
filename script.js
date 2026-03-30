@@ -54,8 +54,21 @@ const racesData = {
 
 
 
+
+
 let perso = {}; 
 let statsCalculees = {}; 
+
+// === AJOUTE CECI ===
+// Variable globale pour traquer les points dépensés AVANT validation
+let investissementsTemporaires = {
+    pv: 0,
+    ft: 0,
+    stats: {},
+    comp: {},
+    magie: {},
+    tech: {}
+};
 
 // ================= INITIALISATION =================
 window.onload = function() {
@@ -385,7 +398,7 @@ function updateFicheUI() {
     document.getElementById('fiche-bg').innerText = perso.antecedent || "";
     if (document.getElementById('fiche-argent')) document.getElementById('fiche-argent').innerText = perso.argent ?? 400;
 
-    // 4. STATISTIQUES
+// 4. STATISTIQUES
     let finalStats = {};
     const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
     statsKeys.forEach(s => {
@@ -396,7 +409,8 @@ function updateFicheUI() {
             elVal.innerText = total;
             elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
             let btnMoins = document.getElementById('btn-moins-' + s); 
-            if (btnMoins) btnMoins.style.visibility = (perso.statsInvesties[s] > 0) ? "visible" : "hidden";
+            // MODIFICATION ICI : On regarde investissementsTemporaires.stats[s]
+            if (btnMoins) btnMoins.style.visibility = (investissementsTemporaires.stats[s] > 0) ? "visible" : "hidden";
         }
     });
 
@@ -1739,9 +1753,10 @@ function rafraichirPointsCarte() {
         marqueurGroup.style.cursor = "pointer";
         marqueurGroup.style.zIndex = "10";
 
-        let point = document.createElement('div');
-        point.style.width = "14px"; // Un peu plus gros pour les gros doigts sur mobile
-        point.style.height = "14px";
+let point = document.createElement('div');
+        // clamp(Taille Minimum, Taille Idéale selon l'écran, Taille Maximum)
+        point.style.width = "clamp(6px, 1.5vw, 14px)"; 
+        point.style.height = "clamp(6px, 1.5vw, 14px)";
         point.style.background = "#ff4444";
         point.style.borderRadius = "50%";
         point.style.border = "2px solid white";

@@ -140,7 +140,7 @@ const lieuxDecouverts = {
     "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Domicile de Simon" },
 	"cendre": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse." },
 	"caladon": { nom: "Caladon", x: 20.3, y: 90.1, musique: "Caladon.mp3",fond: "simon.jpg", desc: "Grande Ville" },
-	"dern": { nom: "Dernholm", x: 38.6, y: 81.4, musique: "Cities.mp3",fond: "ernholm.jpg", desc: " Ville" },
+	"dern": { nom: "Dernholm", x: 38.6, y: 81.4, musique: "Cities.mp3",fond: "dernholm.jpg", desc: " Ville" },
 	"roue": { nom: "Clan de la roue", x: 51.2, y: 34.1, musique: "DwarvenMusic.mp3",fond: "roue.jpg", desc: " Mine de Nains" },
 	"mnoir": { nom: "Mines du Mont Noir", x: 35.2, y: 38.4, musique: "DwarvenMusic.mp3",fond: "montnoir.jpg", desc: " Mine de Nains" },
 	"rnoir": { nom: "Racine noir", x: 45.0, y: 71.5, musique: "Towns.mp3",fond: "racinenoir.jpg", desc: " petite ville" },
@@ -148,8 +148,16 @@ const lieuxDecouverts = {
 	"quin": { nom: "Quintara", x: 21.8, y: 35.8, musique: "Qintara.mp3",fond: "quintara.jpg", desc: "Village caché des elfes" },
 	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Tulla.mp3",fond: "tsenang.jpg", desc: "Village caché des elfes noires" },
 	"tulla": { nom: "Tulla", x: 77.0, y: 24.7, musique: "Tulla.mp3",fond: "tulla.jpg", desc: "Cité de la magie" },
-	"dese": { nom: "Ile du désespoir", x: 88.7, y: 43.5, musique: "Isle_of_Despair.mp3",fond: "desespoir.jpg", desc: "Ile bannis" },
-	"dogr": { nom: "Ile des demis-ogres", x: 54.1, y: 83.5, musique: "Wilderness.mp3",fond: "demogre.jpg", desc: "Endroit mystérieux" },
+	"dese": { nom: "Ile du désespoir", x: 83.2, y: 43.0, musique: "Isle_of_Despair.mp3",fond: "desespoir.jpg", desc: "Ile bannis" },
+	"rose": { nom: "Rosebourg", x: 13.6, y: 74.5, musique: "Towns.mp3",fond: "_placeholder.jpg", desc: "Petite ville" },
+	"naz": { nom: "Cabane sur Thanatos", x: 63.5.1, y: 92.3, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille maison au bout de Thanathos" },
+	"vend": { nom: "Ruines de Vendigroth", x: 84.3, y: 29.2, musique: "Vendegoth.mp3",fond: "_placeholder.jpg", desc: "Ancienens ruines" },
+	"bedo": { nom: "Village bédokien", x: 41.2, y: 17.1, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "un vilalge primitif" },
+	"cmpF": { nom: "Camp des femmes", x: 84.1, y: 40.5, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "camp d'amazone" },
+	"max": { nom: "Demeure de Maximilien", x: 81.1, y: 42.6, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Maison au milieu de nulle part" },	
+	"crik": { nom: "Crique de Pierre latige", x: 68.1, y: 65.8, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille crique" },
+	"tres": { nom: "Camp des femmes", x: 60.7, y: 64.9, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "tombe sous una arbre" },
+	"atel": { nom: "Atelier de lambert", x: 84.1, y: 40.5, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Maison d'un inventeur" },
 	"than": { nom: "Thanatos", x: 67.8, y: 79.5, musique: "Wilderness.mp3",fond: "thana.jpg", desc: "Ile mystérieuse" }
 
 

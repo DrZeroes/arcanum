@@ -228,7 +228,21 @@ function validerCreation() {
 
 function nouveauPersonnage() {
 	
-	AudioEngine.jouerMusique('arcanum.mp3');
+// --- FORCE L'ACCÈS À LA VARIABLE GLOBALE ---
+    if (typeof perso === 'undefined') {
+        if (window.perso) {
+            perso = window.perso;
+        } else {
+            window.perso = {};
+            perso = window.perso;
+        }
+    }
+
+    // Ton code de musique (attention à la casse du nom de fichier !)
+    if (typeof AudioEngine !== 'undefined') {
+        AudioEngine.jouerMusique('Arcanum.mp3'); 
+    }
+
     // 1. Sécurité anti-écrasement
     if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
         if (!confirm("Attention : Créer un nouveau personnage effacera votre progression. Continuer ?")) {

@@ -135,10 +135,24 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
 const lieuxDecouverts = {
     "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",fond: "tarante.jpg", desc: "La cité industrielle." },
     "tr_col": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",fond: "trist_coll.jpg", desc: "Un petit village minier." },
-    "cendrebourg": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse." },
     "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, musique: "Interlude.mp3",fond: "crash.jpg",desc: "Le Zephyr est tombé ici." },
     "abraham": { nom: "Demeure d'Abraham", x: 28.1, y: 64.1, musique: "Wilderness.mp3",fond: "abraham.jpg",desc: "Maison d'un vieil ermite." },
-    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Domicile de Simon" }
+    "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Domicile de Simon" },
+	"cendre": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse." },
+	"caladon": { nom: "Caladon", x: 20.3, y: 90.1, musique: "Caladon.mp3",fond: "simon.jpg", desc: "Grande Ville" },
+	"dern": { nom: "Dernholm", x: 38.6, y: 81.4, musique: "Cities.mp3",fond: "simon.jpg", desc: " Ville" },
+	"roue": { nom: "Clan de la roue", x: 51.2, y: 34.1, musique: "DwarvenMusic.mp3",fond: "simon.jpg", desc: " Mine de Nains" },
+	"mnoir": { nom: "Mines du Mont Noir", x: 35.2, y: 38.4, musique: "DwarvenMusic.mp3",fond: "simon.jpg", desc: " Mine de Nains" },
+	"rnoir": { nom: "Racine noir", x: 45.0, y: 71.5, musique: "Towns.mp3",fond: "simon.jpg", desc: " petite ville" },
+	"eaud": { nom: "Eau Dormante", x: 41.2, y: 38.0, musique: "Villages.mp3",fond: "simon.jpg", desc: "Charmant Village" },
+	"quin": { nom: "Quintara", x: 21.8, y: 35.8, musique: "Qintara.mp3",fond: "simon.jpg", desc: "Village caché des elfes" },
+	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Tulla.mp3",fond: "simon.jpg", desc: "Village caché des elfes noires" },
+	"tulla": { nom: "Tulla", x: 77.0, y: 24.7, musique: "Tulla.mp3",fond: "simon.jpg", desc: "Cité de la magie" },
+	"dese": { nom: "Ile du désespoir", x: 88.7, y: 43.5, musique: "Isle_of_Despair.mp3",fond: "simon.jpg", desc: "Ile bannis" },
+	"dogr": { nom: "Ile des demis-ogres", x: 54.1, y: 83.5, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Endroit mystérieux" },
+	"than": { nom: "Thanatos", x: 67.8, y: 79.5, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Ile mystérieuse" }
+
+
 };
 
 const playlistMJ = [
@@ -163,7 +177,6 @@ const playlistMJ = [
     { nom: "The Vendigroth Wastes", fichier: "Vendegoth.mp3" },
     { nom: "The Void", fichier: "Void.mp3" },
     { nom: "Ile du désespoir", fichier: "Isle_of_Despair.mp3" },
-	{ nom: "Chateau de Kerghan", fichier: "Kerghan.mp3" },
-    { nom: "Ile du désespoir", fichier: "Isle_of_Despair.mp3" }
+	{ nom: "Chateau de Kerghan", fichier: "Kerghan.mp3" }
 
 ];

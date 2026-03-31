@@ -7,6 +7,9 @@ const nomEmplacements = {
     "main_droite": "Main Droite", "main_gauche": "Main Gauche", "deux_mains": "Deux Mains"
 };
 
+let objetEnCoursUtilisation = null;
+let indexObjetEnCours = null;
+
 function allerInventaire() {
     cacherTout();
     document.getElementById('ecran-inventaire').style.display = 'block';
@@ -139,6 +142,43 @@ function desequiperItem(slot, isSilent = false) {
 
 
 
+function ajouterItemParId() {
+    // 1. On récupère le champ de texte
+    const input = document.getElementById('new-item-id');
+    if (!input) return;
+
+    // 2. On récupère l'ID tapé par le joueur (en enlevant les espaces)
+    const itemID = input.value.trim(); 
+    if (itemID === "") return;
+
+    // 3. On vérifie si l'objet existe dans ta base de données (itemsData)
+    if (typeof itemsData !== 'undefined' && itemsData[itemID]) {
+        
+        // On ajoute l'objet à l'inventaire
+        // (Assure-toi que ta fonction pour ajouter s'appelle bien ramasserItem)
+        if (typeof ramasserItem === "function") {
+            ramasserItem(itemID, 1);
+        } else {
+            // Sécurité si la fonction a un autre nom dans ton code
+            perso.inventaire.push({ id: itemID, quantite: 1 });
+        }
+        
+        // On met à jour l'affichage de l'inventaire
+        if (typeof updateInventaireUI === "function") {
+            updateInventaireUI();
+        }
+        
+        // On vide la case pour le prochain objet
+        input.value = "";
+        console.log("✅ Objet ajouté avec succès : " + itemsData[itemID].nom);
+        
+    } else {
+        // Si l'ID n'existe pas dans items.js
+        alert("❌ Cet ID d'objet n'existe pas : " + itemID);
+    }
+}
+
+
 function trierInventaire(critere) {
     if (!perso.inventaire || perso.inventaire.length === 0) return;
 
@@ -187,6 +227,152 @@ if (critere === 'prix') {
     updateInventaireUI();
 }
 
+
+
+// ==========================================
+// UTILISATION D'OBJETS DEPUIS L'INVENTAIRE 🎒
+// ==========================================
+
+/*
+function utiliserObjet(indexObjet) {
+    if (!perso || !perso.inventaire || !perso.inventaire[indexObjet]) return;
+
+    const objet = perso.inventaire[indexObjet];
+    const selectCible = document.getElementById('cible-objet');
+    const valeurCible = selectCible ? selectCible.value : "soi-meme";
+
+    // 1. Définir la cible
+    let cible = perso;
+    if (valeurCible !== "soi-meme") {
+        const nomJoueur = selectCible.options[selectCible.selectedIndex].text;
+        cible = { nom: nomJoueur, id: valeurCible };
+    }
+
+    // Calcul pour la limite de soin
+    const cibleMaxPV = cible.statsBase ? 
+        (cible.statsBase.FO * 2) + (cible.statsBase.IN) + (cible.boostPV || 0) : 100;
+    
+    // On estime l'état de la cible (mort ou vivant)
+    let pvCible = (cible === perso) ? perso.pvActuel : 1; 
+    let estMort = pvCible <= 0;
+
+    // 2. Vérifications et Effets
+    if (objet.soin) {
+        if (estMort && !objet.resurrection) {
+            alert(`${cible.nom || "La cible"} est inconsciente. Cet objet ne peut pas la ranimer !`);
+            return;
+        }
+        if (pvCible >= cibleMaxPV) {
+             alert(`${cible.nom || "La cible"} est déjà en pleine forme !`);
+             return;
+        }
+
+        // --- APPLICATION DU SOIN ---
+        if (cible === perso) {
+            perso.pvActuel = Math.min(cibleMaxPV, perso.pvActuel + objet.soin);
+            alert(`🧪 Vous utilisez ${objet.nom} : +${objet.soin} PV.`);
+            if (typeof verifierMort === 'function') verifierMort();
+        } else {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cible.id + '/modif_stat').set({
+                stat: 'PV',
+                valeur: objet.soin,
+                timestamp: Date.now()
+            });
+            alert(`🧪 Vous donnez ${objet.nom} à ${cible.nom} : +${objet.soin} PV.`);
+        }
+
+    } else if (objet.resurrection) {
+        // Le cas du Réanimateur
+        if (cible === perso) {
+            alert("Vous ne pouvez pas utiliser un réanimateur sur vous-même en étant mort !");
+            return;
+        }
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + cible.id + '/modif_stat').set({
+            stat: 'PV',
+            valeur: objet.soin || 50, // Rend 50 PV par défaut à la résurrection
+            timestamp: Date.now()
+        });
+        alert(`⚡ Vous utilisez un ${objet.nom} pour ranimer ${cible.nom} !`);
+    } else {
+        alert("Cet objet ne peut pas être utilisé comme ça.");
+        return;
+    }
+
+    // 3. Consommer l'objet (réduire la quantité ou le supprimer)
+    if (objet.quantite && objet.quantite > 1) {
+        objet.quantite -= 1;
+    } else {
+        perso.inventaire.splice(indexObjet, 1);
+    }
+
+    // 4. Sauvegarder et rafraîchir l'interface
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof afficherInventaire === 'function') afficherInventaire(); // Ta fonction qui dessine l'inventaire
+    if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+}
+
+*/
+
+// --- FONCTION UNIFIÉE POUR RETIRER UN OBJET DU SAC ---
+function retirerDeInventaire(itemId, quantiteADenlever = 1) {
+    const index = perso.inventaire.findIndex(item => item.id === itemId);
+
+    if (index !== -1) {
+        let itemSlot = perso.inventaire[index];
+        // On gère les deux noms de variables possibles (quantite ou qte)
+        let qteActuelle = itemSlot.quantite || itemSlot.qte || 1;
+        
+        qteActuelle -= quantiteADenlever;
+
+        if (qteActuelle <= 0) {
+            // Plus d'objet ? On supprime la ligne
+            perso.inventaire.splice(index, 1);
+        } else {
+            // On met à jour les deux pour être sûr
+            itemSlot.quantite = qteActuelle;
+            itemSlot.qte = qteActuelle;
+        }
+        
+        if (typeof autoSave === "function") autoSave();
+    }
+}
+
+
+function preparerUtilisationCible(index) {
+    const item = perso.inventaire[index];
+    if (!item) return;
+
+    indexObjetEnCours = index;
+    objetEnCoursUtilisation = item;
+
+    const moiID = perso.nom.replace(/\s+/g, '_');
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        const liste = document.getElementById('liste-destinataires');
+        const titre = document.querySelector('#modal-transfert h3') || document.querySelector('#modal-transfert .titre'); 
+        
+        // On change le titre de la modal pour plus de clarté
+        if (titre) titre.innerText = "Utiliser sur qui ?";
+        
+        liste.innerHTML = "";
+        let aDesJoueurs = false;
+
+        // Optionnel : Ajouter "Soi-même" en haut de la liste pour l'utilisation
+        liste.innerHTML += `<button onclick="finaliserActionObjet('${moiID}', 'Vous-même')" style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">✨ Sur moi-même</button>`;
+
+        for (let id in joueurs) {
+            if (id !== moiID) {
+                aDesJoueurs = true;
+                // On utilise finaliserActionObjet au lieu de executerDonObjet
+                liste.innerHTML += `<button onclick="finaliserActionObjet('${id}', '${joueurs[id].nom}')" style="background:#ff9800; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">À ${joueurs[id].nom}</button>`;
+            }
+        }
+
+        document.getElementById('modal-transfert').style.display = 'block';
+    });
+}
+
 function updateInventaireUI() {
     let listInv = document.getElementById('inv-list-full');
     let listEq = document.getElementById('equipement-list');
@@ -220,7 +406,7 @@ function updateInventaireUI() {
     `;
 
     if (!perso.inventaire || perso.inventaire.length === 0) {
-        htmlInv = "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
+        htmlInv += "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
     } else {
         perso.inventaire.forEach((item, index) => {
             let data = itemsData[item.id];
@@ -232,8 +418,14 @@ function updateInventaireUI() {
                 prixVente = Math.min(prixVente, data.prix); // Capé au prix max
                 
                 let btnEquiper = (data.equipable && data.equipable !== "aucun") 
-                    ? `<button onclick="equiperItem(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+                    ? `<button onclick="equiperItem(${index})" style="background:#4caf50; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
 
+// 👉 AJOUTE CECI ICI :
+let btnConsommer = (data.type === "consommable")
+    ? `<button onclick="preparerUtilisationCible(${index})" style="background:#ff9800; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🧪 Utiliser</button>` : ``;
+
+
+                // ---> LE BOUTON DONNER EST AJOUTÉ ICI <---
                 htmlInv += `
                     <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
                         <div style="display:flex; justify-content: space-between;">
@@ -246,7 +438,8 @@ function updateInventaireUI() {
                         <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
                         ${getStatsHtml(data, item)}
                         <div style="display:flex; gap: 5px; margin-top: 8px;">
-                            ${btnEquiper}
+                            ${btnEquiper} ${btnConsommer}
+                            <button onclick="preparerDonObjet('${item.id}')" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
                             <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
                         </div>
                     </div>`;
@@ -292,4 +485,96 @@ function updateInventaireUI() {
         elPoidsInv.style.color = (poidsTotal > (statFO * 2)) ? "#f44336" : "#4caf50"; 
     }
     return poidsTotal;
+}
+
+function finaliserActionObjet(cibleID, nomCible) {
+    if (!objetEnCoursUtilisation) return;
+
+    const itemPile = objetEnCoursUtilisation;
+    const data = itemsData[itemPile.id]; 
+    const index = indexObjetEnCours;
+
+    // 1. RÉCUPÉRATION DE L'ÉTAT DE LA CIBLE
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID).once('value', (snapshot) => {
+        const cibleData = snapshot.val();
+        if (!cibleData) return;
+
+        const pvActuels = cibleData.pvActuel || 0;
+        const pvMax = cibleData.pvMax || 100;
+        const estKO = (pvActuels <= 0 || cibleData.estMort === true);
+
+        // --- Extraction des stats de l'objet pour plus de clarté ---
+        const soinPV = data.stats ? data.stats.soinPV : 0;
+        const soinFT = data.stats ? data.stats.soinFT : 0;
+        const estResurrection = data.stats ? data.stats.resurrection : false;
+
+        // 2. VÉRIFICATIONS DES RÈGLES DE JEU 🛡️
+        
+        // Cas A : L'objet est un RÉANIMATEUR
+        if (estResurrection) {
+            if (!estKO) {
+                alert(`🚫 ${nomCible} n'est pas KO. Le réanimateur n'a aucun effet sur les vivants !`);
+                return;
+            }
+        } 
+        // Cas B : L'objet est un SOIN (Potion, Nourriture...)
+        else if (soinPV > 0) {
+            if (estKO) {
+                alert(`🚫 ${nomCible} est inconscient(e). Une potion ne servira à rien, il faut un réanimateur !`);
+                return;
+            }
+            if (pvActuels >= pvMax) {
+                alert(`🚫 ${nomCible} est déjà en pleine forme !`);
+                return;
+            }
+        }
+
+        // 3. APPLICATION DES EFFETS 🪄
+        
+        // Envoi du soin PV
+        if (soinPV > 0) {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
+                stat: 'PV',
+                valeur: soinPV,
+                timestamp: Date.now()
+            });
+        }
+
+        // Envoi du soin Fatigue (Energie)
+        if (soinFT > 0) {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
+                stat: 'FT',
+                valeur: soinFT,
+                timestamp: Date.now()
+            });
+        }
+
+        // Cas spécial Résurrection : si l'objet ressuscite mais n'a pas de valeur PV définie
+        if (estResurrection && !soinPV) {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
+                stat: 'PV',
+                valeur: 10, // Réanimation minimum par défaut
+                timestamp: Date.now()
+            });
+        }
+
+        alert(`✅ ${data.nom} utilisé sur ${nomCible} !`);
+
+        // 4. CONSOMMATION DE L'OBJET
+        let qte = itemPile.quantite || itemPile.qte || 1;
+        if (qte > 1) {
+            itemPile.quantite = qte - 1;
+            itemPile.qte = itemPile.quantite;
+        } else {
+            perso.inventaire.splice(index, 1);
+        }
+
+        // 5. FERMETURE ET NETTOYAGE
+        document.getElementById('modal-transfert').style.display = 'none';
+        objetEnCoursUtilisation = null;
+        indexObjetEnCours = null;
+        
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof updateInventaireUI === 'function') updateInventaireUI();
+    });
 }

@@ -10,22 +10,17 @@
 
 <button onclick="toggleMute()" id="btn-audio" style="position:fixed; top:10px; right:10px; z-index:1000;">🔊</button>
 
-
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
     <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
-    
-	
-	<div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;">
-    <label style="color: #ff9800; display: block; margin-bottom: 5px;">🔑 Groupe de Jeu (Session) :</label>
-    <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" 
-           style="width: 100%; background: #222; color: white; border: 1px solid #444; padding: 8px; text-align: center;">
-    <p style="font-size: 0.7em; color: #888; margin-top: 5px;">Entrez le même nom que vos amis pour jouer ensemble.</p>
-</div>
-	
-	
+
+    <div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;">
+        <label style="color: #ff9800; display: block; margin-bottom: 5px;">🔑 Groupe de Jeu (Session) :</label>
+        <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" style="width: 100%; background: #222; color: white; border: 1px solid #444; padding: 8px; text-align: center;">
+        <p style="font-size: 0.7em; color: #888; margin-top: 5px;">Entrez le même nom que vos amis pour jouer ensemble.</p>
+    </div>
+
     <div id="accueil-nouveau-jeu">
         <button class="next-btn" style="background: #8b0000; color: white; width: 80%; margin-bottom: 15px;" onclick="nouveauPersonnage()">✨ Créer un Personnage</button>
-        
         <div style="margin-top: 10px;">
             <input type="file" id="file-import-new" accept=".json" style="display:none;" onchange="importerFichier(event)">
             <button class="next-btn" style="width: 80%; padding: 12px; background: #2b2b2b; color: #d4af37; border: 1px dashed #d4af37; font-size: 0.9em;" onclick="document.getElementById('file-import-new').click()">📂 Importer un perso (.json)</button>
@@ -33,58 +28,54 @@
     </div>
 
     <div id="accueil-continuer" style="display: none;">
-        <h3 id="accueil-nom-perso" style="color: #aaa; margin-bottom: 20px;">Personnage : -</h3>
+        <h3 id="accueil-nom-perso" style="color: #d4af37; margin-bottom: 5px;">Héros : -</h3>
         <p id="accueil-lieu-perso" style="color: #4caf50; font-size: 0.9em; margin-bottom: 20px; font-style: italic;">Lieu : -</p>
-		        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
 
-<button class="next-btn" style="background: #4caf50; color: white; width: 80%; margin-bottom: 10px;" onclick="reprendrePartie()">📜 Reprendre l'Aventure</button> 
-<button onclick="ouvrirCarte()" style="background: #2196f3; color: white; width: 80%; margin-bottom: 15px; cursor: pointer; padding: 12px; border: none; border-radius: 5px; font-weight: bold;">
-    🗺️ Explorer la Carte d'Arcanum
-</button>       
+        <div id="accueil-stats-perso" style="display: none; background: #1a110b; border: 1px solid #444; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center;">
+            <span style="color: #4caf50; font-weight: bold; margin-right: 20px; font-size: 1.1em;">
+                ❤️ PV : <span id="accueil-pv">0 / 0</span>
+            </span>
+            <span style="color: #2196f3; font-weight: bold; font-size: 1.1em;">
+                ⚡ FT : <span id="accueil-ft">0 / 0</span>
+            </span>
         </div>
 
-        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
-            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
-            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
-			<button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white;">⚙️ Artisanat</button>
-			
+        <div id="accueil-groupe-liste" style="display: none; margin-bottom: 20px;">
+            <p style="color: #4caf50; font-size: 0.8em; text-transform: uppercase; margin-bottom: 5px;">👥 Groupe à proximité</p>
+            <div id="liste-membres-accueil" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
         </div>
 
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 80%; margin: 0 auto;">
+            <button class="next-btn" style="background: #4caf50; color: white; width: 100%;" onclick="reprendrePartie()">👤 Fiche Personnage</button>
+            <button class="next-btn" style="background: #2196f3; color: white; width: 100%;" onclick="ouvrirCarte()">🗺️ Explorer la Carte</button>
+        </div>
 
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; width: 90%; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
+            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
+            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
+            <button class="next-btn" style="background:#443322; border: 1px solid #d4af37; color: #d4af37; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="allerInventaire()">🎒 Sac à dos</button>
+            <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px;">⚙️ Artisanat</button>
+            <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px;">🔮 Magie</button>
+        </div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
             <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
-            <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margi
-			n-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
+            <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margin-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
                 Importer une autre sauvegarde (.json)
             </span>
-            
-            <button onclick="nouveauPersonnage()" style="background: transparent; color: #555; border: 1px solid #333; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.7em;">
+            <button onclick="nouveauPersonnage()" style="background: transparent; color: #555; border: 1px solid #333; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.7em; margin-bottom: 10px;">
                 🗑️ Recommencer (Nouveau Perso)
             </button>
-			
-			<button onclick="ouvrirAide()" style="background: #2196f3; color: white; width: 80%; margin-bottom: 15px;">📖 Guide & Manuels</button>
-			
-			
+            <button class="next-btn" onclick="ouvrirAide()" style="background: #2196f3; color: white; width: 80%; margin: 0 auto;">📖 Guide & Manuels</button>
         </div>
+    </div> <div style="margin-top: 30px; text-align: center; opacity: 0.3;">
+        <button onclick="ouvrirCodex()" style="background: none; border: 1px solid #555; color: #555; font-size: 0.7em; cursor: pointer; padding: 5px 10px; border-radius: 5px;">
+            🔍 ACCÈS CODEX MJ
+        </button>
     </div>
-	
-	
-	
-	
-	<div style="margin-top: 30px; text-align: center; opacity: 0.3;">
-    <button onclick="ouvrirCodex()" style="background: none; border: 1px solid #555; color: #555; font-size: 0.7em; cursor: pointer; padding: 5px 10px; border-radius: 5px;">
-        🔍 ACCÈS CODEX MJ
-    </button>
-</div>
-	<button onclick="ouvrirInterfaceMJ()" style="background: #333; color: #777; border: 1px dashed #555; margin-top: 50px;">Mode MJ</button>
+    <button onclick="ouvrirInterfaceMJ()" style="background: #333; color: #777; border: 1px dashed #555; margin-top: 20px; width: 60%;">Mode MJ</button>
 
 </div>
-		
-		
-		
-		
-		
 		
 		
 		
@@ -157,7 +148,7 @@
 
 
 
-    <div id="ecran-creation" class="app-card" style="display: none;">
+ <div id="ecran-creation" class="app-card" style="display: none;">
         <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à l'accueil</button>
         
         <h1>ArcanumRP : Création</h1>
@@ -183,7 +174,7 @@
     <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
         <button class="btn-stat" onclick="changerPhotoSelection(-1)" style="width: 30px; height: 30px;">◀</button>
         
-        <img id="apercu-photo-creation" src="./docs/photo/humain/Homme/01.png" 
+        <img id="apercu-photo-creation" src="./docs/img/portraits/placeholder.png" 
              style="width: 120px; height: 120px; border: 3px solid #d4af37; border-radius: 8px; object-fit: cover; background: #222;">
         
         <button class="btn-stat" onclick="changerPhotoSelection(1)" style="width: 30px; height: 30px;">▶</button>
@@ -388,7 +379,6 @@
 
 	<div style="display: flex; justify-content: space-between; margin-top: 20px;">
     <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour</button>
-        <button class="next-btn" style="background: #8b0000; color:#fff;" onclick="allerInventaire()">🎒 Sac à dos</button>
     <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerChangements()">✅ Valider Level Up</button>
     <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Sauvegarder</button>
 </div>
@@ -396,7 +386,7 @@
 
 
 <div id="ecran-inventaire" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
-        <button onclick="fermerInventaire()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
+        <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
         
         <h2 style="color: #d4af37; border-bottom: 2px solid #444; padding-bottom: 5px; margin-bottom: 20px;">🎒 Inventaire & Équipement</h2>
         
@@ -413,7 +403,16 @@
     <h3 style="color: #dcdcdc; margin: 0;">📦 Sac à dos</h3>
     <div style="background: #111; padding: 5px 10px; border: 1px solid #444; border-radius: 4px; font-weight: bold;">
         Charge : <span id="inv-poids-total">0 / 0 kg</span>
+		
     </div>
+	<div id="zone-ciblage-objet">
+    <label for="cible-objet">Utiliser l'objet sur :</label>
+    <select id="cible-objet">
+        <option value="soi-meme">Soi-même</option>
+        <optgroup id="groupe-joueurs-inventaire" label="Membres du groupe">
+            </optgroup>
+    </select>
+</div>
 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px dashed #444; padding-bottom: 15px;">
                     <input type="text" id="new-item-id" placeholder="ID (ex: AM01)" style="flex: 1; padding:8px; background:#111; color:#fff; border:1px solid #444; text-transform: uppercase;">
@@ -455,7 +454,26 @@
 </div>
 
 
+<div id="ecran-magie-accueil" class="ecran" style="display: none; background: #1a0f1f; border: 3px solid #673ab7;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #673ab7; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #b388ff;">✨ Grimoire de Sorts</h2>
+        <button onclick="allerAccueil()" style="background: #8b0000; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
+    </div>
+    
+    <div id="stat-fatigue-magie" style="text-align: center; margin-bottom: 15px; font-weight: bold; color: #2196f3;">
+        Fatigue actuelle : <span id="val-ft-magie">0</span> / <span id="val-ft-max-magie">0</span>
+    </div>
+<label for="cible-sort">Cible :</label>
+<select id="cible-sort">
+    <option value="soi-meme">Soi-même</option>
+    <option value="ennemi">Ennemi</option>
+    <optgroup id="groupe-joueurs" label="Autres membres du groupe">
+        </optgroup>
+</select>
 
+    <div id="liste-sorts-accueil" style="display: flex; flex-direction: column; gap: 10px;"></div>
+	
+</div>
 
 <div id="ecran-aide" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 10px;">
@@ -500,41 +518,37 @@
 <div id="ecran-mj" class="ecran" style="display:none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ff9800; padding-bottom: 10px;">
         <h2 style="margin: 0; color: #ff9800;">👑 Console du Maître du Jeu</h2>
-    <button onclick="allerAccueil()" ; "db.ref('parties/session1/joueurs').off()
-        style="
-            background: #8b0000;
-            border: 2px solid #555;
-            color: white; 
-            font-size: 1.3em;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1; /* Aligne mieux le texte verticalement */
-        ">
-            &lt;
-        </button>  </div>
+		<button onclick="fermerInterfaceMJ()" 
+    style="
+        background: #8b0000;
+        border: 2px solid #555;
+        color: white; 
+        font-size: 1.3em;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    ">
+    &lt;
+</button>  </div>
 
-    <div id="liste-joueurs-mj" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-        </div>
+    <div id="liste-joueurs-mj" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+    </div>
 
-    <hr style="border: 1px solid #333; margin: 20px 0;">
-    
-	<div style="margin-top: 15px; display: flex; gap: 10px;">
-    <button onclick="mjChangerMusique('Combat.mp3')" style="background: #8b0000; color: white;">⚔️ Combat</button>
-    <button onclick="mjChangerMusique('Interlude.mp3')" style="background: #2e7d32; color: white;">🌿 Exploration</button>
-    <button onclick="mjChangerMusique('Arcanum.mp3')" style="background: #444; color: white;">🛑 Reset</button>
-</div>
-	
-	
-    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-        <h3>Outils MJ Rapides</h3>
-        <button onclick="ouvrirCodex()" style="background: #d4af37; color: black; font-weight: bold; padding: 10px;">📦 Ouvrir Codex (Objets/Lieux)</button>
+    <div style="margin-top: 30px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #444;">
+        <h3 style="margin-top:0;">Contrôle de l'Ambiance</h3>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="mjChangerMusique('Combat.mp3')" style="background: #8b0000; color: white; padding: 10px; flex: 1;">⚔️ Combat</button>
+            <button onclick="mjChangerMusique('Interlude.mp3')" style="background: #2e7d32; color: white; padding: 10px; flex: 1;">🌿 Exploration</button>
+            <button onclick="mjChangerMusique('Arcanum.mp3')" style="background: #444; color: white; padding: 10px; flex: 1;">🛑 Reset</button>
         </div>
+        <button onclick="mjEnvoyerAlerte()" style="width: 100%; margin-top: 10px; background: #2196f3; color: white; padding: 8px;">📢 Envoyer un Message Flash</button>
+    </div>
 </div>
 
 
@@ -583,7 +597,28 @@
 <div id="ecran-carte" class="ecran" style="display: none; background: #1a1a1a; color: white; padding: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h2 style="color: #2196f3; margin: 0;">🗺️ Atlas d'Arcanum</h2>
-        <button class="btn-stat" onclick="allerAccueil()" style="padding: 8px 15px; cursor: pointer;">⬅️ Menu Principal</button>
+  
+        <button onclick="allerAccueil()" style="
+            background: #8b0000;
+            border: 2px solid #555;
+            color: white; 
+            font-size: 1.3em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1; /* Aligne mieux le texte verticalement */
+        ">
+            &lt;
+        </button>
+  
+		
+		
+		
     </div>
 
     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -604,8 +639,31 @@
 
 
 
+
+<div id="modal-transfert" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#2b1d14; border:3px solid #d4af37; padding:20px; z-index:3000; border-radius:10px; text-align:center; width: 300px; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+    <h3 style="color:#ff9800; margin-top:0;">Donner à qui ?</h3>
+    <div id="liste-destinataires" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; max-height:200px; overflow-y:auto;">
+        </div>
+    <button onclick="document.getElementById('modal-transfert').style.display='none'" style="background:#444; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:5px; width:100%;">❌ Annuler</button>
+</div>
+
+
+<div id="ecran-groupe" class="ecran" style="display: none; width: 800px; background: #2b1d14; border: 4px solid #4caf50; padding: 20px; margin: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #4caf50; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #4caf50;">👥 Groupe d'Aventuriers</h2>
+        <button onclick="allerAccueil()" style="background: #8b0000; color: white; border: none; font-size: 1.3em; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
+    </div>
+    <div id="affichage-alliés" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+        </div>
+</div>
+
+
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+
+<script src="js/multiplayer.js"></script>
 
 <script src="js/racesData.js"></script>
 <script src="js/items.js"></script>
@@ -623,8 +681,9 @@
 <script src="js/crafting.js"></script>
 <script src="js/carte.js"></script>
 <script src="js/codex.js"></script>
-
-<script src="js/multiplayer.js"></script>
 <script src="js/main.js"></script>
+
+
+
 </body>
 </html>

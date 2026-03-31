@@ -1,165 +1,121 @@
+// ==========================================
+// 1. VARIABLES GLOBALES (Sécurisées)
+// ==========================================
+window.perso = window.perso || {};
+var perso = window.perso;
 
-let perso = {}; 
 let statsCalculees = {}; 
-
-// === AJOUTE CECI ===
-// Variable globale pour traquer les points dépensés AVANT validation
 let investissementsTemporaires = {
-    pv: 0,
-    ft: 0,
-    stats: {},
-    comp: {},
-    magie: {},
-    tech: {}
+    pv: 0, ft: 0, stats: {}, comp: {}, magie: {}, tech: {}
 };
 
-// ================= INITIALISATION =================
+// ==========================================
+// 2. INITIALISATION AU DÉMARRAGE
+// ==========================================
 window.onload = function() {
-	
-	
-	const sessionSave = localStorage.getItem('arcanum_session_name');
-if (sessionSave) {
-    document.getElementById('input-session').value = sessionSave;
-    sessionActuelle = sessionSave;
-}
-	// Et on ajoute un écouteur pour sauvegarder le nom quand on le change
-document.getElementById('input-session').addEventListener('input', (e) => {
-    localStorage.setItem('arcanum_session_name', e.target.value);
-});
-	
-		//cahrgemtn music accueil
-	document.body.addEventListener('click', function() {
-        AudioEngine.jouerMusique('Arcanum.mp3');
-    }, { once: true }); // Ne s'exécute qu'une fois
-	
+    // Session Multijoueur
+    const sessionSave = localStorage.getItem('arcanum_session_name');
+    if (sessionSave) {
+        const inputSession = document.getElementById('input-session');
+        if (inputSession) inputSession.value = sessionSave;
+        if (typeof sessionActuelle !== 'undefined') sessionActuelle = sessionSave;
+    }
 
-	
-    // 1. Initialisation des menus (ton code existant)
+    const inputSessionEl = document.getElementById('input-session');
+    if (inputSessionEl) {
+        inputSessionEl.addEventListener('input', (e) => {
+            localStorage.setItem('arcanum_session_name', e.target.value);
+        });
+    }
+
+    // Musique au premier clic
+    document.body.addEventListener('click', function() {
+        if (typeof AudioEngine !== 'undefined') AudioEngine.jouerMusique('Arcanum.mp3');
+    }, { once: true });
+
+    // Remplir les listes déroulantes de création
     const raceSelect = document.getElementById('raceSelect');
-    if (raceSelect) {
+    if (raceSelect && typeof racesData !== 'undefined') {
         for (let r in racesData) {
             let o = document.createElement('option');
             o.value = r; o.innerText = r;
             raceSelect.appendChild(o);
         }
-        document.getElementById('raceSelect').addEventListener('change', buildChar);
-        document.getElementById('sexeSelect').addEventListener('change', buildChar);
-        document.getElementById('bgSelect').addEventListener('change', buildChar);
+        if (typeof buildChar === 'function') {
+            document.getElementById('raceSelect').addEventListener('change', buildChar);
+            document.getElementById('sexeSelect').addEventListener('change', buildChar);
+            document.getElementById('bgSelect').addEventListener('change', buildChar);
+        }
     }
 
-    // 2. TENTATIVE DE RÉCUPÉRATION AUTO
+    // Récupération automatique
     const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
     if (sauvegarde) {
-        perso = JSON.parse(sauvegarde); // On remplit la variable perso avec la sauvegarde
-        console.log("Personnage récupéré automatiquement !");
+        perso = JSON.parse(sauvegarde);
+        window.perso = perso;
+demarrerMoteurMulti();
     }
 
-    // 3. On initialise les interfaces
-    if (typeof competencesData !== 'undefined') initCompetencesUI();
-    if (typeof magieData !== 'undefined') initMagieUI();
-    if (typeof techData !== 'undefined') initTechUI();
+    // Interfaces
+    if (typeof initCompetencesUI === 'function') initCompetencesUI();
+    if (typeof initMagieUI === 'function') initMagieUI();
+    if (typeof initTechUI === 'function') initTechUI();
 
-    // 4. On affiche l'accueil (qui affichera "Continuer" grâce au point 2)
     allerAccueil(); 
 };
-// ================= NAVIGATION =================
-function cacherTout() {
-    // Liste complète de tous les écrans de ton interface
-    const ecrans = [
-        'ecran-accueil', 
-        'ecran-creation', 
-        'ecran-fiche', 
-        'ecran-inventaire', 
-        'ecran-fouille',   // AJOUTÉ
-        'ecran-marchand' ,  // AJOUTÉ
-		'ecran-craft' ,     // <--- AJOUTE CETTE LIGNE !
-		'ecran-aide' ,
-'ecran-codex',		
-'ecran-mj',
-'ecran-carte'
-    ];
 
+// ==========================================
+// 3. NAVIGATION & AFFICHAGE
+// ==========================================
+function cacherTout() {
+    const ecrans = [
+        'ecran-accueil', 'ecran-creation', 'ecran-fiche', 
+        'ecran-inventaire', 'ecran-fouille', 'ecran-marchand', 
+        'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj', 'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil'
+    ];
     ecrans.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
 }
-function allerAccueil() {
-    cacherTout();
-    document.getElementById('ecran-accueil').style.display = 'block';
-    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
-    const btnLoad = document.getElementById('btn-load');
-    if (sauvegarde) {
-        const data = JSON.parse(sauvegarde);
-        btnLoad.innerText = "Continuer avec " + data.nom;
-        btnLoad.style.background = "#4caf50";
-        btnLoad.disabled = false;
-    } else {
-        btnLoad.innerText = "Aucune sauvegarde";
-        btnLoad.style.background = "#444";
-        btnLoad.disabled = true;
-    }
-}
 
+function allerAccueil() {
+    autoSave();
+    cacherTout();
+    const ecran = document.getElementById('ecran-accueil');
+    if (ecran) ecran.style.display = 'block';
+    rafraichirAccueil();
+}
 
 function ouvrirAide() {
     cacherTout();
     const ecranAide = document.getElementById('ecran-aide');
-    if (ecranAide) {
-        ecranAide.style.display = 'block';
-    } else {
-        console.warn("L'élément 'ecran-aide' est introuvable dans le HTML.");
-    }
+    if (ecranAide) ecranAide.style.display = 'block';
 }
-
-
-function chargerPersonnage() {
-    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
-    if (sauvegarde) {
-        perso = JSON.parse(sauvegarde);
-        cacherTout();
-        document.getElementById('ecran-fiche').style.display = 'block';
-        updateFicheUI(); 
-        
-        // On vérifie le bouton craft au chargement
-        if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
-    }
-}
-
-
-function telechargerFichier() {
-    const blob = new Blob([JSON.stringify(perso, null, 2)], { type: "application/json" });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = (perso.nom || "perso") + "_arcanum.json"; a.click();
-}
-
-function importerFichier(e) {
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        const p = JSON.parse(ev.target.result);
-        if (p.nom) { localStorage.setItem('arcanum_sauvegarde', JSON.stringify(p)); perso = p; updateFicheUI(); cacherTout(); document.getElementById('ecran-fiche').style.display = 'block'; }
-    };
-    reader.readAsText(e.target.files[0]);
-}
-
 
 function appliquerFondActuel() {
-    // On sécurise le coup : si on n'a pas de perso ou pas de lieu, on met le crash ou un fond par défaut
-    const idLieu = (perso && perso.lieuActuel) ? perso.lieuActuel : "crash";
-    const lieuData = lieuxDecouverts[idLieu];
+    if (!perso) return;
 
-    if (lieuData && lieuData.fond) {
-        document.body.style.backgroundImage = `url('./docs/img/fonds/${lieuData.fond}')`;
-    } else {
-        // Fond par défaut si le lieu n'a pas d'image
-        document.body.style.backgroundImage = `url('./docs/img/fonds/fond_arcanum_default.jpg')`;
+    // Si le joueur est mort, on force le fond d'écran funèbre
+    if (perso.estMort) {
+        document.body.style.backgroundImage = `url('./docs/img/fonds/mort.jpg')`; 
+    } 
+    // Sinon, on affiche le fond normal lié au lieu
+    else {
+        const idLieu = perso.lieuActuel || "crash";
+        let lieuData = null;
+        if (typeof lieuxDecouverts !== 'undefined') lieuData = lieuxDecouverts[idLieu];
+
+        if (lieuData && lieuData.fond) {
+            document.body.style.backgroundImage = `url('./docs/img/fonds/${lieuData.fond}')`;
+        } else {
+            document.body.style.backgroundImage = `url('./docs/img/fonds/fond_arcanum_default.jpg')`;
+        }
     }
     
-    // On s'assure que l'image s'affiche bien (tu peux aussi mettre ça dans ton fichier CSS sur la balise body)
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundPosition = "center center";
     document.body.style.backgroundAttachment = "fixed";
-    document.body.style.transition = "background-image 0.5s ease-in-out"; // Petit fondu sympa !
 }
 
 
@@ -167,21 +123,41 @@ function rafraichirAccueil() {
     const zoneNouveau = document.getElementById('accueil-nouveau-jeu');
     const zoneContinuer = document.getElementById('accueil-continuer');
     const nomAffiche = document.getElementById('accueil-nom-perso');
-    const lieuAffiche = document.getElementById('accueil-lieu-perso'); // Ajoute cet ID dans ton HTML
-
+    const lieuAffiche = document.getElementById('accueil-lieu-perso'); 
+    
     if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
         if (zoneNouveau) zoneNouveau.style.display = 'none';
         if (zoneContinuer) zoneContinuer.style.display = 'block';
-        
+
+        // --- 1. AFFICHAGE NOM ET LIEU ---
         if (nomAffiche) nomAffiche.innerText = "Héros : " + perso.nom + " (Niv. " + (perso.niveau || 1) + ")";
         
-        // --- AJOUT DU LIEU ACTUEL ---
-        if (lieuAffiche) {
+        if (lieuAffiche && typeof lieuxDecouverts !== 'undefined') {
             const lieuData = lieuxDecouverts[perso.lieuActuel || "crash"];
             lieuAffiche.innerText = "Lieu actuel : " + (lieuData ? lieuData.nom : "Inconnu");
         }
-        
+
+        // --- 2. AFFICHAGE DES PV / FT ---
+		document.getElementById('accueil-stats-perso').style.display = 'block';
+        const maxPV = (perso.statsBase.FO * 2) + (perso.statsBase.IN) + (perso.boostPV || 0);
+        const maxFT = (perso.statsBase.CN * 2) + (perso.statsBase.IN) + (perso.boostFT || 0);
+        document.getElementById('accueil-pv').innerText = (perso.pvActuel || maxPV) + " / " + maxPV;
+        document.getElementById('accueil-ft').innerText = (perso.ftActuel || maxFT) + " / " + maxFT;
+
+        // --- 3. SYNCHRO & GROUPE ---
+        // On s'annonce aux autres
+        if (typeof synchroniserJoueur === "function") synchroniserJoueur();
+        // On affiche les membres du groupe
+        if (typeof activerRadarGroupeAccueil === "function") activerRadarGroupeAccueil();
+
+        // --- 4. BOUTONS SPÉCIAUX (Craft & Magie) ---
         if (typeof verifierBoutonCraft === "function") verifierBoutonCraft(); 
+        const btnMagie = document.getElementById('btn-menu-magie');
+        if (btnMagie) {
+            let mesSorts = (typeof getSortsConnus === "function") ? getSortsConnus() : [];
+            btnMagie.style.display = (mesSorts.length > 0) ? 'block' : 'none';
+        }
+
     } else {
         if (zoneNouveau) zoneNouveau.style.display = 'block';
         if (zoneContinuer) zoneContinuer.style.display = 'none';
@@ -189,12 +165,97 @@ function rafraichirAccueil() {
 }
 
 
-// Modifie ta fonction allerAccueil pour qu'elle vérifie l'état à chaque fois
-function allerAccueil() {
-	autoSave()
-    cacherTout();
-    document.getElementById('ecran-accueil').style.display = 'block';
-    rafraichirAccueil(); // <--- Important !
+
+
+
+// 4. GESTION DU PERSONNAGE
+// ==========================================
+
+
+// ==========================================
+// GESTION DE LA VIE ET DE LA MORT 💀
+// ==========================================
+function verifierMort() {
+    if (!perso) return;
+
+    if (perso.pvActuel <= 0) {
+        perso.pvActuel = 0;
+        
+        // On vérifie si le joueur VIENT de mourir (pour ne pas relancer la musique en boucle)
+        let vientDeMourir = !perso.estMort; 
+        perso.estMort = true;
+        
+        document.body.style.filter = "grayscale(100%)";
+        const btnMagie = document.getElementById('btn-menu-magie');
+        if (btnMagie) btnMagie.style.display = 'none';
+        
+        // Si c'est l'instant fatal :
+        if (vientDeMourir) {
+            alert("💀 Vous avez succombé à vos blessures...");
+            if (typeof AudioEngine !== 'undefined') {
+                AudioEngine.jouerMusique('Musique_Mort.mp3'); // <-- À remplacer par ta piste audio
+            }
+            appliquerFondActuel(); // On met à jour le fond visuel
+        }
+        
+    } else {
+        // Le joueur a plus de 0 PV
+        let vientDeRessusciter = perso.estMort;
+        perso.estMort = false;
+        
+        document.body.style.filter = "none";
+        if (document.getElementById('btn-menu-magie')) {
+            document.getElementById('btn-menu-magie').style.display = 'block';
+        }
+        
+        // Si le joueur VIENT de ressusciter :
+        if (vientDeRessusciter) {
+            alert("✨ Vous revenez d'entre les morts !");
+            
+            // On relance la musique du lieu actuel
+            if (typeof AudioEngine !== 'undefined') {
+                const idLieu = perso.lieuActuel || "crash";
+                const lieuData = (typeof lieuxDecouverts !== 'undefined') ? lieuxDecouverts[idLieu] : null;
+                if (lieuData && lieuData.musique) {
+                    AudioEngine.jouerMusique(lieuData.musique);
+                } else {
+                    AudioEngine.jouerMusique('Interlude.mp3');
+                }
+            }
+            appliquerFondActuel(); // On restaure le décor
+        }
+    }
+
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+}
+
+
+
+
+
+function chargerPersonnage() {
+    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
+    if (sauvegarde) {
+        perso = JSON.parse(sauvegarde);
+        window.perso = perso;
+        cacherTout();
+        
+        const ecranFiche = document.getElementById('ecran-fiche');
+        if (ecranFiche) ecranFiche.style.display = 'block';
+        
+        if (typeof updateFicheUI === 'function') updateFicheUI(); 
+        
+        // --- LES ANTENNES DU JOUEUR SONT ICI ---
+        if (typeof activerEcouteurCadeaux === "function") activerEcouteurCadeaux();
+        if (typeof activerEcouteurAlertes === "function") activerEcouteurAlertes();
+        if (typeof activerEcouteurStats === "function") activerEcouteurStats();
+        
+        // On appelle la mise à jour de la liste des cibles ici
+        if (typeof mettreAJourListeCibles === "function") mettreAJourListeCibles();
+
+        if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
+    }
 }
 
 function reprendrePartie() {
@@ -202,46 +263,103 @@ function reprendrePartie() {
     if (!sauvegarde) return;
 
     perso = JSON.parse(sauvegarde);
+    window.perso = perso;
 
-    // Sécurités inventaire
     if (!perso.inventaire) perso.inventaire = [];
     if (!perso.equipement) perso.equipement = {
         tete: null, torse: null, gants: null, bottes: null, 
         anneau: null, amulette: null, main_droite: null, main_gauche: null
     };
 
-    // --- GESTION DE LA MUSIQUE AU CHARGEMENT ---
-    // On cherche le lieu actuel dans tes données
     const idLieu = perso.lieuActuel || "crash"; 
-    const lieuData = lieuxDecouverts[idLieu];
-
-    if (lieuData && lieuData.musique) {
-        AudioEngine.jouerMusique(lieuData.musique);
-    } else {
-        AudioEngine.jouerMusique('Interlude.mp3'); // Secours
+    if (typeof lieuxDecouverts !== 'undefined') {
+        const lieuData = lieuxDecouverts[idLieu];
+        if (lieuData && lieuData.musique) {
+            if (typeof AudioEngine !== 'undefined') AudioEngine.jouerMusique(lieuData.musique);
+        } else {
+            if (typeof AudioEngine !== 'undefined') AudioEngine.jouerMusique('Interlude.mp3');
+        }
     }
 
     cacherTout();
     const ecranFiche = document.getElementById('ecran-fiche');
     if (ecranFiche) {
         ecranFiche.style.display = 'block';
-        updateFicheUI();
+        if (typeof updateFicheUI === 'function') updateFicheUI();
         if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
     }
-	
-	
-	appliquerFondActuel();
+    
+    // On appelle aussi la mise à jour de la liste ici quand on reprend la partie
+    if (typeof mettreAJourListeCibles === "function") mettreAJourListeCibles();
+    
+    appliquerFondActuel();
 }
 
 
+function mettreAJourListeCibles() {
+    const groupeSorts = document.getElementById('groupe-joueurs'); // Ta liste Magie
+    const groupeObjets = document.getElementById('groupe-joueurs-inventaire'); // Ta liste Inventaire
+
+    db.ref('parties/' + sessionActuelle + '/joueurs/').on('value', (snapshot) => {
+        if (groupeSorts) groupeSorts.innerHTML = '';
+        if (groupeObjets) groupeObjets.innerHTML = ''; 
+
+        snapshot.forEach((child) => {
+            const joueur = child.val();
+            const joueurID = child.key;
+
+            if (perso && joueur.nom !== perso.nom) {
+                const option1 = document.createElement('option');
+                option1.value = joueurID;
+                option1.textContent = joueur.nom;
+
+                const option2 = document.createElement('option');
+                option2.value = joueurID;
+                option2.textContent = joueur.nom;
+
+                if (groupeSorts) groupeSorts.appendChild(option1);
+                if (groupeObjets) groupeObjets.appendChild(option2);
+            }
+        });
+    });
+}
+
+
+// ==========================================
+// 5. SAUVEGARDE ET IMPORT/EXPORT
+// ==========================================
 function autoSave() {
     if (perso && perso.nom && perso.nom !== "Nom du Personnage") {
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
         console.log("Sauvegarde automatique effectuée.");
     }
-	
-	// --- AJOUT MULTIJOUEUR ---
-        if (typeof synchroniserJoueur === "function") {
-            synchroniserJoueur();
+    if (typeof synchroniserJoueur === "function") {
+        synchroniserJoueur();
+    }
+}
+
+function telechargerFichier() {
+    const blob = new Blob([JSON.stringify(perso, null, 2)], { type: "application/json" });
+    const a = document.createElement('a'); 
+    a.href = URL.createObjectURL(blob);
+    a.download = (perso.nom || "perso") + "_arcanum.json"; 
+    a.click();
+}
+
+function importerFichier(e) {
+    if(!e.target.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const p = JSON.parse(ev.target.result);
+        if (p.nom) { 
+            localStorage.setItem('arcanum_sauvegarde', JSON.stringify(p)); 
+            perso = p; 
+            window.perso = p;
+            if (typeof updateFicheUI === 'function') updateFicheUI(); 
+            cacherTout(); 
+            const ecranFiche = document.getElementById('ecran-fiche');
+            if (ecranFiche) ecranFiche.style.display = 'block'; 
         }
+    };
+    reader.readAsText(e.target.files[0]);
 }

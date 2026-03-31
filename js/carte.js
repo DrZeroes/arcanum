@@ -1,30 +1,22 @@
 
-
 function deplacerVers(idLieu) {
-    const lieu = locations[idLieu];
+    const lieu = locations[idLieu] || lieuxDecouverts[idLieu];
     if (!lieu) return;
 
-    // 1. Mise à jour du personnage
-    perso.lieuActuel = idLieu;
-    if (!perso.lieuxConnus.includes(idLieu)) {
-        perso.lieuxConnus.push(idLieu);
+    // Si on est en multi, on déplace tout le monde
+    if (typeof deplacerToutLeGroupe === "function") {
+        deplacerToutLeGroupe(idLieu);
+    } else {
+        // Mode solo classique
+        perso.lieuActuel = idLieu;
+        if (!perso.lieuxConnus.includes(idLieu)) {
+            perso.lieuxConnus.push(idLieu);
+        }
+        if (lieu.musique) AudioEngine.jouerMusique(lieu.musique);
+        autoSave();
+        rafraichirAccueil();
     }
-
-    // 2. Mise à jour de l'UI (Description, Titre)
-    document.getElementById('lieu-titre').innerText = lieu.nom;
-    document.getElementById('lieu-desc').innerText = lieu.desc;
-
-    // 3. CHANGEMENT DE MUSIQUE AUTOMATIQUE
-    if (lieu.musique) {
-        AudioEngine.jouerMusique(lieu.musique);
-    }
-
-    // Sauvegarde auto après déplacement
-    localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
-    
-    console.log("Voyage vers : " + lieu.nom);
 }
-
 
 
 // Fonction pour forcer l'apparition d'un lieu sur la carte (MJ)
@@ -75,25 +67,30 @@ function ouvrirCarte() {
 
 // --- DÉCOUVRIR UN LIEU VIA INPUT ---
 function decouvrirLieu() {
-    // On récupère le texte, on enlève les espaces en trop, et on force en minuscules
-    let motClef = document.getElementById('input-decouverte').value.trim().toLowerCase();
+    let input = document.getElementById('input-decouverte');
+    let motClef = input.value.trim().toLowerCase();
     
     if (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[motClef]) {
-        let lieu = lieuxDecouverts[motClef];
         
+        // 1. On partage avec le groupe (Firebase gérera le reste)
+        if (typeof partagerDecouverte === "function") {
+            partagerDecouverte(motClef);
+        }
+
+        // 2. On l'ajoute localement seulement si on ne l'a pas
         if (!perso.lieuxConnus.includes(motClef)) {
             perso.lieuxConnus.push(motClef);
             autoSave();
-        } else {
-            alert("Ce lieu est déjà sur votre carte.");
+            // Optionnel : un petit message de succès SEULEMENT la première fois
+            console.log("Lieu découvert !");
         }
-        document.getElementById('input-decouverte').value = "";
+        
+        input.value = "";
         rafraichirPointsCarte();
     } else {
         alert("Aucun lieu ne correspond à ce mot-clé.");
     }
 }
-
 // --- DESSINER LES POINTS SUR LE PNG ---
 
 let lieuSelectionne = null; // Stocke le lieu cliqué une fois (le point jaune)
@@ -166,18 +163,23 @@ function rafraichirPointsCarte() {
                 return; // On arrête là, le point reste vert
             }
 
-            // CAS B : On clique sur un point Jaune (Deuxième clic = VOYAGE)
+   // CAS B : On clique sur un point Jaune (Deuxième clic = VOYAGE GROUPE)
             if (lieuSelectionne === idLieu) {
-                perso.lieuActuel = idLieu;
-                AudioEngine.jouerMusique(coord.musique);
-                autoSave();
+                // 👉 ON UTILISE LA FONCTION DE GROUPE AU LIEU DE JUSTE CHANGER LE PERSO
+                if (typeof deplacerToutLeGroupe === "function") {
+                    deplacerToutLeGroupe(idLieu); 
+                } else {
+                    // Sécurité si le mode multi n'est pas chargé
+                    perso.lieuActuel = idLieu;
+                    if (coord.musique) AudioEngine.jouerMusique(coord.musique);
+                    autoSave();
+                    appliquerFondActuel();
+                    rafraichirAccueil();
+                    allerAccueil();
+                }
                 
-                // Petit feedback visuel (optionnel)
-                alert("Vous voyagez vers : " + coord.nom);
-                appliquerFondActuel();
-				
-     allerAccueil();
-            } 
+                console.log("Le groupe voyage vers : " + coord.nom);
+            }
             // CAS C : On clique sur un point Rouge (Premier clic = SÉLECTION)
             else {
                 lieuSelectionne = idLieu;

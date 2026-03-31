@@ -14,6 +14,15 @@
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
     <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
     
+	
+	<div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;">
+    <label style="color: #ff9800; display: block; margin-bottom: 5px;">🔑 Groupe de Jeu (Session) :</label>
+    <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" 
+           style="width: 100%; background: #222; color: white; border: 1px solid #444; padding: 8px; text-align: center;">
+    <p style="font-size: 0.7em; color: #888; margin-top: 5px;">Entrez le même nom que vos amis pour jouer ensemble.</p>
+</div>
+	
+	
     <div id="accueil-nouveau-jeu">
         <button class="next-btn" style="background: #8b0000; color: white; width: 80%; margin-bottom: 15px;" onclick="nouveauPersonnage()">✨ Créer un Personnage</button>
         
@@ -45,7 +54,8 @@
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
             <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
-            <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margin-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
+            <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margi
+			n-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
                 Importer une autre sauvegarde (.json)
             </span>
             
@@ -67,6 +77,8 @@
         🔍 ACCÈS CODEX MJ
     </button>
 </div>
+	<button onclick="ouvrirInterfaceMJ()" style="background: #333; color: #777; border: 1px dashed #555; margin-top: 50px;">Mode MJ</button>
+
 </div>
 		
 		
@@ -485,6 +497,47 @@
 
 
 
+<div id="ecran-mj" class="ecran" style="display:none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ff9800; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #ff9800;">👑 Console du Maître du Jeu</h2>
+    <button onclick="allerAccueil()" ; "db.ref('parties/session1/joueurs').off()
+        style="
+            background: #8b0000;
+            border: 2px solid #555;
+            color: white; 
+            font-size: 1.3em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1; /* Aligne mieux le texte verticalement */
+        ">
+            &lt;
+        </button>  </div>
+
+    <div id="liste-joueurs-mj" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+        </div>
+
+    <hr style="border: 1px solid #333; margin: 20px 0;">
+    
+	<div style="margin-top: 15px; display: flex; gap: 10px;">
+    <button onclick="mjChangerMusique('Combat.mp3')" style="background: #8b0000; color: white;">⚔️ Combat</button>
+    <button onclick="mjChangerMusique('Interlude.mp3')" style="background: #2e7d32; color: white;">🌿 Exploration</button>
+    <button onclick="mjChangerMusique('Arcanum.mp3')" style="background: #444; color: white;">🛑 Reset</button>
+</div>
+	
+	
+    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+        <h3>Outils MJ Rapides</h3>
+        <button onclick="ouvrirCodex()" style="background: #d4af37; color: black; font-weight: bold; padding: 10px;">📦 Ouvrir Codex (Objets/Lieux)</button>
+        </div>
+</div>
+
+
 <div id="ecran-codex" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h2 style="color: #4caf50; margin:0;">📜 Console MJ</h2>
@@ -551,7 +604,8 @@
 
 
 
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <script src="js/racesData.js"></script>
 <script src="js/items.js"></script>
@@ -570,6 +624,7 @@
 <script src="js/carte.js"></script>
 <script src="js/codex.js"></script>
 
+<script src="js/multiplayer.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

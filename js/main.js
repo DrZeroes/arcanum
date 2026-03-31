@@ -16,6 +16,17 @@ let investissementsTemporaires = {
 // ================= INITIALISATION =================
 window.onload = function() {
 	
+	
+	const sessionSave = localStorage.getItem('arcanum_session_name');
+if (sessionSave) {
+    document.getElementById('input-session').value = sessionSave;
+    sessionActuelle = sessionSave;
+}
+	// Et on ajoute un écouteur pour sauvegarder le nom quand on le change
+document.getElementById('input-session').addEventListener('input', (e) => {
+    localStorage.setItem('arcanum_session_name', e.target.value);
+});
+	
 		//cahrgemtn music accueil
 	document.body.addEventListener('click', function() {
         AudioEngine.jouerMusique('Arcanum.mp3');
@@ -63,7 +74,8 @@ function cacherTout() {
         'ecran-marchand' ,  // AJOUTÉ
 		'ecran-craft' ,     // <--- AJOUTE CETTE LIGNE !
 		'ecran-aide' ,
-'ecran-codex',		// <--- AJOUTE CETTE LIGNE !
+'ecran-codex',		
+'ecran-mj',
 'ecran-carte'
     ];
 
@@ -227,4 +239,9 @@ function autoSave() {
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
         console.log("Sauvegarde automatique effectuée.");
     }
+	
+	// --- AJOUT MULTIJOUEUR ---
+        if (typeof synchroniserJoueur === "function") {
+            synchroniserJoueur();
+        }
 }

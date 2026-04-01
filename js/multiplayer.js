@@ -68,13 +68,13 @@ function synchroniserJoueur() {
     const dataSync = {
         nom: window.perso.nom,
         ownerID: window.userUID, // ✨ L'ID de sécurité pour tes futures règles
-        pvActuel: window.perso.pvActuel,
+		pvActuel: window.perso.pvActuel ?? 0,
+        ftActuel: window.perso.ftActuel ?? 0,
         pvMax: (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN) + (window.perso.boostPV || 0),
-        ftActuel: window.perso.ftActuel,
         ftMax: (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0),
         niveau: window.perso.niveau || 1,
         lieu: (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[window.perso.lieuActuel]) ? lieuxDecouverts[window.perso.lieuActuel].nom : "Inconnu",
-        estMort: window.perso.estMort || false,
+		estMort: window.perso.estMort || false,
         timestamp: Date.now()
     };
 
@@ -505,20 +505,50 @@ function mjModifierStat(playerID, stat) {
 
 function envoyerCadeauSecurise(idDestinataire, itemIndex) {
     const item = window.perso.inventaire[itemIndex];
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + idDestinataire + '/cadeau').set({
-        id: item.id,
-        expediteur: window.perso.nom,
-        qte: 1,
-        timestamp: Date.now()
-    }).then(() => {
-        window.perso.inventaire[itemIndex].quantite--;
-        if (window.perso.inventaire[itemIndex].quantite <= 0) window.perso.inventaire.splice(itemIndex, 1);
-        autoSave();
-        updateInventaireUI();
-        alert("🎁 Objet envoyé !");
+    if (!item) return;
+
+    const nomObjet = (typeof itemsData !== 'undefined' && itemsData[item.id]) ? itemsData[item.id].nom : item.id;
+    const refCadeau = db.ref('parties/' + sessionActuelle + '/joueurs/' + idDestinataire + '/cadeau');
+
+    console.log(`%c 📤 [TRANS] Envoi de ${nomObjet} à ${idDestinataire}...`, "color: #2196f3; font-weight: bold;");
+
+    // Utilisation d'une transaction Firebase pour vérifier si le slot est libre
+    refCadeau.transaction((currentData) => {
+        if (currentData === null) {
+            // Le slot est vide, on peut déposer l'objet
+            return {
+                id: item.id,
+                expediteur: window.perso.nom,
+                qte: 1,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+        } else {
+            // Le joueur a déjà un cadeau non ramassé, on annule pour ne pas écraser
+            return; 
+        }
+    }, (error, committed, snapshot) => {
+        if (error) {
+            console.error("❌ Erreur transaction :", error);
+        } else if (!committed) {
+            alert("⚠️ Ce joueur a déjà un cadeau en attente. Attendez qu'il le ramasse !");
+        } else {
+            // SUCCESS : L'objet est bien arrivé sur le serveur
+            console.log("✅ Objet livré.");
+            
+            // On le retire de notre inventaire seulement MAINTENANT
+            window.perso.inventaire[itemIndex].quantite--;
+            if (window.perso.inventaire[itemIndex].quantite <= 0) {
+                window.perso.inventaire.splice(itemIndex, 1);
+            }
+
+            // Sauvegarde locale et mise à jour visuelle
+            if (typeof autoSave === "function") autoSave();
+            if (typeof updateInventaireUI === "function") updateInventaireUI();
+            
+            alert(`🎁 ${nomObjet} envoyé avec succès !`);
+        }
     });
 }
-
 
 
 // ==========================================
@@ -590,6 +620,74 @@ function executerDonObjetMJ(destinataireID) {
         console.error("Erreur don MJ:", err);
     });
 }
+
+
+function preparerDonObjet(itemIndex) {
+    const item = window.perso.inventaire[itemIndex];
+    if (!item) return;
+
+    // 1. Récupérer les éléments de ta modale HTML
+    const modal = document.getElementById('modal-transfert');
+    const liste = document.getElementById('liste-destinataires');
+    
+    if (!modal || !liste) {
+        console.error("❌ Erreur : 'modal-transfert' ou 'liste-destinataires' introuvable.");
+        return;
+    }
+
+    // 2. Récupérer les joueurs en ligne via Firebase
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        liste.innerHTML = ""; // On vide la liste avant de remplir
+
+        let nbAutres = 0;
+
+        if (joueurs) {
+            for (let id in joueurs) {
+                // 🛡️ SÉCURITÉ : On n'affiche pas son propre pseudo
+                if (joueurs[id].nom !== window.perso.nom) {
+                    nbAutres++;
+                    
+                    // On crée un bouton stylé pour chaque joueur
+                    const btn = document.createElement('button');
+                    btn.innerText = "👤 " + joueurs[id].nom;
+                    btn.style = "background:#444; color:#ff9800; border:1px solid #ff9800; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold; width:100%; text-align:left; transition:0.2s;";
+                    
+                    // Au clic, on valide le don et on ferme
+                    btn.onclick = () => {
+                        modal.style.display = 'none';
+                        envoyerCadeauSecurise(id, itemIndex);
+                    };
+
+                    // Petit effet hover
+                    btn.onmouseover = () => { btn.style.background = "#555"; };
+                    btn.onmouseout = () => { btn.style.background = "#444"; };
+
+                    liste.appendChild(btn);
+                }
+            }
+        }
+
+        if (nbAutres === 0) {
+            liste.innerHTML = "<p style='color:#aaa; font-style:italic;'>Personne d'autre en ligne...</p>";
+        }
+
+        // 3. Afficher la modale
+        modal.style.display = 'block';
+    });
+}
+
+
+
+// 3. La fonction qui fait le lien avec ton système de transaction
+window.validerEnvoiUnique = function(idDestinataire, itemIndex) {
+    // Supprimer la modale
+    const modal = document.getElementById('temp-modal-don');
+    if (modal) modal.remove();
+
+    // Lancer l'envoi sécurisé que l'on a codé au point précédent
+    envoyerCadeauSecurise(idDestinataire, itemIndex);
+};
 
 
 function preparerDonObjetMJ(idJoueur) {

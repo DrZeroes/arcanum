@@ -401,7 +401,7 @@ function updateInventaireUI() {
                         ${getStatsHtml(data, item)}
                         <div style="display:flex; gap: 5px; margin-top: 8px;">
                             ${btnEquiper} ${btnConsommer}
-                            <button onclick="preparerDonObjet('${item.id}')" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
+							<button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
                             <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
                         </div>
                     </div>`;

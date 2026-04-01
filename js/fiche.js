@@ -1,4 +1,8 @@
 function modStat(stat, val) {
+if (window.perso.pvActuel <= 0) { 
+        alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
+        return; 
+    }
     if (val > 0 && perso.pointsDispo <= 0) return;
     if (val < 0 && (perso.statsInvesties[stat] || 0) <= 0) return;
     
@@ -11,6 +15,7 @@ function modStat(stat, val) {
     investissementsTemporaires.stats[stat] += val; // Mise à jour du panier
     perso.pointsDispo -= val;
     updateFicheUI();
+	verifierEtatValidation(); // <--- AJOUT
 }
 
 
@@ -25,7 +30,34 @@ function levelUp() {
 
 
 // ================= MISE À JOUR FICHE =================
+function verifierEtatValidation() {
+    const btnValider = document.querySelector("button[onclick='validerChangements()']");
+    if (!btnValider) return;
 
+    // Condition 1 : Plus aucun point à distribuer
+    const pointsEpuises = (perso.pointsDispo === 0);
+
+    // Condition 2 : Au moins un changement a été fait dans le panier
+    const aDesChangements = 
+        investissementsTemporaires.pv !== 0 || 
+        investissementsTemporaires.ft !== 0 || 
+        Object.values(investissementsTemporaires.stats).some(v => v !== 0) ||
+        Object.values(investissementsTemporaires.comp).some(v => v !== 0) ||
+        Object.values(investissementsTemporaires.magie).some(v => v !== 0) ||
+        Object.values(investissementsTemporaires.tech).some(v => v !== 0);
+
+    if (pointsEpuises && aDesChangements) {
+        btnValider.disabled = false;
+        btnValider.style.opacity = "1";
+        btnValider.style.cursor = "pointer";
+        btnValider.style.boxShadow = "0 0 15px #4caf50";
+    } else {
+        btnValider.disabled = true;
+        btnValider.style.opacity = "0.5";
+        btnValider.style.cursor = "not-allowed";
+        btnValider.style.boxShadow = "none";
+    }
+}
 
 function updateFicheUI() {
     const container = document.getElementById('ecran-fiche');
@@ -226,6 +258,55 @@ photoContainer.innerHTML = `
         score.innerText = (align > 0 ? "+" : "") + align;
         score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
+	
+	// --- 11. GESTION DYNAMIQUE DU BOUTON VALIDER ---
+  // --- 11. GESTION DYNAMIQUE DU BOUTON VALIDER ---
+    const btnValider = document.querySelector("button[onclick='validerChangements()']");
+    if (btnValider) {
+        const aDesChangements = 
+            investissementsTemporaires.pv !== 0 || 
+            investissementsTemporaires.ft !== 0 || 
+            Object.values(investissementsTemporaires.stats).some(v => v !== 0) ||
+            Object.values(investissementsTemporaires.comp).some(v => v !== 0) ||
+            Object.values(investissementsTemporaires.magie).some(v => v !== 0) ||
+            Object.values(investissementsTemporaires.tech).some(v => v !== 0);
+
+        if (perso.pointsDispo > 0 || aDesChangements) {
+            btnValider.style.display = 'block';
+
+            if (perso.pointsDispo > 0) {
+                // ÉTAT : ATTENTE (Vert sombre / Bronze)
+                btnValider.disabled = true;
+                btnValider.style.opacity = "0.7";
+                btnValider.style.background = "linear-gradient(180deg, #2e4d23 0%, #1b2e15 100%)"; // Vert forêt sombre
+                btnValider.style.color = "#aaa"; // Texte un peu grisé
+                btnValider.style.border = "2px solid #5d4a1f"; // Bordure bronze éteinte
+                btnValider.style.cursor = "not-allowed";
+                btnValider.style.boxShadow = "inset 0 0 10px rgba(0,0,0,0.5)";
+                btnValider.innerHTML = `⏳ Dépensez tout (${perso.pointsDispo})`;
+            } else {
+                // ÉTAT : PRÊT (Vert Arcanum Éclatant)
+                btnValider.disabled = false;
+                btnValider.style.opacity = "1";
+                btnValider.style.background = "linear-gradient(180deg, #4caf50 0%, #2e7d32 100%)"; // Vert vif
+                btnValider.style.color = "#fff";
+                btnValider.style.border = "2px solid #d4af37"; // Bordure Or
+                btnValider.style.cursor = "pointer";
+                btnValider.style.boxShadow = "0 0 15px rgba(76, 175, 80, 0.6), inset 0 0 10px rgba(255,255,255,0.2)";
+                btnValider.innerHTML = "✨ Valider la Progression";
+            }
+        } else {
+            btnValider.style.display = 'none';
+        }
+    }
+  
+  
+    // --- 12. MASQUAGE AUTO DE LA ZONE "POINTS À DISTRIBUER" ---
+    const contPoints = document.getElementById('points-dispo')?.parentElement;
+    if (contPoints) {
+        contPoints.style.display = (perso.pointsDispo > 0) ? "block" : "none";
+    }
+	
 }
 
 
@@ -233,6 +314,10 @@ photoContainer.innerHTML = `
 // ================= LOGIQUE STATS & VITALITÉ =================
 
 function boostVital(type, valeur) {
+	if (window.perso.pvActuel <= 0) { 
+        alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
+        return; 
+	}
     if (valeur > 0 && perso.pointsDispo <= 0) return;
     if (type === 'PV') {
         let base = perso.boostPVBase || 0;
@@ -253,6 +338,7 @@ function boostVital(type, valeur) {
     }
     perso.pointsDispo -= (valeur > 0 ? 1 : -1);
     updateFicheUI();
+	verifierEtatValidation(); // <--- AJOUT
 }
 
 
@@ -281,31 +367,55 @@ function calculerAlignement() {
 }
 
 function validerChangements() {
-    if (perso.pointsDispo > 0) { alert("Dépensez tous vos points !"); return; }
-    if (confirm("Valider définitivement ?")) {
+    // On force la dépense de tous les points avant de valider
+    if (perso.pointsDispo > 0) { 
+        alert("Il vous reste " + perso.pointsDispo + " points à distribuer !"); 
+        return; 
+    }
+
+    if (confirm("Valider définitivement vos nouveaux talents ?")) {
         
-        // --- ON VIDE LE PANIER TEMPORAIRE ---
+        // 1. VIDE LE PANIER
         investissementsTemporaires = {
             pv: 0, ft: 0, stats: {}, comp: {}, magie: {}, tech: {}
         };
 
-        for (let s in perso.statsInvesties) { perso.statsBase[s] += (perso.statsInvesties[s] || 0); perso.statsInvesties[s] = 0; }
-        if (!perso.compBase) perso.compBase = {}; 
-        for (let c in perso.compInvesties) perso.compBase[c] = perso.compInvesties[c];
-        perso.boostPVBase = perso.boostPV; 
-        perso.boostFTBase = perso.boostFT;
-        
-        if (!perso.magieBase) perso.magieBase = {}; 
-        for (let e in perso.magieInvesties) perso.magieBase[e] = perso.magieInvesties[e];
-        
-        if (!perso.techBase) perso.techBase = {}; 
-        for (let d in perso.techInvesties) perso.techBase[d] = perso.techInvesties[d];
-        
+        // 2. TRANSFERT DES BASES (Ton code actuel...)
+        // ... (tes boucles for statsBase, compBase, etc.) ...
+
+        // 3. NETTOYAGE FORCÉ DE L'INTERFACE MJ/LEVELUP
+        // On verrouille la fiche
         document.getElementById('ecran-fiche').classList.add('is-locked');
+        
+        // On cache le bouton VALIDER (celui sur lequel on vient de cliquer)
+        const btnValider = document.querySelector("button[onclick='validerChangements()']");
+        if (btnValider) btnValider.style.display = 'none';
+
+        // On cache le bouton ROUGE "LV UP" (celui qui ouvre l'édition)
+        const btnLvUp = document.getElementById('btn-lvup-joueur');
+        if (btnLvUp) btnLvUp.style.setProperty('display', 'none', 'important');
+
+        // On cache la zone de texte "Points à distribuer"
+        const zonePoints = document.getElementById('points-dispo-container') || document.querySelector('.points-dispo-header'); 
+        // Si tu n'as pas de container, on cache au moins le chiffre :
+        if (document.getElementById('points-dispo')) {
+            document.getElementById('points-dispo').parentElement.style.display = 'none';
+        }
+
+        // 4. SAUVEGARDE ET SYNCHRO
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
-        updateFicheUI();
+        if (typeof autoSave === "function") autoSave();
+
+        // 5. MISE À JOUR ET RETOUR
+        updateFicheUI(); 
+        allerAccueil(); 
+        
+        //alert("✨ Progression enregistrée !");
     }
+
+
 }
+
 
 function resetInvestissements() {
     if (!confirm("Réinitialiser tous les investissements du niveau ?")) return;
@@ -384,6 +494,10 @@ function switchSubTab(cat) {
 }
 
 function modComp(id, val) {
+	if (window.perso.pvActuel <= 0) { 
+        alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
+        return; 
+    }
   if (!perso.compInvesties) perso.compInvesties = {};
     // Utilise pointsDispo pour correspondre à ton objet perso
     if (val > 0 && (perso.pointsDispo || 0) <= 0) return; 
@@ -430,7 +544,7 @@ perso.compInvesties[id] = act + val;
   investissementsTemporaires.comp[id] += (val > 0 ? 1 : -1); // AJOUT PANIER (Note: l'incrément dépend de ta logique, si 1 clic = 4 pts, le panier compte les "clics")
     perso.pointsDispo -= (val > 0 ? 1 : -1);
     updateFicheUI();
-    // IL FAUDRA AUSSI CACHER LE BOUTON "-" DE LA COMP DANS initCompetencesUI
+verifierEtatValidation(); // <--- AJOUT	
 }
 
 
@@ -499,6 +613,10 @@ function updateMagieUI_Display() {
 }
 
 function modMagie(e, v) {
+	if (window.perso.pvActuel <= 0) { 
+        alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
+        return; 
+    }
     if (!perso.magieInvesties) perso.magieInvesties = {};
     let act = perso.magieInvesties[e] || 0;
     
@@ -525,6 +643,7 @@ function modMagie(e, v) {
         perso.pointsDispo++;
     }
     updateFicheUI();
+	verifierEtatValidation(); // <--- AJOUT
 }
 
 
@@ -609,6 +728,10 @@ function updateTechUI_Display() {
 }
 
 function modTech(d, v) {
+	if (window.perso.pvActuel <= 0) { 
+        alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
+        return; 
+    }
     if (!perso.techInvesties) perso.techInvesties = {};
     let act = perso.techInvesties[d] || 0;
     
@@ -633,6 +756,7 @@ function modTech(d, v) {
     
     updateFicheUI(); 
     verifierBoutonCraft(); 
+	verifierEtatValidation(); // <--- AJOUT
 }
 
 function switchTechTab(d) {

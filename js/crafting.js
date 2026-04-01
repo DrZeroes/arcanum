@@ -131,6 +131,13 @@ function fabriquerObjet(nomResultat, idCompo1, idCompo2) {
     let idResultat = trouverIdParNom(nomResultat);
     if (!idResultat) return;
 
+
+// SÉCURITÉ MORT
+    if (window.perso.pvActuel <= 0) {
+        alert("💀 Un mort ne peut pas forger d'objets !");
+        return;
+    }
+
     // --- ETAPE 1 : RETIRER LE COMPOSANT 1 ---
     let index1 = perso.inventaire.findIndex(i => i.id === idCompo1);
     if (index1 !== -1) {

@@ -1,132 +1,206 @@
-
-
 // --- FONCTION MJ : OUVRIR LE CODEX ---
-function ouvrirCodex() {
-    cacherTout();
-    document.getElementById('ecran-codex').style.display = 'block';
-    genererListeCodex('items'); // Par défaut on affiche les objets
+
+// Fonction pour filtrer la recherche
+function filtrerCodexMJ() {
+    let input = document.getElementById('recherche-codex-mj').value.toLowerCase();
+    let lignes = document.querySelectorAll('#tbody-codex-mj tr');
+    lignes.forEach(l => l.style.display = l.innerText.toLowerCase().includes(input) ? "" : "none");
 }
 
-function genererListeCodex(type) {
-    const tbody = document.getElementById('tbody-codex');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    console.log("Génération du Codex type :", type);
+// Petite fonction pour donner un objet sans avoir à taper l'ID (depuis la liste)
+// Variable globale pour stocker la quantité choisie par le MJ
 
-    if (type === 'items') {
-        for (let id in itemsData) {
-            ajouterLigneCodex(id, itemsData[id].nom, "Objet", `ramasserItem('${id}', 1)`, "🎁 +1");
-        }
-    } 
-    else if (type === 'marchands') {
-        if (typeof marchandsData !== 'undefined') {
-            for (let id in marchandsData) {
-                ajouterLigneCodex(id, marchandsData[id].nom, "Marchand", `forcerOuvertureMarchand('${id}')`, "💰 Voir");
-            }
-        }
-    } 
-    else if (type === 'coffres') {
-        if (typeof coffresFixes !== 'undefined') {
-            for (let id in coffresFixes) {
-                ajouterLigneCodex(id, coffresFixes[id].nom, "Coffre", `forcerOuvertureCoffre('${id}')`, "🔍 Ouvrir");
-            }
-        }
-    } 
+function mjDonnerObjetDirect(itemID) {
+    const data = itemsData[itemID];
+    if (!data) return;
 
-else if (type === 'lieux') {
-        if (typeof lieuxDecouverts !== 'undefined') {
-            // J'ai renommé la variable en 'idLieu' pour que ce soit plus clair
-            for (let idLieu in lieuxDecouverts) {
-                let l = lieuxDecouverts[idLieu];
-                
-                tbody.innerHTML += `
-                    <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
-                        <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em;">
-                            ${idLieu}
-                        </td>
-                        
-                        <td style="padding: 10px; color: #fff;">
-                            ${l.nom} <br>
-                            <span style="color: #aaa; font-size: 0.8em;">Pos: ${l.x}%, ${l.y}%</span>
-                        </td>
-                        
-                        <td style="padding: 10px; text-align:right;">
-                            <button onclick="forcerDecouverteLieu('${idLieu}')" style="background: #2196f3; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size:0.8em;">
-                                📍 Révéler
-                            </button>
-                        </td>
-                    </tr>`;
-            }
+    objetEnCoursDeDon = itemID;
+    quantiteEnCoursDeDonMJ = 1; // Valeur par défaut
+
+    // Si l'objet est stackable, on demande combien en donner
+    if (data.stackable) {
+        let rep = prompt(`Combien de "${data.nom}" voulez-vous donner ?`, "1");
+        if (rep === null) return; // Annulation
+        
+        let qte = parseInt(rep);
+        if (isNaN(qte) || qte <= 0) {
+            alert("Quantité invalide.");
+            return;
         }
+        quantiteEnCoursDeDonMJ = qte;
     }
 
-}
+    // On ouvre la modale pour choisir le destinataire
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        const liste = document.getElementById('liste-destinataires');
+        const titre = document.querySelector('#modal-transfert h3');
+        
+        if (titre) titre.innerText = `Donner ${quantiteEnCoursDeDonMJ}x ${data.nom} à :`;
+        liste.innerHTML = "";
 
-// Vérifie que tu as bien cette fonction utilitaire aussi !
-function ajouterLigneCodex(id, nom, categorie, actionFn, texteAction) {
-    const tbody = document.getElementById('tbody-codex');
-    tbody.innerHTML += `
-        <tr class="ligne-codex" style="border-bottom: 1px solid #333;">
-            <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em;">${id}</td>
-            <td style="padding: 10px; color: #fff;">${nom}</td>
-            <td style="padding: 10px; text-align:right;">
-                <button onclick="${actionFn}" style="background: #4caf50; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; white-space: nowrap;">${texteAction}</button>
-            </td>
-        </tr>
-    `;
-}
-
-
-
-// --- FONCTION MJ : FILTRER LA LISTE ---
-function filtrerCodex() {
-    let input = document.getElementById('recherche-codex').value.toLowerCase();
-    let lignes = document.querySelectorAll('.ligne-codex');
-
-    lignes.forEach(ligne => {
-        let texte = ligne.innerText.toLowerCase();
-        ligne.style.display = texte.includes(input) ? "" : "none";
+        if (!joueurs) {
+            liste.innerHTML = "<p style='color:#aaa;'>Aucun joueur connecté.</p>";
+        } else {
+            for (let id in joueurs) {
+                liste.innerHTML += `
+                    <button onclick="executerDonObjetMJ('${id}')" 
+                            style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">
+                        ${joueurs[id].nom}
+                    </button>`;
+            }
+        }
+        document.getElementById('modal-transfert').style.display = 'block';
     });
 }
 
 
-function genererListeMusiquesMJ() {
-    const tbody = document.getElementById('tbody-codex');
+
+
+// Fonction Musique intégrée (inspirée de ton codex.js)
+
+
+
+
+
+function genererMusiquesMJ_Integrated() {
+    const tbody = document.getElementById('tbody-codex-mj');
     tbody.innerHTML = ""; 
 
-    playlistMJ.forEach(piste => {
-        let tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #444";
-        
-        tr.innerHTML = `
-            <td style="padding: 10px; color: #fff;">🎵 <b>${piste.nom}</b></td>
-            <td style="padding: 10px; color: #aaa; font-size: 0.8em; font-family: monospace;">${piste.fichier}</td>
-            <td style="padding: 10px; text-align: right;">
-                <button onclick="AudioEngine.jouerMusique('${piste.fichier}')" 
-                        style="padding: 5px 15px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 3px; transition: 0.2s;">
-                    ▶ Lancer
-                </button>
-            </td>
-        `;
-        
-        // Petit effet au survol pour savoir quelle ligne on regarde
-        tr.onmouseover = () => tr.style.background = "#333";
-        tr.onmouseout = () => tr.style.background = "transparent";
-        
-        tbody.appendChild(tr);
-    });
-
-    // Bouton STOP global en bas de liste
+    // 1. BOUTON STOP EN HAUT
     let trStop = document.createElement('tr');
     trStop.innerHTML = `
-        <td colspan="3" style="padding:15px; text-align:center;">
-            <button onclick="AudioEngine.stopMusique()" 
-                    style="background:#8b0000; color:white; border:none; padding:10px 30px; cursor:pointer; font-weight:bold; border-radius:5px;">
-                ⏹ ARRÊTER LE SON
+        <td colspan="2" style="padding:15px; text-align:center; border-bottom: 2px solid #8b0000;">
+            <button onclick="mjArreterMusique()" 
+                    style="background:#8b0000; color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:5px; width:100%;">
+                ⏹ ARRÊTER LA MUSIQUE MJ (Tout le groupe)
             </button>
         </td>`;
     tbody.appendChild(trStop);
+
+    // 2. LA LISTE
+    playlistMJ.forEach(piste => {
+        tbody.innerHTML += `
+            <tr style="border-bottom: 1px solid #333;">
+                <td style="padding: 10px; color: #fff;">🎵 ${piste.nom}</td>
+                <td style="padding: 10px; text-align: right;">
+                    <button onclick="mjChangerMusique('${piste.fichier}')" 
+                            style="padding: 5px 12px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 3px;">
+                        ▶ Lancer
+                    </button>
+                </td>
+            </tr>`;
+    });
 }
+
+// Fonction pour envoyer l'ordre d'arrêt
+function mjArreterMusique() {
+    db.ref('parties/' + sessionActuelle + '/musique_mj').remove();
+}
+
+function genererContenuCodexMJ(type) {
+    const tbody = document.getElementById('tbody-codex-mj');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (type === 'items') {
+        for (let id in itemsData) {
+            ajouterLigneCodexMJ(id, itemsData[id].nom, `mjDonnerObjetDirect('${id}')`, "🎁 Donner");
+        }
+    } 
+    else if (type === 'marchands') {
+        for (let id in marchandsData) {
+            ajouterLigneCodexMJ(id, marchandsData[id].nom, `forcerOuvertureMarchand('${id}')`, "💰 Ouvrir");
+        }
+    } 
+    else if (type === 'coffres') {
+        for (let id in coffresFixes) {
+            ajouterLigneCodexMJ(id, coffresFixes[id].nom, `forcerOuvertureCoffre('${id}')`, "🔍 Fouiller");
+        }
+    }
+    else if (type === 'lieux') {
+        for (let id in lieuxDecouverts) {
+            let l = lieuxDecouverts[id];
+            ajouterLigneCodexMJ(id, l.nom, `mjDecouvrirLieu('${id}')`, "📍 Révéler");
+        }
+    }
+}
+
+function rafraichirListeJoueursMJ() {
+    const container = document.getElementById('mj-liste-joueurs');
+    if (!container) return;
+
+    console.log("👥 [LOG] Mise à jour de la liste des joueurs MJ...");
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        container.innerHTML = "";
+
+        if (!joueurs) return;
+
+        for (let id in joueurs) {
+            const j = joueurs[id];
+            const estMort = (j.pvActuel <= 0);
+            
+            container.innerHTML += `
+                <div class="mj-player-card" style="background:rgba(0,0,0,0.4); border:1px solid #444; padding:10px; margin:5px; border-radius:5px;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong style="color:#ff9800;">${j.nom}</strong>
+                        <span style="font-size:10px; color:#aaa;">Niv.${j.niveau || 1}</span>
+                    </div>
+                    
+                    <div style="margin: 5px 0; font-size: 13px;">
+                        <span style="color:${estMort ? 'red' : '#4caf50'}">❤️ PV: ${j.pvActuel}/${j.pvMax}</span> | 
+                        <span style="color:#2196f3">🔋 FT: ${j.ftActuel}/${j.ftMax || '??'}</span>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
+                        <button onclick="mjModifierStat('${id}', 'PV')" style="background:#2e7d32; color:white; border:none; padding:4px; cursor:pointer; font-size:11px;">+/- ❤️ PV</button>
+                        <button onclick="mjModifierStat('${id}', 'FT')" style="background:#1565c0; color:white; border:none; padding:4px; cursor:pointer; font-size:11px;">+/- 🔋 FT</button>
+                        <button onclick="mjDonnerLevelUp('${j.nom}')" style="grid-column: span 2; background:#ff9800; color:black; border:none; padding:4px; cursor:pointer; font-size:11px; font-weight:bold;">🌟 LEVEL UP</button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+
+function mjLootAleatoire(idJoueur) {
+    // On filtre les objets "communs" (rareté < 5)
+    const itemsDispo = Object.values(itemsData).filter(i => (i.rarete || 0) < 5);
+    const nbItems = Math.floor(Math.random() * 4) + 1; // 1d4
+    
+    for(let i=0; i < nbItems; i++) {
+        const randomItem = itemsDispo[Math.floor(Math.random() * itemsDispo.length)];
+        
+        // On l'envoie directement dans les cadeaux du joueur
+        db.ref('parties/' + sessionActuelle + '/cadeaux/' + idJoueur).push({
+            from: "Le Destin (MJ)",
+            item: { id: randomItem.id, quantite: 1, durabilite: 100, durabiliteMax: 100 },
+            timestamp: Date.now()
+        });
+    }
+    alert(`🎲 ${nbItems} objets envoyés à l'aventurier !`);
+}
+
+
+
+// Utilitaire pour créer les lignes avec un style uniforme
+function ajouterLigneCodexMJ(id, nom, actionFn, texteAction) {
+    const tbody = document.getElementById('tbody-codex-mj');
+    tbody.innerHTML += `
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em; width: 80px;">${id}</td>
+            <td style="padding: 10px; color: #fff;">${nom}</td>
+            <td style="padding: 10px; text-align:right;">
+                <button onclick="${actionFn}" style="background: #444; color: #ff9800; border: 1px solid #ff9800; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em;">
+                    ${texteAction}
+                </button>
+            </td>
+        </tr>`;
+}
+
+
 
 

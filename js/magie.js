@@ -292,6 +292,11 @@ function preparerEtLancerSort(nomSort) {
     const data = trouverSort(nomSort);
     if (!data) return;
 
+if (window.perso.pvActuel <= 0) {
+        alert("💀 Un mort ne peut pas forger d'objets !");
+        return;
+}
+
     sortEnCoursCible = data;
     const moiID = perso.nom.replace(/\s+/g, '_');
 
@@ -324,6 +329,7 @@ function preparerEtLancerSort(nomSort) {
 
         document.getElementById('modal-transfert').style.display = 'block';
     });
+
 }
 
 

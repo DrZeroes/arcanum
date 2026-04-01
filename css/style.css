@@ -49,8 +49,8 @@ input[type="text"], select {
 #ecran-aide,
 #ecran-codex,
 #ecran-carte {
-    /* Un fond noir/marron très foncé, transparent à 85% */
-    background-color: rgba(20, 15, 10, 0.85) !important; 
+    /* Un fond noir/marron très foncé, transparent à 10% */
+    background-color: rgba(20, 15, 10, 0.25) !important; 
     
     /* L'EFFET RPG MODERNE (Optionnel mais génial) : 
        Ça floute légèrement l'image de fond JUSTE derrière la fenêtre, 
@@ -365,6 +365,21 @@ visibility: hidden !important;}
 .is-locked .btn-stat:not(.lvl-up-btn) {
 visibility: hidden !important;}
 
+
+.btn-mj-small {
+    background: #444;
+    color: #ddd;
+    border: 1px solid #666;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    cursor: pointer;
+    border-radius: 2px;
+}
+.btn-mj-small:hover {
+    background: #d4af37;
+    color: #000;
+}
+
 /* --- BOUTON LEVEL UP (Façon Arcanum) --- */
 .btn-lvl-up {
     position: absolute;
@@ -486,24 +501,26 @@ visibility: hidden !important;}
 }
 
 /* --- LES BOUTONS EMOJIS --- */
+/* 1. CAS PAR DÉFAUT : Pas de points, pas survolé */
 .magic-tab-btn {
     background: #1a110b;
     color: #888;
     border: 1px solid #333;
     padding: 5px;
-    width: 35px; 
-    height: 35px; 
-    display: inline-flex; /* <-- LA SOLUTION EST ICI : inline-flex au lieu de flex */
+    width: 35px;
+    height: 35px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1.3em; 
+    font-size: 1.3em;
     border-radius: 4px;
     transition: 0.2s;
-    opacity: 0.4; 
+    opacity: 0.4;
     filter: grayscale(100%);
 }
 
+/* 2. CAS SURVOL OU ACTIF : On allume */
 .magic-tab-btn:hover, 
 .magic-tab-btn.active { 
     background: #2a1b12; 
@@ -512,19 +529,21 @@ visibility: hidden !important;}
     filter: grayscale(0%);
 }
 
+/* 3. CAS ONGLET SÉLECTIONNÉ : Bordure Dorée */
 .magic-tab-btn.active {
     background: #3e2d20;
     color: #d4af37;
     border-color: #d4af37;
     font-weight: bold;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
 }
 
-/* --- LA NOUVELLE CLASSE POUR LES ONGLETS PLEINS --- */
+/* 4. CAS POINTS INVESTIS : Bordure Verte (Même sans survol) */
 .magic-tab-btn.has-points {
-    opacity: 1 !important;
-    filter: grayscale(0%) !important;
-    border-color: #4caf50; /* Bordure verte pour indiquer l'investissement */
-    background: #1a2e1a; /* Fond très légèrement verdâtre */
+    opacity: 1;
+    filter: grayscale(0%);
+    border-color: #4caf50 !important;
+    background: #1a2e1a;
 }
 .magic-content-pane { display: none; }
 .magic-content-pane.active { display: block; }
@@ -547,21 +566,7 @@ visibility: hidden !important;}
     color: #4caf50; /* Petite flèche verte */
 }
 
-.magic-tab-btn {
-    background: #1a110b;
-    color: #888;
-    border: 1px solid #333;
-    padding: 5px;
-    width: 35px; /* On fixe la largeur */
-    height: 35px; /* On fixe la hauteur */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1.3em; /* On grossit l'emoji */
-    border-radius: 4px;
-    transition: 0.2s;
-}
+
 
 /* --- ONGLETS PRINCIPAUX (Droite) --- */
 .arcanum-tabs {
@@ -652,6 +657,20 @@ visibility: hidden !important;}
 
 
 
+/* Animation de clignotement */
+@keyframes pulse-level-up {
+    0% { background-color: #4caf50; box-shadow: 0 0 5px #4caf50; }
+    50% { background-color: #ff9800; box-shadow: 0 0 20px #ff9800; transform: scale(1.05); }
+    100% { background-color: #4caf50; box-shadow: 0 0 5px #4caf50; }
+}
+
+.alerte-level-up {
+    animation: pulse-level-up 1.5s infinite;
+    border: 2px solid #fff !important;
+    color: white !important;
+}
+
+
 
 /* ========================================= */
 /* ADAPTATION MOBILE               */
@@ -717,4 +736,32 @@ visibility: hidden !important;}
 /* Petite correction pour les très petits écrans (téléphones verticaux) */
 @media (max-width: 480px) {
     .stats-container { grid-template-columns: 1fr; } /* 1 seule colonne pour les stats à la création */
+}
+
+
+.mj-tab-btn {
+    flex: 1;
+    background: #333;
+    color: #aaa;
+    border: 1px solid #444;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.mj-tab-btn.active {
+    background: #ff9800;
+    color: #000;
+    border-color: #fff;
+}
+
+.mj-section {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

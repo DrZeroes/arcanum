@@ -146,18 +146,19 @@ const lieuxDecouverts = {
 	"rnoir": { nom: "Racine noir", x: 45.0, y: 71.5, musique: "Towns.mp3",fond: "racinenoir.jpg", desc: " petite ville" },
 	"eaud": { nom: "Eau Dormante", x: 41.2, y: 38.0, musique: "Villages.mp3",fond: "eaudor.jpg", desc: "Charmant Village" },
 	"quin": { nom: "Quintara", x: 21.8, y: 35.8, musique: "Qintara.mp3",fond: "quintara.jpg", desc: "Village caché des elfes" },
-	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Tulla.mp3",fond: "tsenang.jpg", desc: "Village caché des elfes noires" },
+	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Qintara.mp3",fond: "tsenang.jpg", desc: "Village caché des elfes noires" },
 	"tulla": { nom: "Tulla", x: 77.0, y: 24.7, musique: "Tulla.mp3",fond: "tulla.jpg", desc: "Cité de la magie" },
 	"dese": { nom: "Ile du désespoir", x: 83.2, y: 43.0, musique: "Isle_of_Despair.mp3",fond: "desespoir.jpg", desc: "Ile bannis" },
+	"demogre": { nom: "Ile des demi-ogres", x: 54.5, y: 84.1, musique: "Isle_of_Despair.mp3",fond: "demogre.jpg", desc: "étrange île" },
 	"rose": { nom: "Rosebourg", x: 13.6, y: 74.5, musique: "Towns.mp3",fond: "_placeholder.jpg", desc: "Petite ville" },
 	"naz": { nom: "Cabane sur Thanatos", x: 63.2, y: 92.3, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille maison au bout de Thanathos" },
 	"vend": { nom: "Ruines de Vendigroth", x: 84.3, y: 29.2, musique: "Vendegoth.mp3",fond: "_placeholder.jpg", desc: "Ancienens ruines" },
 	"bedo": { nom: "Village bédokien", x: 41.2, y: 17.1, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "un village primitif" },
-	"cmpF": { nom: "Camp des femmes", x: 84.1, y: 40.5, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "camp d'amazone" },
-	"max": { nom: "Demeure de Maximilien", x: 81.1, y: 42.6, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Maison au milieu de nulle part" },	
+	"cmpF": { nom: "Camp des femmes", x: 84.1, y: 40.5, musique: "Isle_of_Despair.mp3",fond: "_placeholder.jpg", desc: "camp d'amazone" },
+	"max": { nom: "Demeure de Maximilien", x: 81.1, y: 42.6, musique: "Isle_of_Despair.mp3",fond: "_placeholder.jpg", desc: "Maison au milieu de nulle part" },	
 	"crik": { nom: "Crique de Pierre latige", x: 68.1, y: 65.8, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille crique" },
 	"tres": { nom: "Trésor de Pierre latige", x: 60.7, y: 64.9, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "tombe sous una arbre" },
-	"atel": { nom: "Atelier de lambert", x: 84.1, y: 40.5, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Maison d'un inventeur" },
+	"atel": { nom: "Atelier de lambert", x: 42.1, y: 73.8, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Maison d'un inventeur" },
 	"than": { nom: "Thanatos", x: 67.8, y: 79.5, musique: "Wilderness.mp3",fond: "thana.jpg", desc: "Ile mystérieuse" }
 
 

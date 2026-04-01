@@ -20,14 +20,24 @@ function deplacerVers(idLieu) {
 
 
 // Fonction pour forcer l'apparition d'un lieu sur la carte (MJ)
-function forcerDecouverteLieu(nom) {
-    if (!perso.lieuxConnus.includes(nom)) {
-        perso.lieuxConnus.push(nom);
-        alert(`${nom} a été ajouté à la carte.`);
-        autoSave();
-    } else {
-        alert("Ce lieu est déjà visible.");
+function mjDecouvrirLieu(idLieu) {
+    // 1. Le MJ l'ajoute à sa propre liste s'il ne l'a pas
+    if (!perso.lieuxConnus.includes(idLieu)) {
+        perso.lieuxConnus.push(idLieu);
     }
+
+    // 2. PARTAGE MONDIAL : On écrit dans la branche partagée par tous
+    // C'est ce qui déclenchera l'écouteur 'child_added' chez tous les joueurs
+    db.ref('parties/' + sessionActuelle + '/lieux_shared/' + idLieu).set({
+        nom: idLieu,
+        decouvertPar: "Maître du Jeu",
+        timestamp: Date.now()
+    });
+
+    // 3. Sauvegarde et feedback
+    if (typeof autoSave === "function") autoSave();
+    console.log("📍 Lieu partagé avec le groupe : " + idLieu);
+    alert("📍 Vous avez révélé " + idLieu + " à tous les joueurs.");
 }
 
 
@@ -65,35 +75,109 @@ function ouvrirCarte() {
     }
 }
 
-// --- DÉCOUVRIR UN LIEU VIA INPUT ---
-function decouvrirLieu() {
-    let input = document.getElementById('input-decouverte');
-    let motClef = input.value.trim().toLowerCase();
-    
-    if (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[motClef]) {
-        
-        // 1. On partage avec le groupe (Firebase gérera le reste)
-        if (typeof partagerDecouverte === "function") {
-            partagerDecouverte(motClef);
-        }
 
-        // 2. On l'ajoute localement seulement si on ne l'a pas
-        if (!perso.lieuxConnus.includes(motClef)) {
-            perso.lieuxConnus.push(motClef);
-            autoSave();
-            // Optionnel : un petit message de succès SEULEMENT la première fois
-            console.log("Lieu découvert !");
-        }
-        
-        input.value = "";
-        rafraichirPointsCarte();
-    } else {
-        alert("Aucun lieu ne correspond à ce mot-clé.");
-    }
-}
 // --- DESSINER LES POINTS SUR LE PNG ---
 
+
+function mjpartagerlieu() {
+    // On récupère le perso via window pour être sûr d'avoir les données à jour
+    const p = window.perso || perso;
+    const session = sessionActuelle || document.getElementById('input-session')?.value;
+
+    if (!p || !p.lieuxConnus || p.lieuxConnus.length === 0) {
+        console.error("❌ Erreur : Aucun lieu connu trouvé dans ton profil perso.");
+        return;
+    }
+
+    console.log(`📡 Tentative de partage de ${p.lieuxConnus.length} lieux sur la session : ${session}`);
+
+    p.lieuxConnus.forEach(idLieu => {
+        // Envoi direct à Firebase
+        db.ref('parties/' + session + '/lieux_shared/' + idLieu).set({
+            nom: idLieu,
+            decouvertPar: "Maître du Jeu (Sync Globale)",
+            timestamp: Date.now()
+        }).then(() => {
+            console.log("✅ Partagé : " + idLieu);
+        }).catch(err => {
+            console.error("❌ Échec pour " + idLieu, err);
+        });
+    });
+}
+
+function AllLieux() {
+    // 1. On récupère la session
+    const session = sessionActuelle || document.getElementById('input-session')?.value;
+    
+    if (!session) {
+        console.error("❌ Erreur : Aucune session de jeu détectée.");
+        return;
+    }
+
+    console.log(`🚀 Lancement du test : Partage de TOUS les lieux sur la session [${session}]...`);
+
+    // 2. On boucle sur l'objet de données que tu as fourni
+    // 'lieuxDecouverts' est le nom de ton objet contenant Tarante, Tris, etc.
+    for (let idLieu in lieuxDecouverts) {
+        
+        // Envoi à Firebase dans la branche partagée
+        db.ref('parties/' + session + '/lieux_shared/' + idLieu).set({
+            nom: lieuxDecouverts[idLieu].nom,
+            decouvertPar: "Test Système",
+            timestamp: Date.now()
+        }).then(() => {
+            console.log("✅ Envoyé : " + idLieu);
+        }).catch(err => {
+            console.error("❌ Échec pour " + idLieu, err);
+        });
+    }
+
+    alert("⚙️ Test lancé ! Vérifie la console (F12) et la carte des autres joueurs.");
+}
+
+
+function RAZLieux() {
+    const session = sessionActuelle || document.getElementById('input-session')?.value;
+    
+    if (!session) {
+        console.error("❌ Erreur : Session introuvable.");
+        return;
+    }
+
+    if (!confirm("⚠️ RESET TOTAL : Supprimer tous les lieux partagés (sauf crash) ?")) return;
+
+    // 1. On vide d'abord LOCALEMENT (très important)
+    window.perso.lieuxConnus = ["crash"];
+    perso.lieuxConnus = ["crash"];
+
+    // 2. Nettoyage Firebase
+    db.ref('parties/' + session + '/lieux_shared').remove()
+    .then(() => {
+        console.log("🗑️ Firebase vidé.");
+        
+        // 3. On recrée uniquement le crash sur Firebase
+        // Cela va redéclencher l'écouteur 'child_added' chez tout le monde
+        return db.ref('parties/' + session + '/lieux_shared/crash').set({
+            nom: "Site du Crash",
+            decouvertPar: "Système (Reset)",
+            timestamp: Date.now()
+        });
+    })
+    .then(() => {
+        // 4. Sauvegarde et Rafraîchissement
+        if (typeof autoSave === "function") autoSave();
+        
+        // On force le rafraîchissement de la carte si elle est ouverte
+        if (typeof rafraichirPointsCarte === "function") rafraichirPointsCarte();
+        
+        alert("✅ Carte réinitialisée avec succès !");
+    })
+    .catch(err => console.error("❌ Erreur lors du reset :", err));
+}
 let lieuSelectionne = null; // Stocke le lieu cliqué une fois (le point jaune)
+
+
+
 
 function rafraichirPointsCarte() {
     const calque = document.getElementById('calque-points');
@@ -172,7 +256,7 @@ function rafraichirPointsCarte() {
                     // Sécurité si le mode multi n'est pas chargé
                     perso.lieuActuel = idLieu;
                     if (coord.musique) AudioEngine.jouerMusique(coord.musique);
-                    autoSave();
+                    //autoSave();
                     appliquerFondActuel();
                     rafraichirAccueil();
                     allerAccueil();

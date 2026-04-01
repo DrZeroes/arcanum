@@ -1,5 +1,11 @@
 
 // ================= GESTION INVENTAIRE & EQUIPEMENT =================
+let triActuel = {
+    type: 'poids', // 'poids' ou 'prix'
+    ordre: 'desc'  // 'desc' ou 'asc'
+};
+
+
 
 const nomEmplacements = {
     "tete": "Tête", "torse": "Torse", "gants": "Mains (Gants)", "bottes": "Pieds", 
@@ -141,93 +147,31 @@ function desequiperItem(slot, isSilent = false) {
 }
 
 
+function trierInventaire(type) {
+    if (!perso.inventaire) return;
 
-function ajouterItemParId() {
-    // 1. On récupère le champ de texte
-    const input = document.getElementById('new-item-id');
-    if (!input) return;
-
-    // 2. On récupère l'ID tapé par le joueur (en enlevant les espaces)
-    const itemID = input.value.trim(); 
-    if (itemID === "") return;
-
-    // 3. On vérifie si l'objet existe dans ta base de données (itemsData)
-    if (typeof itemsData !== 'undefined' && itemsData[itemID]) {
-        
-        // On ajoute l'objet à l'inventaire
-        // (Assure-toi que ta fonction pour ajouter s'appelle bien ramasserItem)
-        if (typeof ramasserItem === "function") {
-            ramasserItem(itemID, 1);
-        } else {
-            // Sécurité si la fonction a un autre nom dans ton code
-            perso.inventaire.push({ id: itemID, quantite: 1 });
-        }
-        
-        // On met à jour l'affichage de l'inventaire
-        if (typeof updateInventaireUI === "function") {
-            updateInventaireUI();
-        }
-        
-        // On vide la case pour le prochain objet
-        input.value = "";
-        console.log("✅ Objet ajouté avec succès : " + itemsData[itemID].nom);
-        
+    // Si on clique sur le même type, on inverse l'ordre
+    if (triActuel.type === type) {
+        triActuel.ordre = (triActuel.ordre === 'desc') ? 'asc' : 'desc';
     } else {
-        // Si l'ID n'existe pas dans items.js
-        alert("❌ Cet ID d'objet n'existe pas : " + itemID);
+        // Nouveau type de tri, on remet en descendant par défaut
+        triActuel.type = type;
+        triActuel.ordre = 'desc';
     }
-}
-
-
-function trierInventaire(critere) {
-    if (!perso.inventaire || perso.inventaire.length === 0) return;
-
-    // Calcul du bonus de marchandage pour le tri par prix
-    let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
-    let reductionClient = ptsMarchandage * 0.02;
 
     perso.inventaire.sort((a, b) => {
         let dataA = itemsData[a.id];
         let dataB = itemsData[b.id];
-        
         if (!dataA || !dataB) return 0;
 
-if (critere === 'poids') {
-            // --- CALCUL DU POIDS TOTAL POUR LE TRI ---
-            // On multiplie le poids unitaire par la quantité de la pile
-            let qteA = a.quantite || a.qte || 1;
-            let qteB = b.quantite || b.qte || 1;
-            
-            let poidsTotalA = dataA.poids * qteA;
-            let poidsTotalB = dataB.poids * qteB;
+        let valA = (type === 'poids') ? dataA.poids : dataA.prix;
+        let valB = (type === 'poids') ? dataB.poids : dataB.prix;
 
-            // Tri du plus lourd au plus léger
-            return poidsTotalB - poidsTotalA;
-        }
-
-if (critere === 'prix') {
-            let qteA = a.quantite || a.qte || 1;
-            let qteB = b.quantite || b.qte || 1;
-            
-            let valeurTotaleA = dataA.prix * qteA;
-            let valeurTotaleB = dataB.prix * qteB;
-
-            // Du plus cher au moins cher
-            return valeurTotaleB - valeurTotaleA;
-        }
-
-        if (critere === 'nom') {
-            return dataA.nom.localeCompare(dataB.nom);
-        }
-        
-        return 0;
+        return (triActuel.ordre === 'desc') ? (valB - valA) : (valA - valB);
     });
 
-    // On rafraîchit l'affichage après avoir trié la liste
     updateInventaireUI();
 }
-
-
 
 // ==========================================
 // UTILISATION D'OBJETS DEPUIS L'INVENTAIRE 🎒
@@ -372,11 +316,17 @@ function preparerUtilisationCible(index) {
         document.getElementById('modal-transfert').style.display = 'block';
     });
 }
-
 function updateInventaireUI() {
     let listInv = document.getElementById('inv-list-full');
     let listEq = document.getElementById('equipement-list');
     if (!listInv || !listEq) return 0;
+
+    // --- 1. MISE À JOUR DE L'ARGENT ---
+    const elArgent = document.getElementById('inv-argent-total');
+    if (elArgent) {
+        // On affiche l'argent du perso (ou 0 si indéfini)
+        elArgent.innerText = (window.perso && window.perso.argent !== undefined) ? window.perso.argent : 0;
+    }
 
     let poidsTotal = 0;
 
@@ -394,16 +344,32 @@ function updateInventaireUI() {
         return h;
     };
 
-    // --- 1. DESSINER LE SAC À DOS ---
+    // --- 2. DESSINER LE SAC À DOS ---
+// Calcul des styles et labels pour les boutons
+    const styleActif = "border: 2px solid #4caf50; background: #2e4d23; color: white;";
+    const styleInactif = "border: 1px solid #555; background: #333; color: #888;";
     
-    // Ajout des boutons de tri en haut de la liste
+    let labelPoids = (triActuel.type === 'poids' && triActuel.ordre === 'asc') ? "⚖️ Moins Lourd" : "⚖️ Plus Lourd";
+    let labelPrix = (triActuel.type === 'prix' && triActuel.ordre === 'asc') ? "💰 Moins Cher" : "💰 Plus Cher";
+
     let htmlInv = `
         <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #1a110b; padding: 10px; border-radius: 4px; border: 1px solid #444;">
-            <span style="color: #888; font-size: 0.9em; align-self: center;">Trier par :</span>
-            <button onclick="trierInventaire('poids')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">⚖️ Plus Lourd</button>
-            <button onclick="trierInventaire('prix')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">💰 Plus Cher</button>
+            <span style="color: #888; font-size: 0.9em; align-self: center;">Trier :</span>
+            
+            <button onclick="trierInventaire('poids')" 
+                style="${triActuel.type === 'poids' ? styleActif : styleInactif} padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1; transition: all 0.2s;">
+                ${labelPoids}
+            </button>
+            
+            <button onclick="trierInventaire('prix')" 
+                style="${triActuel.type === 'prix' ? styleActif : styleInactif} padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1; transition: all 0.2s;">
+                ${labelPrix}
+            </button>
         </div>
     `;
+
+
+
 
     if (!perso.inventaire || perso.inventaire.length === 0) {
         htmlInv += "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
@@ -413,19 +379,15 @@ function updateInventaireUI() {
             if (data) {
                 poidsTotal += data.poids * item.quantite;
                 
-                // Calcul du prix de vente affiché
                 let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
-                prixVente = Math.min(prixVente, data.prix); // Capé au prix max
+                prixVente = Math.min(prixVente, data.prix);
                 
                 let btnEquiper = (data.equipable && data.equipable !== "aucun") 
                     ? `<button onclick="equiperItem(${index})" style="background:#4caf50; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
 
-// 👉 AJOUTE CECI ICI :
-let btnConsommer = (data.type === "consommable")
-    ? `<button onclick="preparerUtilisationCible(${index})" style="background:#ff9800; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🧪 Utiliser</button>` : ``;
+                let btnConsommer = (data.type === "consommable")
+                    ? `<button onclick="preparerUtilisationCible(${index})" style="background:#ff9800; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🧪 Utiliser</button>` : ``;
 
-
-                // ---> LE BOUTON DONNER EST AJOUTÉ ICI <---
                 htmlInv += `
                     <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
                         <div style="display:flex; justify-content: space-between;">
@@ -446,10 +408,9 @@ let btnConsommer = (data.type === "consommable")
             }
         });
     }
-    
     listInv.innerHTML = htmlInv;
 
-    // --- 2. DESSINER L'ÉQUIPEMENT ---
+    // --- 3. DESSINER L'ÉQUIPEMENT ---
     let htmlEq = ``;
     for (let slot in perso.equipement) {
         let itemEq = perso.equipement[slot];
@@ -477,15 +438,17 @@ let btnConsommer = (data.type === "consommable")
     }
     listEq.innerHTML = htmlEq;
     
-    // MAJ de la charge dans l'inventaire
+    // --- 4. MISE À JOUR DE LA CHARGE FINALE ---
     let statFO = (perso.statsBase.FO || 8) + (perso.statsInvesties.FO || 0);
     let elPoidsInv = document.getElementById('inv-poids-total');
     if (elPoidsInv) {
         elPoidsInv.innerText = poidsTotal.toFixed(1) + " / " + (statFO * 2) + " kg";
         elPoidsInv.style.color = (poidsTotal > (statFO * 2)) ? "#f44336" : "#4caf50"; 
     }
+    
     return poidsTotal;
 }
+
 
 function finaliserActionObjet(cibleID, nomCible) {
     if (!objetEnCoursUtilisation) return;

@@ -126,11 +126,16 @@ function activerEcouteurMusiqueMJ() {
 
 
 function activerEcouteurCadeaux() {
+	
     if (!window.perso || !window.perso.nom) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
     const cadeauRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/cadeau');
 
     console.log("🎁 [DEBUG] Antenne Cadeaux activée pour : " + playerID);
+
+
+
+
 
     // On coupe l'ancien écouteur pour éviter les accumulations de fonctions
     cadeauRef.off(); 
@@ -138,6 +143,16 @@ function activerEcouteurCadeaux() {
     cadeauRef.on('value', (snapshot) => {
         const data = snapshot.val();
         
+// Dans l'écouteur de cadeau du joueur
+if (snapshot.val()) {
+    // Si un cadeau est présent, on fait clignoter un bouton ou on affiche une alerte
+    const btnRamasser = document.getElementById('btn-ramasser-cadeau');
+    if (btnRamasser) {
+        btnRamasser.style.backgroundColor = "#ff9800"; // Orange flashy
+        btnRamasser.classList.add('animation-clignote');
+    }
+}
+		
         // Si pas de données ou si le cadeau est déjà en cours de traitement, on stop
         if (!data || !data.id) return;
 

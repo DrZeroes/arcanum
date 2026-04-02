@@ -56,6 +56,7 @@
             <button class="next-btn" style="background:#443322; border: 1px solid #d4af37; color: #d4af37; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="allerInventaire()">🎒 Sac à dos</button>
             <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px;">⚙️ Artisanat</button>
             <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px;">🔮 Magie</button>
+            <button id="btn-menu-groupe" onclick="ouvrirEcranGroupe()" style="display: none; background: #2e4d23; color: #4caf50; border: 1px solid #4caf50; flex: 1; min-width: 80px;">👥 Groupe</button>
         </div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
@@ -584,13 +585,16 @@
 </div>
 
 
-<div id="ecran-groupe" class="ecran" style="display: none; width: 800px; background: #2b1d14; border: 4px solid #4caf50; padding: 20px; margin: auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #4caf50; padding-bottom: 10px;">
-        <h2 style="margin: 0; color: #4caf50;">👥 Groupe d'Aventuriers</h2>
-        <button onclick="allerAccueil()" style="background: #8b0000; color: white; border: none; font-size: 1.3em; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
+<div id="ecran-groupe" class="ecran" style="display:none;">
+    <div class="groupe-header">
+        <span class="groupe-header-ornement">⚔ ✦ ⚔</span>
+        <h2>Groupe d'Aventuriers</h2>
+        <button class="groupe-btn-retour" onclick="allerAccueil()" title="Retour">&#8592;</button>
     </div>
-    <div id="affichage-alliés" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-        </div>
+    <div class="groupe-body">
+        <div class="groupe-session-info">Session : <span id="groupe-session-nom">—</span></div>
+        <div id="affichage-allies" class="groupe-grid"></div>
+    </div>
 </div>
 
 

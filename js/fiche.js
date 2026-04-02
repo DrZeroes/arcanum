@@ -34,28 +34,39 @@ function verifierEtatValidation() {
     const btnValider = document.querySelector("button[onclick='validerChangements()']");
     if (!btnValider) return;
 
-    // Condition 1 : Plus aucun point à distribuer
-    const pointsEpuises = (perso.pointsDispo === 0);
-
-    // Condition 2 : Au moins un changement a été fait dans le panier
-    const aDesChangements = 
-        investissementsTemporaires.pv !== 0 || 
-        investissementsTemporaires.ft !== 0 || 
+    const aDesChangements =
+        investissementsTemporaires.pv !== 0 ||
+        investissementsTemporaires.ft !== 0 ||
         Object.values(investissementsTemporaires.stats).some(v => v !== 0) ||
         Object.values(investissementsTemporaires.comp).some(v => v !== 0) ||
         Object.values(investissementsTemporaires.magie).some(v => v !== 0) ||
         Object.values(investissementsTemporaires.tech).some(v => v !== 0);
 
-    if (pointsEpuises && aDesChangements) {
-        btnValider.disabled = false;
-        btnValider.style.opacity = "1";
-        btnValider.style.cursor = "pointer";
-        btnValider.style.boxShadow = "0 0 15px #4caf50";
+    if (perso.pointsDispo > 0 || aDesChangements) {
+        btnValider.style.display = 'block';
+        if (perso.pointsDispo > 0) {
+            // ÉTAT : ATTENTE — points restants à dépenser
+            btnValider.disabled = true;
+            btnValider.style.opacity = "0.7";
+            btnValider.style.background = "linear-gradient(180deg, #2e4d23 0%, #1b2e15 100%)";
+            btnValider.style.color = "#aaa";
+            btnValider.style.border = "2px solid #5d4a1f";
+            btnValider.style.cursor = "not-allowed";
+            btnValider.style.boxShadow = "inset 0 0 10px rgba(0,0,0,0.5)";
+            btnValider.innerHTML = `⏳ Dépensez tout (${perso.pointsDispo})`;
+        } else {
+            // ÉTAT : PRÊT — tous les points sont distribués
+            btnValider.disabled = false;
+            btnValider.style.opacity = "1";
+            btnValider.style.background = "linear-gradient(180deg, #4caf50 0%, #2e7d32 100%)";
+            btnValider.style.color = "#fff";
+            btnValider.style.border = "2px solid #d4af37";
+            btnValider.style.cursor = "pointer";
+            btnValider.style.boxShadow = "0 0 15px rgba(76, 175, 80, 0.6), inset 0 0 10px rgba(255,255,255,0.2)";
+            btnValider.innerHTML = "✨ Valider la Progression";
+        }
     } else {
-        btnValider.disabled = true;
-        btnValider.style.opacity = "0.5";
-        btnValider.style.cursor = "not-allowed";
-        btnValider.style.boxShadow = "none";
+        btnValider.style.display = 'none';
     }
 }
 
@@ -190,9 +201,10 @@ photoContainer.innerHTML = `
         elDegats.innerText = (modifFo >= 0 ? "+" : "") + modifFo;
     }
 
-    if (document.getElementById('der-armure')) {
-        document.getElementById('der-armure').innerText = statDX + bonusArmure;
-        document.getElementById('der-armure').style.color = (bonusArmure > 0) ? "#4caf50" : "#fff";
+    const elArmure = document.getElementById('der-armure');
+    if (elArmure) {
+        elArmure.innerText = statDX + bonusArmure;
+        elArmure.style.color = (bonusArmure > 0) ? "#4caf50" : "#fff";
     }
     
     if (document.getElementById('der-vitesse')) document.getElementById('der-vitesse').innerText = statDX + (perso.boostVitesseInne || 0);
@@ -259,46 +271,8 @@ photoContainer.innerHTML = `
         score.style.color = align > 0 ? "#2196f3" : (align < 0 ? "#ff9800" : "#dcdcdc");
     }
 	
-	// --- 11. GESTION DYNAMIQUE DU BOUTON VALIDER ---
-  // --- 11. GESTION DYNAMIQUE DU BOUTON VALIDER ---
-    const btnValider = document.querySelector("button[onclick='validerChangements()']");
-    if (btnValider) {
-        const aDesChangements = 
-            investissementsTemporaires.pv !== 0 || 
-            investissementsTemporaires.ft !== 0 || 
-            Object.values(investissementsTemporaires.stats).some(v => v !== 0) ||
-            Object.values(investissementsTemporaires.comp).some(v => v !== 0) ||
-            Object.values(investissementsTemporaires.magie).some(v => v !== 0) ||
-            Object.values(investissementsTemporaires.tech).some(v => v !== 0);
-
-        if (perso.pointsDispo > 0 || aDesChangements) {
-            btnValider.style.display = 'block';
-
-            if (perso.pointsDispo > 0) {
-                // ÉTAT : ATTENTE (Vert sombre / Bronze)
-                btnValider.disabled = true;
-                btnValider.style.opacity = "0.7";
-                btnValider.style.background = "linear-gradient(180deg, #2e4d23 0%, #1b2e15 100%)"; // Vert forêt sombre
-                btnValider.style.color = "#aaa"; // Texte un peu grisé
-                btnValider.style.border = "2px solid #5d4a1f"; // Bordure bronze éteinte
-                btnValider.style.cursor = "not-allowed";
-                btnValider.style.boxShadow = "inset 0 0 10px rgba(0,0,0,0.5)";
-                btnValider.innerHTML = `⏳ Dépensez tout (${perso.pointsDispo})`;
-            } else {
-                // ÉTAT : PRÊT (Vert Arcanum Éclatant)
-                btnValider.disabled = false;
-                btnValider.style.opacity = "1";
-                btnValider.style.background = "linear-gradient(180deg, #4caf50 0%, #2e7d32 100%)"; // Vert vif
-                btnValider.style.color = "#fff";
-                btnValider.style.border = "2px solid #d4af37"; // Bordure Or
-                btnValider.style.cursor = "pointer";
-                btnValider.style.boxShadow = "0 0 15px rgba(76, 175, 80, 0.6), inset 0 0 10px rgba(255,255,255,0.2)";
-                btnValider.innerHTML = "✨ Valider la Progression";
-            }
-        } else {
-            btnValider.style.display = 'none';
-        }
-    }
+    // --- 11. GESTION DYNAMIQUE DU BOUTON VALIDER ---
+    verifierEtatValidation();
   
   
     // --- 12. MASQUAGE AUTO DE LA ZONE "POINTS À DISTRIBUER" ---
@@ -396,11 +370,8 @@ function validerChangements() {
         if (btnLvUp) btnLvUp.style.setProperty('display', 'none', 'important');
 
         // On cache la zone de texte "Points à distribuer"
-        const zonePoints = document.getElementById('points-dispo-container') || document.querySelector('.points-dispo-header'); 
-        // Si tu n'as pas de container, on cache au moins le chiffre :
-        if (document.getElementById('points-dispo')) {
-            document.getElementById('points-dispo').parentElement.style.display = 'none';
-        }
+        const elPointsDispo = document.getElementById('points-dispo');
+        if (elPointsDispo) elPointsDispo.parentElement.style.display = 'none';
 
         // 4. SAUVEGARDE ET SYNCHRO
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));

@@ -177,85 +177,6 @@ function trierInventaire(type) {
 // UTILISATION D'OBJETS DEPUIS L'INVENTAIRE 🎒
 // ==========================================
 
-/*
-function utiliserObjet(indexObjet) {
-    if (!perso || !perso.inventaire || !perso.inventaire[indexObjet]) return;
-
-    const objet = perso.inventaire[indexObjet];
-    const selectCible = document.getElementById('cible-objet');
-    const valeurCible = selectCible ? selectCible.value : "soi-meme";
-
-    // 1. Définir la cible
-    let cible = perso;
-    if (valeurCible !== "soi-meme") {
-        const nomJoueur = selectCible.options[selectCible.selectedIndex].text;
-        cible = { nom: nomJoueur, id: valeurCible };
-    }
-
-    // Calcul pour la limite de soin
-    const cibleMaxPV = cible.statsBase ? 
-        (cible.statsBase.FO * 2) + (cible.statsBase.IN) + (cible.boostPV || 0) : 100;
-    
-    // On estime l'état de la cible (mort ou vivant)
-    let pvCible = (cible === perso) ? perso.pvActuel : 1; 
-    let estMort = pvCible <= 0;
-
-    // 2. Vérifications et Effets
-    if (objet.soin) {
-        if (estMort && !objet.resurrection) {
-            alert(`${cible.nom || "La cible"} est inconsciente. Cet objet ne peut pas la ranimer !`);
-            return;
-        }
-        if (pvCible >= cibleMaxPV) {
-             alert(`${cible.nom || "La cible"} est déjà en pleine forme !`);
-             return;
-        }
-
-        // --- APPLICATION DU SOIN ---
-        if (cible === perso) {
-            perso.pvActuel = Math.min(cibleMaxPV, perso.pvActuel + objet.soin);
-            alert(`🧪 Vous utilisez ${objet.nom} : +${objet.soin} PV.`);
-            if (typeof verifierMort === 'function') verifierMort();
-        } else {
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cible.id + '/modif_stat').set({
-                stat: 'PV',
-                valeur: objet.soin,
-                timestamp: Date.now()
-            });
-            alert(`🧪 Vous donnez ${objet.nom} à ${cible.nom} : +${objet.soin} PV.`);
-        }
-
-    } else if (objet.resurrection) {
-        // Le cas du Réanimateur
-        if (cible === perso) {
-            alert("Vous ne pouvez pas utiliser un réanimateur sur vous-même en étant mort !");
-            return;
-        }
-        db.ref('parties/' + sessionActuelle + '/joueurs/' + cible.id + '/modif_stat').set({
-            stat: 'PV',
-            valeur: objet.soin || 50, // Rend 50 PV par défaut à la résurrection
-            timestamp: Date.now()
-        });
-        alert(`⚡ Vous utilisez un ${objet.nom} pour ranimer ${cible.nom} !`);
-    } else {
-        alert("Cet objet ne peut pas être utilisé comme ça.");
-        return;
-    }
-
-    // 3. Consommer l'objet (réduire la quantité ou le supprimer)
-    if (objet.quantite && objet.quantite > 1) {
-        objet.quantite -= 1;
-    } else {
-        perso.inventaire.splice(indexObjet, 1);
-    }
-
-    // 4. Sauvegarder et rafraîchir l'interface
-    if (typeof autoSave === 'function') autoSave();
-    if (typeof afficherInventaire === 'function') afficherInventaire(); // Ta fonction qui dessine l'inventaire
-    if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
-}
-
-*/
 
 // --- FONCTION UNIFIÉE POUR RETIRER UN OBJET DU SAC ---
 function retirerDeInventaire(itemId, quantiteADenlever = 1) {
@@ -299,20 +220,17 @@ function preparerUtilisationCible(index) {
         // On change le titre de la modal pour plus de clarté
         if (titre) titre.innerText = "Utiliser sur qui ?";
         
-        liste.innerHTML = "";
-        let aDesJoueurs = false;
-
-        // Optionnel : Ajouter "Soi-même" en haut de la liste pour l'utilisation
-        liste.innerHTML += `<button onclick="finaliserActionObjet('${moiID}', 'Vous-même')" style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">✨ Sur moi-même</button>`;
+        const fragments = [
+            `<button onclick="finaliserActionObjet('${moiID}', 'Vous-même')" style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">✨ Sur moi-même</button>`
+        ];
 
         for (let id in joueurs) {
             if (id !== moiID) {
-                aDesJoueurs = true;
-                // On utilise finaliserActionObjet au lieu de executerDonObjet
-                liste.innerHTML += `<button onclick="finaliserActionObjet('${id}', '${joueurs[id].nom}')" style="background:#ff9800; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">À ${joueurs[id].nom}</button>`;
+                fragments.push(`<button onclick="finaliserActionObjet('${id}', '${joueurs[id].nom}')" style="background:#ff9800; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">À ${joueurs[id].nom}</button>`);
             }
         }
 
+        liste.innerHTML = fragments.join('');
         document.getElementById('modal-transfert').style.display = 'block';
     });
 }
@@ -493,32 +411,18 @@ function finaliserActionObjet(cibleID, nomCible) {
         }
 
         // 3. APPLICATION DES EFFETS 🪄
-        
-        // Envoi du soin PV
-        if (soinPV > 0) {
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
-                stat: 'PV',
-                valeur: soinPV,
-                timestamp: Date.now()
-            });
-        }
+        // modif_stat est un nœud unique — on chaîne avec .then() pour éviter
+        // que le second set() écrase le premier avant que le listener le lise.
+        const statRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat');
+        const pvEffectif = (estResurrection && !soinPV) ? 10 : soinPV;
+        const envoyerStat = (stat, valeur) => statRef.set({ stat, valeur, timestamp: Date.now() });
 
-        // Envoi du soin Fatigue (Energie)
-        if (soinFT > 0) {
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
-                stat: 'FT',
-                valeur: soinFT,
-                timestamp: Date.now()
-            });
-        }
-
-        // Cas spécial Résurrection : si l'objet ressuscite mais n'a pas de valeur PV définie
-        if (estResurrection && !soinPV) {
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
-                stat: 'PV',
-                valeur: 10, // Réanimation minimum par défaut
-                timestamp: Date.now()
-            });
+        if (pvEffectif > 0 && soinFT > 0) {
+            envoyerStat('PV', pvEffectif).then(() => envoyerStat('FT', soinFT));
+        } else if (pvEffectif > 0) {
+            envoyerStat('PV', pvEffectif);
+        } else if (soinFT > 0) {
+            envoyerStat('FT', soinFT);
         }
 
         alert(`✅ ${data.nom} utilisé sur ${nomCible} !`);

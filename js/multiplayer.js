@@ -33,7 +33,7 @@ firebase.auth().onAuthStateChanged((user) => {
         if (typeof demarrerMoteurMulti === "function") demarrerMoteurMulti();
     } else {
         firebase.auth().signInAnonymously()
-            .catch((error) => {
+            .catch((_) => {
                 // On affiche un simple message au lieu d'une erreur bloquante
                 console.warn("⚠️ Mode Local détecté : Connexion Firebase anonyme impossible (Referer Null).");
                 
@@ -249,36 +249,31 @@ function activerEcouteurAlertesMJ() {
 }
 
 
-function activerRadarGroupeAccueil(modeCiblage = false) {
+function activerRadarGroupeAccueil() {
     if (!db || !sessionActuelle) return;
 
     db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
         const joueurs = snapshot.val();
         const container = document.getElementById('liste-membres-accueil');
         const zoneGroupe = document.getElementById('accueil-groupe-liste');
-        
-        // --- SÉCURITÉ : On vérifie si l'élément existe AVANT d'agir ---
-        if (!container) return; 
-        
-        container.innerHTML = "";
-        let count = 0;
+
+        if (!container) return;
+
+        const fragments = [];
 
         if (joueurs && window.perso) {
             for (let id in joueurs) {
                 let j = joueurs[id];
                 if (j.nom !== window.perso.nom && j.lieu === window.perso.lieuActuel) {
-                    count++;
-                    container.innerHTML += `
-                        <div style="color:#fff; font-size:0.8em; margin-bottom:5px;">
-                            <span style="color:${j.estMort ? '#f44336' : '#4caf50'}">●</span> ${j.nom}
-                        </div>`;
+                    fragments.push(`<div style="color:#fff; font-size:0.8em; margin-bottom:5px;"><span style="color:${j.estMort ? '#f44336' : '#4caf50'}">●</span> ${j.nom}</div>`);
                 }
             }
         }
 
-        // --- SÉCURITÉ : Idem pour la zone parente ---
+        container.innerHTML = fragments.join('');
+
         if (zoneGroupe) {
-            zoneGroupe.style.display = (count > 0) ? "block" : "none";
+            zoneGroupe.style.display = (fragments.length > 0) ? "block" : "none";
         }
     });
 }
@@ -327,6 +322,106 @@ function activerEcouteurDeplacementGroupe() {
             // Sauvegarde locale
             localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
         }
+    });
+}
+
+function ouvrirEcranGroupe() {
+    cacherTout();
+    const ecran = document.getElementById('ecran-groupe');
+    if (!ecran) return;
+    ecran.style.display = 'block';
+
+    const nomSession = document.getElementById('groupe-session-nom');
+    if (nomSession) nomSession.textContent = sessionActuelle;
+
+    const container = document.getElementById('affichage-allies');
+    if (!container) return;
+
+    container.innerHTML = '<div class="groupe-vide">Chargement...</div>';
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        if (!joueurs) {
+            container.innerHTML = '<div class="groupe-vide">Aucun aventurier connecté à cette session.</div>';
+            return;
+        }
+
+        const lieuActuel = window.perso ? window.perso.lieuActuel : null;
+        const fragments = [];
+
+        for (let id in joueurs) {
+            const j = joueurs[id];
+            const estMort = (j.pvActuel <= 0 || j.estMort);
+            const estMoi = (window.perso && j.nom === window.perso.nom);
+            const memeLieu = (j.lieu === lieuActuel);
+
+            const pvPct = j.pvMax > 0 ? Math.max(0, Math.min(100, (j.pvActuel / j.pvMax) * 100)) : 0;
+            const ftPct = j.ftMax > 0 ? Math.max(0, Math.min(100, (j.ftActuel / j.ftMax) * 100)) : 0;
+            const pvCritique = pvPct <= 25 && !estMort ? ' critique' : '';
+
+            let cardClasses = 'groupe-card';
+            if (estMort) cardClasses += ' est-mort';
+            if (estMoi) cardClasses += ' est-moi';
+
+            const statutTexte = estMort
+                ? '💀 Inconscient'
+                : (estMoi ? '● Vous' : '● En vie');
+
+            fragments.push(`
+                <div class="${cardClasses}">
+                    <div class="groupe-card-header">
+                        <div class="groupe-card-nom">${j.nom}</div>
+                        <div class="groupe-card-niveau">Niv. ${j.niveau || 1}</div>
+                    </div>
+                    <div class="groupe-card-statut">${statutTexte}</div>
+
+                    <div class="groupe-bar-label">
+                        <span>❤ PV</span>
+                        <span>${j.pvActuel ?? '?'} / ${j.pvMax ?? '?'}</span>
+                    </div>
+                    <div class="groupe-bar-track">
+                        <div class="groupe-bar-fill pv${pvCritique}" style="width:${pvPct}%"></div>
+                    </div>
+
+                    <div class="groupe-bar-label">
+                        <span>⚡ FT</span>
+                        <span>${j.ftActuel ?? '?'} / ${j.ftMax ?? '?'}</span>
+                    </div>
+                    <div class="groupe-bar-track">
+                        <div class="groupe-bar-fill ft" style="width:${ftPct}%"></div>
+                    </div>
+
+                    <div class="groupe-card-lieu${memeLieu ? ' meme-lieu' : ''}">
+                        📍 ${j.lieu || 'Lieu inconnu'}
+                    </div>
+                </div>`);
+        }
+
+        container.innerHTML = fragments.join('');
+    });
+}
+
+function activerEcouteurKick() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const kickRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/kick');
+
+    kickRef.on('value', (snapshot) => {
+        if (snapshot.val() !== true) return;
+
+        // On coupe l'écouteur immédiatement pour éviter un double déclenchement
+        kickRef.off();
+
+        // Déconnexion propre : on retire tous les listeners de la session
+        db.ref('parties/' + sessionActuelle).off();
+
+        // On efface le nom de session pour ne pas se reconnecter automatiquement
+        localStorage.removeItem('arcanum_session_name');
+        sessionActuelle = "session1";
+
+        alert("🚫 Vous avez été expulsé de la session par le Maître du Jeu.");
+
+        if (typeof allerAccueil === 'function') allerAccueil();
     });
 }
 
@@ -422,45 +517,6 @@ function ouvrirInterfaceMJ() {
     }
 }
 function switchOngletMJ(ongletId) {
-    console.log(`%c 📂 [MJ-UI] Onglet : ${ongletId}`, "color: #ff9800; font-weight: bold;");
-
-    // Sections HTML
-    const secJoueurs = document.getElementById('mj-section-joueurs');
-    const secCodex = document.getElementById('mj-section-codex');
-
-    if (secJoueurs) secJoueurs.style.display = 'none';
-    if (secCodex) secCodex.style.display = 'none';
-
-    if (ongletId === 'joueurs') {
-        if (secJoueurs) secJoueurs.style.display = 'block';
-        rafraichirListeJoueursMJ();
-    } 
-    else {
-        // Pour tous les autres onglets, on affiche le Codex
-        if (secCodex) secCodex.style.display = 'block';
-        
-        // On fait le lien avec ton codex.js
-        if (ongletId === 'codex-musique') {
-            if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
-        } else {
-            // Mapping des types pour genererContenuCodexMJ
-            const types = {
-                'codex-items': 'items',
-                'codex-marchands': 'marchands',
-                'codex-coffres': 'coffres',
-                'codex-lieux': 'lieux'
-            };
-            if (typeof genererContenuCodexMJ === "function") {
-                genererContenuCodexMJ(types[ongletId] || 'items');
-            }
-        }
-    }
-
-    // Gestion visuelle des boutons
-    document.querySelectorAll('.mj-tab-btn').forEach(btn => btn.classList.remove('active'));
-    const btnActif = document.querySelector(`button[onclick="switchOngletMJ('${ongletId}')"]`);
-    if (btnActif) btnActif.classList.add('active');
-}function switchOngletMJ(ongletId) {
     console.log("📂 [DEBUG] Activation de l'onglet : " + ongletId);
 
     // 1. GESTION DES SECTIONS VISIBLES
@@ -541,7 +597,7 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
             // Le joueur a déjà un cadeau non ramassé, on annule pour ne pas écraser
             return; 
         }
-    }, (error, committed, snapshot) => {
+    }, (error, committed, _snapshot) => {
         if (error) {
             console.error("❌ Erreur transaction :", error);
         } else if (!committed) {
@@ -587,6 +643,7 @@ function demarrerMoteurMulti() {
     activerEcouteurAlertesMJ();
     activerEcouteurMusiqueMJ();
     activerEcouteurCommandesMJ();
+    activerEcouteurKick();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT

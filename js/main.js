@@ -90,17 +90,17 @@ window.onload = function() {
 // ==========================================
 // 3. NAVIGATION & AFFICHAGE
 // ==========================================
+let _ecransCache = null;
 function cacherTout() {
-    const ecrans = [
-        'ecran-accueil', 'ecran-creation', 'ecran-fiche', 
-        'ecran-inventaire', 'ecran-fouille', 'ecran-marchand', 
-        'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj', 
-        'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil'
-    ];
-    ecrans.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
+    if (!_ecransCache) {
+        _ecransCache = [
+            'ecran-accueil', 'ecran-creation', 'ecran-fiche',
+            'ecran-inventaire', 'ecran-fouille', 'ecran-marchand',
+            'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj',
+            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil'
+        ].map(id => document.getElementById(id)).filter(Boolean);
+    }
+    _ecransCache.forEach(el => el.style.display = 'none');
 }
 
 function allerAccueil() {
@@ -130,9 +130,11 @@ function appliquerFondActuel() {
             document.body.style.backgroundImage = `url('./docs/img/fonds/fond_arcanum_default.jpg')`;
         }
     }
-    document.body.style.backgroundSize = "cover";
-    document.body.style.backgroundPosition = "center center";
-    document.body.style.backgroundAttachment = "fixed";
+    Object.assign(document.body.style, {
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+        backgroundAttachment: "fixed"
+    });
 }
 
 function rafraichirAccueil() {
@@ -206,6 +208,16 @@ if (statsBox && window.perso) {
             let mesSorts = (typeof getSortsConnus === "function") ? getSortsConnus() : [];
             btnMagie.style.display = (mesSorts.length > 0) ? 'block' : 'none';
         }
+
+        // Bouton Groupe : visible si au moins un autre joueur est dans la session
+        const btnGroupe = document.getElementById('btn-menu-groupe');
+        if (btnGroupe && typeof db !== 'undefined' && typeof sessionActuelle !== 'undefined') {
+            db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
+                const joueurs = snap.val();
+                const nbAutres = joueurs ? Object.keys(joueurs).filter(id => joueurs[id].nom !== window.perso.nom).length : 0;
+                btnGroupe.style.display = (nbAutres > 0) ? 'inline-block' : 'none';
+            });
+        }
     } else {
         if (zoneNouveau) zoneNouveau.style.display = 'block';
         if (zoneContinuer) zoneContinuer.style.display = 'none';
@@ -221,11 +233,24 @@ function verifierMort() {
     if (window.perso.pvActuel <= 0) {
         window.perso.pvActuel = 0;
         window.perso.estMort = true;
-        document.body.style.filter = "grayscale(100%)"; //
+        document.body.style.filter = "grayscale(100%)";
+        if (typeof AudioEngine !== 'undefined') AudioEngine.stopMusique();
     } else {
         // Si PV > 0, on ressuscite
         window.perso.estMort = false;
         document.body.style.filter = "none";
+        // Relancer la musique : piste MJ en cours, sinon ambiance du lieu
+        if (typeof AudioEngine !== 'undefined') {
+            db.ref('parties/' + sessionActuelle + '/musique_mj').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.fichier) {
+                    AudioEngine.jouerMusique(data.fichier);
+                } else {
+                    const lieuData = (typeof lieuxDecouverts !== 'undefined') ? lieuxDecouverts[window.perso.lieuActuel] : null;
+                    AudioEngine.jouerMusique(lieuData ? lieuData.musique : 'Arcanum.mp3');
+                }
+            });
+        }
     }
     
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur(); //
@@ -270,9 +295,11 @@ function chargerPersonnage() {
 
 
 function reprendrePartie() {
-    const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
-    if (!sauvegarde) return;
-    window.perso = JSON.parse(sauvegarde);
+    if (!window.perso || !window.perso.nom) {
+        const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
+        if (!sauvegarde) return;
+        window.perso = JSON.parse(sauvegarde);
+    }
     if (!window.perso.inventaire) window.perso.inventaire = [];
     if (!window.perso.equipement) window.perso.equipement = {
         tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null
@@ -290,12 +317,15 @@ function reprendrePartie() {
 // ==========================================
 // 5. SAUVEGARDE ET IMPORT/EXPORT
 // ==========================================
+let _autoSaveTimer = null;
 function autoSave() {
-    if (window.perso && window.perso.nom && window.perso.nom !== "Nom du Personnage") {
-        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
-        console.log("Sauvegarde automatique effectuée.");
-    }
-    if (typeof synchroniserJoueur === "function") synchroniserJoueur();
+    if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => {
+        if (window.perso && window.perso.nom && window.perso.nom !== "Nom du Personnage") {
+            localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
+        }
+        if (typeof synchroniserJoueur === "function") synchroniserJoueur();
+    }, 300);
 }
 
 function telechargerFichier() {

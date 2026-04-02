@@ -158,6 +158,7 @@ function rafraichirListeJoueursMJ() {
                         <button onclick="mjModifierStat('${id}', 'PV')" style="background:#2e7d32; color:white; border:none; padding:4px; cursor:pointer; font-size:11px;">+/- ❤️ PV</button>
                         <button onclick="mjModifierStat('${id}', 'FT')" style="background:#1565c0; color:white; border:none; padding:4px; cursor:pointer; font-size:11px;">+/- 🔋 FT</button>
                         <button onclick="mjDonnerLevelUp('${j.nom}')" style="grid-column: span 2; background:#ff9800; color:black; border:none; padding:4px; cursor:pointer; font-size:11px; font-weight:bold;">🌟 LEVEL UP</button>
+                        <button onclick="mjKickJoueur('${id}', '${j.nom}')" style="grid-column: span 2; background:#5a0000; color:#ff6b6b; border:1px solid #8b0000; padding:4px; cursor:pointer; font-size:11px;">🚫 Expulser de la session</button>
                     </div>
                 </div>
             `;
@@ -165,6 +166,19 @@ function rafraichirListeJoueursMJ() {
     });
 }
 
+
+function mjKickJoueur(playerID, nomJoueur) {
+    if (!confirm(`Expulser ${nomJoueur} de la session ?`)) return;
+
+    // 1. On écrit le flag kick — le joueur l'écoute et se déconnecte proprement
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/kick').set(true)
+      .then(() => {
+          // 2. Après 2s (le temps que le joueur reçoive le signal), on supprime son nœud
+          setTimeout(() => {
+              db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID).remove();
+          }, 2000);
+      });
+}
 
 function mjLootAleatoire(idJoueur) {
     // On filtre les objets "communs" (rareté < 5)

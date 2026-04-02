@@ -57,6 +57,7 @@
             <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px;">⚙️ Artisanat</button>
             <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px;">🔮 Magie</button>
             <button id="btn-menu-groupe" onclick="ouvrirEcranGroupe()" style="display: none; background: #2e4d23; color: #4caf50; border: 1px solid #4caf50; flex: 1; min-width: 80px;">👥 Groupe</button>
+            <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px;">🤝 Compagnons</button>
         </div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
@@ -517,6 +518,8 @@
         <button onclick="switchOngletMJ('codex-marchands')" class="mj-tab-btn">💰 Marchands</button>
         <button onclick="switchOngletMJ('codex-coffres')" class="mj-tab-btn">📦 Coffres</button>
         <button onclick="switchOngletMJ('codex-lieux')" class="mj-tab-btn">📍 Lieux</button>
+        <button onclick="switchOngletMJ('codex-npc')" class="mj-tab-btn">🧙 PNJ</button>
+        <button onclick="switchOngletMJ('codex-ennemis')" class="mj-tab-btn">🗡 Ennemis</button>
         <button onclick="switchOngletMJ('codex-musique')" class="mj-tab-btn">🎵 Musiques</button>
     </div>
 
@@ -584,6 +587,16 @@
     <button onclick="document.getElementById('modal-transfert').style.display='none'" style="background:#444; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:5px; width:100%;">❌ Annuler</button>
 </div>
 
+
+<div id="ecran-compagnons" class="ecran" style="display:none;">
+    <div class="compagnons-header">
+        <span class="compagnons-header-ornement">✦ Compagnons ✦</span>
+        <button class="compagnons-btn-retour" onclick="allerAccueil()" title="Retour">&#8592;</button>
+    </div>
+    <div class="compagnons-body">
+        <div id="compagnons-liste"></div>
+    </div>
+</div>
 
 <div id="ecran-groupe" class="ecran" style="display:none;">
     <div class="groupe-header">

@@ -97,7 +97,7 @@ function cacherTout() {
             'ecran-accueil', 'ecran-creation', 'ecran-fiche',
             'ecran-inventaire', 'ecran-fouille', 'ecran-marchand',
             'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj',
-            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil'
+            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil', 'ecran-compagnons'
         ].map(id => document.getElementById(id)).filter(Boolean);
     }
     _ecransCache.forEach(el => el.style.display = 'none');
@@ -109,6 +109,90 @@ function allerAccueil() {
     const ecran = document.getElementById('ecran-accueil');
     if (ecran) ecran.style.display = 'block';
     rafraichirAccueil();
+}
+
+function ouvrirEcranCompagnons() {
+    cacherTout();
+    const ecran = document.getElementById('ecran-compagnons');
+    if (ecran) ecran.style.display = 'block';
+    afficherEcranCompagnons();
+}
+
+/**
+ * Rendu en lecture seule des compagnons du joueur.
+ * Le joueur ne peut ni modifier les stats ni renvoyer le compagnon.
+ */
+function afficherEcranCompagnons() {
+    const container = document.getElementById('compagnons-liste');
+    if (!container) return;
+    const comps = window.perso?.compagnons || [];
+
+    if (comps.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">Aucun compagnon pour l\'instant.</p>';
+        return;
+    }
+
+    const statCH = (window.perso.statsBase?.CH || 0) + (window.perso.statsInvesties?.CH || 0);
+    const maxComps = Math.max(1, Math.floor(statCH / 4));
+
+    const fragments = [];
+    comps.forEach((c) => {
+        const fo  = c.statsBase.FO + (c.statsInvesties?.FO || 0);
+        const ini = c.statsBase.IN + (c.statsInvesties?.IN || 0);
+        const cn  = c.statsBase.CN + (c.statsInvesties?.CN || 0);
+        const dx  = c.statsBase.DX + (c.statsInvesties?.DX || 0);
+        const ch  = c.statsBase.CH + (c.statsInvesties?.CH || 0);
+        const pvMax = (fo * 2) + ini + (c.boostPV || 0);
+        const ftMax = (cn * 2) + ini + (c.boostFT || 0);
+        const pvPct = pvMax > 0 ? Math.round((c.pvActuel / pvMax) * 100) : 0;
+        const ftPct = ftMax > 0 ? Math.round((c.ftActuel / ftMax) * 100) : 0;
+
+        // Équipement non-null
+        const equipItems = [];
+        if (c.equipement && typeof itemsData !== 'undefined') {
+            for (let slot in c.equipement) {
+                const eq = c.equipement[slot];
+                if (eq && itemsData[eq.id]) equipItems.push(itemsData[eq.id].nom);
+            }
+        }
+
+        // Compétences investies
+        const compStr = c.compInvesties
+            ? Object.entries(c.compInvesties).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(' · ')
+            : '';
+
+        fragments.push(`
+            <div class="compagnon-card">
+                <div class="compagnon-header">
+                    <span class="compagnon-nom">${c.nom}</span>
+                    <span class="compagnon-niveau">Niv. ${c.niveau || 1}</span>
+                </div>
+                <div class="compagnon-identite">${c.race || '?'} — ${c.sexe === 'F' ? 'Féminin' : 'Masculin'}</div>
+                <div class="compagnon-antecedent">${c.antecedent || ''}</div>
+
+                <div class="compagnon-bars">
+                    <div class="compagnon-bar-label"><span>❤ PV</span><span>${c.pvActuel} / ${pvMax}</span></div>
+                    <div class="compagnon-bar-track"><div class="compagnon-bar-fill pv" style="width:${pvPct}%"></div></div>
+                    <div class="compagnon-bar-label"><span>⚡ FT</span><span>${c.ftActuel} / ${ftMax}</span></div>
+                    <div class="compagnon-bar-track"><div class="compagnon-bar-fill ft" style="width:${ftPct}%"></div></div>
+                </div>
+
+                <div class="compagnon-stats-grid">
+                    <div class="compagnon-stat"><span class="cs-label">FO</span><span class="cs-val">${fo}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">IN</span><span class="cs-val">${ini}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CN</span><span class="cs-val">${cn}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">DX</span><span class="cs-val">${dx}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CH</span><span class="cs-val">${ch}</span></div>
+                </div>
+
+                ${equipItems.length ? `<div class="compagnon-equip">🗡 ${equipItems.join(' · ')}</div>` : ''}
+                ${compStr ? `<div class="compagnon-comps">📚 ${compStr}</div>` : ''}
+            </div>
+        `);
+    });
+
+    const enTete = `<div class="compagnons-max-info">Compagnons : ${comps.length} / ${maxComps} (CH ${statCH})</div>`;
+    container.innerHTML = enTete + fragments.join('');
 }
 
 function ouvrirAide() {
@@ -207,6 +291,13 @@ if (statsBox && window.perso) {
         if (btnMagie) {
             let mesSorts = (typeof getSortsConnus === "function") ? getSortsConnus() : [];
             btnMagie.style.display = (mesSorts.length > 0) ? 'block' : 'none';
+        }
+
+        // Bouton Compagnons : visible si le joueur a au moins un compagnon
+        const btnCompagnons = document.getElementById('btn-menu-compagnons');
+        if (btnCompagnons) {
+            const nbComps = (window.perso.compagnons || []).length;
+            btnCompagnons.style.display = nbComps > 0 ? 'inline-block' : 'none';
         }
 
         // Bouton Groupe : visible si au moins un autre joueur est dans la session

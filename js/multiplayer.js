@@ -75,7 +75,8 @@ function synchroniserJoueur() {
         niveau: window.perso.niveau || 1,
         lieu: (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[window.perso.lieuActuel]) ? lieuxDecouverts[window.perso.lieuActuel].nom : "Inconnu",
 		estMort: window.perso.estMort || false,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        compagnons_summary: (window.perso.compagnons || []).map((c, i) => ({ nom: c.nom, niveau: c.niveau || 1, idx: i })) || null
     };
 
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID).update(dataSync);
@@ -401,6 +402,88 @@ function ouvrirEcranGroupe() {
     });
 }
 
+// ==========================================
+// SYSTÈME DE COMPAGNONS
+// ==========================================
+
+/**
+ * Ecoute les actions MJ sur les compagnons du joueur (don, level up, renvoi).
+ * Le MJ écrit dans /joueurs/{id}/compagnon_action ; le joueur applique et sauvegarde.
+ */
+function activerEcouteurCompagnons() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action');
+    ref.off();
+    ref.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data || !data.type) return;
+        ref.remove(); // consume immédiatement
+
+        if (!window.perso.compagnons) window.perso.compagnons = [];
+        const comps = window.perso.compagnons;
+
+        if (data.type === 'don') {
+            const npc = (typeof personnagesNPC !== 'undefined') ? personnagesNPC[data.npcId] : null;
+            if (!npc) { alert('⚠️ PNJ introuvable : ' + data.npcId); return; }
+            const statCH = (window.perso.statsBase?.CH || 0) + (window.perso.statsInvesties?.CH || 0);
+            const maxComps = Math.max(1, Math.floor(statCH / 4));
+            if (comps.length >= maxComps) {
+                alert(`⚠️ Limite atteinte (${maxComps} compagnon(s) max selon votre CH).`);
+                return;
+            }
+            comps.push(JSON.parse(JSON.stringify(npc)));
+            alert(`🤝 ${npc.nom} rejoint votre groupe comme compagnon !`);
+        }
+        else if (data.type === 'levelup') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            comp.niveau = (comp.niveau || 1) + 1;
+            if (data.stat && comp.statsInvesties) {
+                comp.statsInvesties[data.stat] = (comp.statsInvesties[data.stat] || 0) + 1;
+                // Recalcul PV/FT si stat structurelle modifiée
+                const fo  = comp.statsBase.FO + comp.statsInvesties.FO;
+                const ini = comp.statsBase.IN + comp.statsInvesties.IN;
+                const cn  = comp.statsBase.CN + comp.statsInvesties.CN;
+                comp.pvActuel = (fo * 2) + ini + (comp.boostPV || 0);
+                comp.ftActuel = (cn * 2) + ini + (comp.boostFT || 0);
+            }
+            alert(`🌟 ${comp.nom} passe niveau ${comp.niveau} ! (+1 ${data.stat})`);
+        }
+        else if (data.type === 'renvoi') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            const nom = comp.nom;
+            comps.splice(data.compIdx, 1);
+            alert(`👋 ${nom} a quitté votre groupe.`);
+        }
+
+        window.perso.compagnons = comps;
+        if (typeof autoSave === 'function') autoSave();
+        _syncCompagnonsSummary();
+
+        // Rafraîchit l'écran compagnons s'il est ouvert
+        const ecranComp = document.getElementById('ecran-compagnons');
+        if (ecranComp && ecranComp.style.display !== 'none') {
+            if (typeof afficherEcranCompagnons === 'function') afficherEcranCompagnons();
+        }
+        // Affiche/masque le bouton accueil
+        const btnComp = document.getElementById('btn-menu-compagnons');
+        if (btnComp) btnComp.style.display = comps.length > 0 ? 'inline-block' : 'none';
+    });
+}
+
+/** Pousse un résumé léger des compagnons sur Firebase (pour que le MJ puisse les voir). */
+function _syncCompagnonsSummary() {
+    if (!window.perso?.nom || !db) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const summary = (window.perso.compagnons || []).map((c, i) => ({
+        nom: c.nom, niveau: c.niveau || 1, idx: i
+    }));
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnons_summary')
+      .set(summary.length ? summary : null);
+}
+
 function activerEcouteurKick() {
     if (!window.perso || !window.perso.nom) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
@@ -547,6 +630,14 @@ function switchOngletMJ(ongletId) {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('lieux');
     }
+    else if (ongletId === 'codex-npc') {
+        if(secCodex) secCodex.style.display = 'block';
+        if (typeof genererNPCsMJ === "function") genererNPCsMJ();
+    }
+    else if (ongletId === 'codex-ennemis') {
+        if(secCodex) secCodex.style.display = 'block';
+        if (typeof genererEnnemisCodexMJ === "function") genererEnnemisCodexMJ();
+    }
     else if (ongletId === 'codex-musique') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
@@ -644,6 +735,7 @@ function demarrerMoteurMulti() {
     activerEcouteurMusiqueMJ();
     activerEcouteurCommandesMJ();
     activerEcouteurKick();
+    activerEcouteurCompagnons();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT

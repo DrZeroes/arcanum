@@ -1,11 +1,20 @@
 
 // ================= GESTION INVENTAIRE & EQUIPEMENT =================
+let triActuel = {
+    type: 'poids', // 'poids' ou 'prix'
+    ordre: 'desc'  // 'desc' ou 'asc'
+};
+
+
 
 const nomEmplacements = {
     "tete": "Tête", "torse": "Torse", "gants": "Mains (Gants)", "bottes": "Pieds", 
     "anneau": "Doigt (Anneau)", "amulette": "Cou (Amulette)",
     "main_droite": "Main Droite", "main_gauche": "Main Gauche", "deux_mains": "Deux Mains"
 };
+
+let objetEnCoursUtilisation = null;
+let indexObjetEnCours = null;
 
 function allerInventaire() {
     cacherTout();
@@ -138,59 +147,104 @@ function desequiperItem(slot, isSilent = false) {
 }
 
 
+function trierInventaire(type) {
+    if (!perso.inventaire) return;
 
-function trierInventaire(critere) {
-    if (!perso.inventaire || perso.inventaire.length === 0) return;
-
-    // Calcul du bonus de marchandage pour le tri par prix
-    let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
-    let reductionClient = ptsMarchandage * 0.02;
+    // Si on clique sur le même type, on inverse l'ordre
+    if (triActuel.type === type) {
+        triActuel.ordre = (triActuel.ordre === 'desc') ? 'asc' : 'desc';
+    } else {
+        // Nouveau type de tri, on remet en descendant par défaut
+        triActuel.type = type;
+        triActuel.ordre = 'desc';
+    }
 
     perso.inventaire.sort((a, b) => {
         let dataA = itemsData[a.id];
         let dataB = itemsData[b.id];
-        
         if (!dataA || !dataB) return 0;
 
-if (critere === 'poids') {
-            // --- CALCUL DU POIDS TOTAL POUR LE TRI ---
-            // On multiplie le poids unitaire par la quantité de la pile
-            let qteA = a.quantite || a.qte || 1;
-            let qteB = b.quantite || b.qte || 1;
-            
-            let poidsTotalA = dataA.poids * qteA;
-            let poidsTotalB = dataB.poids * qteB;
+        let valA = (type === 'poids') ? dataA.poids : dataA.prix;
+        let valB = (type === 'poids') ? dataB.poids : dataB.prix;
 
-            // Tri du plus lourd au plus léger
-            return poidsTotalB - poidsTotalA;
-        }
-
-if (critere === 'prix') {
-            let qteA = a.quantite || a.qte || 1;
-            let qteB = b.quantite || b.qte || 1;
-            
-            let valeurTotaleA = dataA.prix * qteA;
-            let valeurTotaleB = dataB.prix * qteB;
-
-            // Du plus cher au moins cher
-            return valeurTotaleB - valeurTotaleA;
-        }
-
-        if (critere === 'nom') {
-            return dataA.nom.localeCompare(dataB.nom);
-        }
-        
-        return 0;
+        return (triActuel.ordre === 'desc') ? (valB - valA) : (valA - valB);
     });
 
-    // On rafraîchit l'affichage après avoir trié la liste
     updateInventaireUI();
 }
 
+// ==========================================
+// UTILISATION D'OBJETS DEPUIS L'INVENTAIRE 🎒
+// ==========================================
+
+
+// --- FONCTION UNIFIÉE POUR RETIRER UN OBJET DU SAC ---
+function retirerDeInventaire(itemId, quantiteADenlever = 1) {
+    const index = perso.inventaire.findIndex(item => item.id === itemId);
+
+    if (index !== -1) {
+        let itemSlot = perso.inventaire[index];
+        // On gère les deux noms de variables possibles (quantite ou qte)
+        let qteActuelle = itemSlot.quantite || itemSlot.qte || 1;
+        
+        qteActuelle -= quantiteADenlever;
+
+        if (qteActuelle <= 0) {
+            // Plus d'objet ? On supprime la ligne
+            perso.inventaire.splice(index, 1);
+        } else {
+            // On met à jour les deux pour être sûr
+            itemSlot.quantite = qteActuelle;
+            itemSlot.qte = qteActuelle;
+        }
+        
+        if (typeof autoSave === "function") autoSave();
+    }
+}
+
+
+function preparerUtilisationCible(index) {
+    const item = perso.inventaire[index];
+    if (!item) return;
+
+    indexObjetEnCours = index;
+    objetEnCoursUtilisation = item;
+
+    const moiID = perso.nom.replace(/\s+/g, '_');
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snapshot) => {
+        const joueurs = snapshot.val();
+        const liste = document.getElementById('liste-destinataires');
+        const titre = document.querySelector('#modal-transfert h3') || document.querySelector('#modal-transfert .titre'); 
+        
+        // On change le titre de la modal pour plus de clarté
+        if (titre) titre.innerText = "Utiliser sur qui ?";
+        
+        const fragments = [
+            `<button onclick="finaliserActionObjet('${moiID}', 'Vous-même')" style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">✨ Sur moi-même</button>`
+        ];
+
+        for (let id in joueurs) {
+            if (id !== moiID) {
+                fragments.push(`<button onclick="finaliserActionObjet('${id}', '${joueurs[id].nom}')" style="background:#ff9800; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">À ${joueurs[id].nom}</button>`);
+            }
+        }
+
+        liste.innerHTML = fragments.join('');
+        document.getElementById('modal-transfert').style.display = 'block';
+    });
+}
 function updateInventaireUI() {
     let listInv = document.getElementById('inv-list-full');
     let listEq = document.getElementById('equipement-list');
     if (!listInv || !listEq) return 0;
+
+    // --- 1. MISE À JOUR DE L'ARGENT ---
+    const elArgent = document.getElementById('inv-argent-total');
+    if (elArgent) {
+        // On affiche l'argent du perso (ou 0 si indéfini)
+        elArgent.innerText = (window.perso && window.perso.argent !== undefined) ? window.perso.argent : 0;
+    }
 
     let poidsTotal = 0;
 
@@ -208,31 +262,49 @@ function updateInventaireUI() {
         return h;
     };
 
-    // --- 1. DESSINER LE SAC À DOS ---
+    // --- 2. DESSINER LE SAC À DOS ---
+// Calcul des styles et labels pour les boutons
+    const styleActif = "border: 2px solid #4caf50; background: #2e4d23; color: white;";
+    const styleInactif = "border: 1px solid #555; background: #333; color: #888;";
     
-    // Ajout des boutons de tri en haut de la liste
+    let labelPoids = (triActuel.type === 'poids' && triActuel.ordre === 'asc') ? "⚖️ Moins Lourd" : "⚖️ Plus Lourd";
+    let labelPrix = (triActuel.type === 'prix' && triActuel.ordre === 'asc') ? "💰 Moins Cher" : "💰 Plus Cher";
+
     let htmlInv = `
         <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #1a110b; padding: 10px; border-radius: 4px; border: 1px solid #444;">
-            <span style="color: #888; font-size: 0.9em; align-self: center;">Trier par :</span>
-            <button onclick="trierInventaire('poids')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">⚖️ Plus Lourd</button>
-            <button onclick="trierInventaire('prix')" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1;">💰 Plus Cher</button>
+            <span style="color: #888; font-size: 0.9em; align-self: center;">Trier :</span>
+            
+            <button onclick="trierInventaire('poids')" 
+                style="${triActuel.type === 'poids' ? styleActif : styleInactif} padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1; transition: all 0.2s;">
+                ${labelPoids}
+            </button>
+            
+            <button onclick="trierInventaire('prix')" 
+                style="${triActuel.type === 'prix' ? styleActif : styleInactif} padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em; flex: 1; transition: all 0.2s;">
+                ${labelPrix}
+            </button>
         </div>
     `;
 
+
+
+
     if (!perso.inventaire || perso.inventaire.length === 0) {
-        htmlInv = "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
+        htmlInv += "<div style='color:#666; font-style:italic; text-align: center; margin-top: 20px;'>Le sac est vide.</div>";
     } else {
         perso.inventaire.forEach((item, index) => {
             let data = itemsData[item.id];
             if (data) {
                 poidsTotal += data.poids * item.quantite;
                 
-                // Calcul du prix de vente affiché
                 let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
-                prixVente = Math.min(prixVente, data.prix); // Capé au prix max
+                prixVente = Math.min(prixVente, data.prix);
                 
                 let btnEquiper = (data.equipable && data.equipable !== "aucun") 
-                    ? `<button onclick="equiperItem(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+                    ? `<button onclick="equiperItem(${index})" style="background:#4caf50; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
+
+                let btnConsommer = (data.type === "consommable")
+                    ? `<button onclick="preparerUtilisationCible(${index})" style="background:#ff9800; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🧪 Utiliser</button>` : ``;
 
                 htmlInv += `
                     <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
@@ -246,17 +318,17 @@ function updateInventaireUI() {
                         <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
                         ${getStatsHtml(data, item)}
                         <div style="display:flex; gap: 5px; margin-top: 8px;">
-                            ${btnEquiper}
+                            ${btnEquiper} ${btnConsommer}
+							<button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
                             <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
                         </div>
                     </div>`;
             }
         });
     }
-    
     listInv.innerHTML = htmlInv;
 
-    // --- 2. DESSINER L'ÉQUIPEMENT ---
+    // --- 3. DESSINER L'ÉQUIPEMENT ---
     let htmlEq = ``;
     for (let slot in perso.equipement) {
         let itemEq = perso.equipement[slot];
@@ -284,12 +356,92 @@ function updateInventaireUI() {
     }
     listEq.innerHTML = htmlEq;
     
-    // MAJ de la charge dans l'inventaire
+    // --- 4. MISE À JOUR DE LA CHARGE FINALE ---
     let statFO = (perso.statsBase.FO || 8) + (perso.statsInvesties.FO || 0);
     let elPoidsInv = document.getElementById('inv-poids-total');
     if (elPoidsInv) {
         elPoidsInv.innerText = poidsTotal.toFixed(1) + " / " + (statFO * 2) + " kg";
         elPoidsInv.style.color = (poidsTotal > (statFO * 2)) ? "#f44336" : "#4caf50"; 
     }
+    
     return poidsTotal;
+}
+
+
+function finaliserActionObjet(cibleID, nomCible) {
+    if (!objetEnCoursUtilisation) return;
+
+    const itemPile = objetEnCoursUtilisation;
+    const data = itemsData[itemPile.id]; 
+    const index = indexObjetEnCours;
+
+    // 1. RÉCUPÉRATION DE L'ÉTAT DE LA CIBLE
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID).once('value', (snapshot) => {
+        const cibleData = snapshot.val();
+        if (!cibleData) return;
+
+        const pvActuels = cibleData.pvActuel || 0;
+        const pvMax = cibleData.pvMax || 100;
+        const estKO = (pvActuels <= 0 || cibleData.estMort === true);
+
+        // --- Extraction des stats de l'objet pour plus de clarté ---
+        const soinPV = data.stats ? data.stats.soinPV : 0;
+        const soinFT = data.stats ? data.stats.soinFT : 0;
+        const estResurrection = data.stats ? data.stats.resurrection : false;
+
+        // 2. VÉRIFICATIONS DES RÈGLES DE JEU 🛡️
+        
+        // Cas A : L'objet est un RÉANIMATEUR
+        if (estResurrection) {
+            if (!estKO) {
+                alert(`🚫 ${nomCible} n'est pas KO. Le réanimateur n'a aucun effet sur les vivants !`);
+                return;
+            }
+        } 
+        // Cas B : L'objet est un SOIN (Potion, Nourriture...)
+        else if (soinPV > 0) {
+            if (estKO) {
+                alert(`🚫 ${nomCible} est inconscient(e). Une potion ne servira à rien, il faut un réanimateur !`);
+                return;
+            }
+            if (pvActuels >= pvMax) {
+                alert(`🚫 ${nomCible} est déjà en pleine forme !`);
+                return;
+            }
+        }
+
+        // 3. APPLICATION DES EFFETS 🪄
+        // modif_stat est un nœud unique — on chaîne avec .then() pour éviter
+        // que le second set() écrase le premier avant que le listener le lise.
+        const statRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat');
+        const pvEffectif = (estResurrection && !soinPV) ? 10 : soinPV;
+        const envoyerStat = (stat, valeur) => statRef.set({ stat, valeur, timestamp: Date.now() });
+
+        if (pvEffectif > 0 && soinFT > 0) {
+            envoyerStat('PV', pvEffectif).then(() => envoyerStat('FT', soinFT));
+        } else if (pvEffectif > 0) {
+            envoyerStat('PV', pvEffectif);
+        } else if (soinFT > 0) {
+            envoyerStat('FT', soinFT);
+        }
+
+        alert(`✅ ${data.nom} utilisé sur ${nomCible} !`);
+
+        // 4. CONSOMMATION DE L'OBJET
+        let qte = itemPile.quantite || itemPile.qte || 1;
+        if (qte > 1) {
+            itemPile.quantite = qte - 1;
+            itemPile.qte = itemPile.quantite;
+        } else {
+            perso.inventaire.splice(index, 1);
+        }
+
+        // 5. FERMETURE ET NETTOYAGE
+        document.getElementById('modal-transfert').style.display = 'none';
+        objetEnCoursUtilisation = null;
+        indexObjetEnCours = null;
+        
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof updateInventaireUI === 'function') updateInventaireUI();
+    });
 }

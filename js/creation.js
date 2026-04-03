@@ -85,11 +85,11 @@ function validerCreation() {
     const bg = backgrounds.find(b => b.nom === bgName) || { mod: {} };
     const sexe = document.getElementById('sexeSelect').value;
 
-    // 3. Formatage du nom de la photo (ex: 01.png, 02.png...)
-    // On utilise la variable globale photoIndexSelection pilotée par tes flèches
+    // 3. Formatage du nom de la photo
     const nomPhoto = photoIndexSelection.toString().padStart(2, '0') + ".png";
 
     // 4. Initialisation de l'objet personnage
+    // NOTE : On définit "perso" (sans le let) car c'est ta variable globale
     perso = {
         nom: nom,
         race: rKey,
@@ -102,7 +102,7 @@ function validerCreation() {
         boostVitesseInne: (bg.mod && bg.mod.vitesse) ? bg.mod.vitesse : 0,
         boostPV: 0, 
         boostFT: 0,
-        statsBase: JSON.parse(JSON.stringify(statsCalculees)), // Copie des stats après bonus raciaux
+        statsBase: JSON.parse(JSON.stringify(statsCalculees)), 
         statsInvesties: { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 },
         compInvesties: {}, 
         compBase: {},
@@ -113,7 +113,7 @@ function validerCreation() {
             resPhys: (race.mod.resPhys || 0) + (bg.mod.resPhys || 0),
             resPoison: (race.mod.resPoison || 0) + (bg.mod.resPoison || 0),
             resMagie: (race.mod.resMagie || 0) + (bg.mod.resMagie || 0), 
-            resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),        
+            resFeu: (race.mod.resFeu || 0) + (bg.mod.resFeu || 0),             
             resElec: (race.mod.resElec || 0) + (bg.mod.resElec || 0)      
         },
         inventaire: [],
@@ -121,33 +121,25 @@ function validerCreation() {
             tete: null, torse: null, gants: null, bottes: null, 
             anneau: null, amulette: null, main_droite: null, main_gauche: null
         },
-		lieuActuel: "crash",
-        lieuxConnus: ["crash"]
+        lieuActuel: "crash",
+        lieuxConnus: ["crash"],
+        estMort: false // On s'assure qu'il est bien vivant !
     };
 
-    // ========================================================
     // --- GESTION DE L'ÉQUIPEMENT DE DÉPART ---
-    
-    // 1. Tenue par défaut (Remplace par tes vrais IDs : ex "ARM01")
     let idVetementTorse = (sexe === 'F') ? "ARM_ROBE" : "ARM_TISSU";
-
-    // Exceptions : Pas de vêtement pour Bedokien ou Ogre des montagnes
     if (rKey === "Bedokien" || bgName === "Ogre des montagnes") {
         idVetementTorse = null; 
     }
 
-    // 2. Objets donnés par le Background (Armes, munitions, armures spéciales)
     if (bg.mod && bg.mod.items) {
         bg.mod.items.forEach(itemBg => {
             if (itemsData[itemBg.id]) {
-                // Si l'objet est une armure de torse, il remplace la tenue par défaut
                 if (itemsData[itemBg.id].equipable === "torse") {
                     idVetementTorse = itemBg.id;
                 } else {
-                    // Sinon, on le met dans le sac
                     perso.inventaire.push({
                         id: itemBg.id,
-                        qte: itemBg.qte,
                         quantite: itemBg.qte,
                         durabilite: itemsData[itemBg.id].durabiliteMax || 100,
                         durabiliteMax: itemsData[itemBg.id].durabiliteMax || 100
@@ -157,19 +149,16 @@ function validerCreation() {
         });
     }
 
-    // 3. Équipement automatique de la tenue de torse finale
     if (idVetementTorse && itemsData[idVetementTorse]) {
         perso.equipement.torse = {
             id: idVetementTorse,
-            qte: 1,
             quantite: 1,
             durabilite: itemsData[idVetementTorse].durabiliteMax || 100,
             durabiliteMax: itemsData[idVetementTorse].durabiliteMax || 100
         };
     }
-    // ========================================================
 
-    // 5. Application des bonus de compétences (Race + BG)
+    // 5. Application des bonus de compétences
     const appliquerComp = (source) => {
         if (!source) return;
         if (source.bonusComp) {
@@ -178,21 +167,11 @@ function validerCreation() {
                 perso.compInvesties[id] = (perso.compInvesties[id] || 0) + source.bonusComp[id];
             }
         }
-        if (source.bonusCompCat) {
-            const cat = source.bonusCompCat.cat;
-            const val = source.bonusCompCat.val;
-            if (competencesData[cat]) {
-                competencesData[cat].forEach(c => {
-                    perso.compBase[c.id] = (perso.compBase[c.id] || 0) + val;
-                    perso.compInvesties[c.id] = (perso.compInvesties[c.id] || 0) + val;
-                });
-            }
-        }
     };
     appliquerComp(race.mod);
     appliquerComp(bg.mod);
 
-    // 6. Application des maîtrises Magie/Tech initiales
+    // 6. Application des maîtrises Magie/Tech
     const ajouterPointsInit = (source) => {
         if (source && source.techInit) {
             for (let discipline in source.techInit) {
@@ -208,27 +187,55 @@ function validerCreation() {
     ajouterPointsInit(race.mod);
     ajouterPointsInit(bg.mod);
 
-// --- CHANGEMENT DE MUSIQUE : DU MENU VERS LE MONDE ---
-    // On va chercher la musique du lieu "crash" dans tes données
+    // ========================================================
+    // --- 7. INITIALISATION DES POINTS DE VIE ET FATIGUE ---
+    // ========================================================
+    const maxPV = (perso.statsBase.FO * 2) + (perso.statsBase.IN) + (perso.boostPV || 0);
+    const maxFT = (perso.statsBase.CN * 2) + (perso.statsBase.IN) + (perso.boostFT || 0);
+    
+    // On assigne les valeurs de départ pour éviter le "undefined"
+    perso.pvActuel = maxPV;
+    perso.ftActuel = maxFT;
+    // ========================================================
+
+    // Musique du lieu
     if (lieuxDecouverts["crash"] && lieuxDecouverts["crash"].musique) {
         AudioEngine.jouerMusique(lieuxDecouverts["crash"].musique);
     }
 
-    // 8. Sauvegarde finale et Changement d'écran
+    // 8. Sauvegarde finale
     localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
     
+    // Mettre à jour l'objet global pour le multijoueur
+    window.perso = perso;
+
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
+    
+    // On synchronise avec Firebase immédiatement
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+
     updateFicheUI();
     if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
-	appliquerFondActuel();
-	
+    appliquerFondActuel();
 }
-
-
 function nouveauPersonnage() {
 	
-	AudioEngine.jouerMusique('arcanum.mp3');
+// --- FORCE L'ACCÈS À LA VARIABLE GLOBALE ---
+    if (typeof perso === 'undefined') {
+        if (window.perso) {
+            perso = window.perso;
+        } else {
+            window.perso = {};
+            perso = window.perso;
+        }
+    }
+
+    // Ton code de musique (attention à la casse du nom de fichier !)
+    if (typeof AudioEngine !== 'undefined') {
+        AudioEngine.jouerMusique('Arcanum.mp3'); 
+    }
+
     // 1. Sécurité anti-écrasement
     if (perso && perso.nom && perso.nom !== "Nom du Personnage" && perso.nom !== "") {
         if (!confirm("Attention : Créer un nouveau personnage effacera votre progression. Continuer ?")) {

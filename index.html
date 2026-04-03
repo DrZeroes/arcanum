@@ -10,13 +10,17 @@
 
 <button onclick="toggleMute()" id="btn-audio" style="position:fixed; top:10px; right:10px; z-index:1000;">🔊</button>
 
-
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
     <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
-    
+
+    <div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;">
+        <label style="color: #ff9800; display: block; margin-bottom: 5px;">🔑 Groupe de Jeu (Session) :</label>
+        <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" style="width: 100%; background: #222; color: white; border: 1px solid #444; padding: 8px; text-align: center;">
+        <p style="font-size: 0.7em; color: #888; margin-top: 5px;">Entrez le même nom que vos amis pour jouer ensemble.</p>
+    </div>
+
     <div id="accueil-nouveau-jeu">
         <button class="next-btn" style="background: #8b0000; color: white; width: 80%; margin-bottom: 15px;" onclick="nouveauPersonnage()">✨ Créer un Personnage</button>
-        
         <div style="margin-top: 10px;">
             <input type="file" id="file-import-new" accept=".json" style="display:none;" onchange="importerFichier(event)">
             <button class="next-btn" style="width: 80%; padding: 12px; background: #2b2b2b; color: #d4af37; border: 1px dashed #d4af37; font-size: 0.9em;" onclick="document.getElementById('file-import-new').click()">📂 Importer un perso (.json)</button>
@@ -24,56 +28,60 @@
     </div>
 
     <div id="accueil-continuer" style="display: none;">
-        <h3 id="accueil-nom-perso" style="color: #aaa; margin-bottom: 20px;">Personnage : -</h3>
+        <h3 id="accueil-nom-perso" style="color: #d4af37; margin-bottom: 5px;">Héros : -</h3>
         <p id="accueil-lieu-perso" style="color: #4caf50; font-size: 0.9em; margin-bottom: 20px; font-style: italic;">Lieu : -</p>
-		        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
 
-<button class="next-btn" style="background: #4caf50; color: white; width: 80%; margin-bottom: 10px;" onclick="reprendrePartie()">📜 Reprendre l'Aventure</button> 
-<button onclick="ouvrirCarte()" style="background: #2196f3; color: white; width: 80%; margin-bottom: 15px; cursor: pointer; padding: 12px; border: none; border-radius: 5px; font-weight: bold;">
-    🗺️ Explorer la Carte d'Arcanum
-</button>       
+        <div id="accueil-stats-perso" style="display: none; background: #1a110b; border: 1px solid #444; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center;">
+            <span style="color: #4caf50; font-weight: bold; margin-right: 20px; font-size: 1.1em;">
+                ❤️ PV : <span id="accueil-pv">0 / 0</span>
+            </span>
+            <span style="color: #2196f3; font-weight: bold; font-size: 1.1em;">
+                ⚡ FT : <span id="accueil-ft">0 / 0</span>
+            </span>
         </div>
 
-        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; width: 80%; margin-left: auto; margin-right: auto;">
-            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
-            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
-			<button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white;">⚙️ Artisanat</button>
-			
+        <div id="accueil-groupe-liste" style="display: none; margin-bottom: 20px;">
+            <p style="color: #4caf50; font-size: 0.8em; text-transform: uppercase; margin-bottom: 5px;">👥 Groupe à proximité</p>
+            <div id="liste-membres-accueil" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
         </div>
 
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 80%; margin: 0 auto;">
+            <button class="next-btn" style="background: #4caf50; color: white; width: 100%;" onclick="reprendrePartie()">👤 Fiche Personnage</button>
+            <button class="next-btn" style="background: #2196f3; color: white; width: 100%;" onclick="ouvrirCarte()">🗺️ Explorer la Carte</button>
+        </div>
 
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; width: 90%; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
+            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
+            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
+            <button class="next-btn" style="background:#443322; border: 1px solid #d4af37; color: #d4af37; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="allerInventaire()">🎒 Sac à dos</button>
+            <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px;">⚙️ Artisanat</button>
+            <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px;">🔮 Magie</button>
+            <button id="btn-menu-groupe" onclick="ouvrirEcranGroupe()" style="display: none; background: #2e4d23; color: #4caf50; border: 1px solid #4caf50; flex: 1; min-width: 80px;">👥 Groupe</button>
+            <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px;">🤝 Compagnons</button>
+        </div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
             <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
             <span style="color: #666; font-size: 0.75em; cursor: pointer; text-decoration: underline; display: block; margin-bottom: 10px;" onclick="document.getElementById('file-import-alt').click()">
                 Importer une autre sauvegarde (.json)
             </span>
-            
-            <button onclick="nouveauPersonnage()" style="background: transparent; color: #555; border: 1px solid #333; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.7em;">
+            <button onclick="nouveauPersonnage()" style="background: transparent; color: #555; border: 1px solid #333; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.7em; margin-bottom: 10px;">
                 🗑️ Recommencer (Nouveau Perso)
             </button>
-			
-			<button onclick="ouvrirAide()" style="background: #2196f3; color: white; width: 80%; margin-bottom: 15px;">📖 Guide & Manuels</button>
-			
-			
+            <button class="next-btn" onclick="ouvrirAide()" style="background: #2196f3; color: white; width: 80%; margin: 0 auto;">📖 Guide & Manuels</button>
         </div>
     </div>
-	
-	
-	
-	
-	<div style="margin-top: 30px; text-align: center; opacity: 0.3;">
-    <button onclick="ouvrirCodex()" style="background: none; border: 1px solid #555; color: #555; font-size: 0.7em; cursor: pointer; padding: 5px 10px; border-radius: 5px;">
-        🔍 ACCÈS CODEX MJ
-    </button>
+
+    <div style="margin-top: 30px; border-top: 2px solid #333; padding-top: 20px;">
+        <button onclick="ouvrirInterfaceMJ()" style="background: #1a1a1a; color: #ff9800; border: 2px solid #ff9800; width: 70%; padding: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            📜 OUVRIR LE CODEX MJ
+        </button>
+        <p style="font-size: 0.6em; color: #555; margin-top: 8px; text-transform: uppercase;">Réservé au Maître du Jeu</p>
+    </div>
 </div>
-</div>
-		
-		
-		
-		
-		
-		
+
+
+	
 		
 		
 		
@@ -143,9 +151,7 @@
 
 
 
-
-
-    <div id="ecran-creation" class="app-card" style="display: none;">
+ <div id="ecran-creation" class="app-card" style="display: none;">
         <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à l'accueil</button>
         
         <h1>ArcanumRP : Création</h1>
@@ -171,7 +177,7 @@
     <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
         <button class="btn-stat" onclick="changerPhotoSelection(-1)" style="width: 30px; height: 30px;">◀</button>
         
-        <img id="apercu-photo-creation" src="./docs/photo/humain/Homme/01.png" 
+        <img id="apercu-photo-creation" src="./docs/img/portraits/placeholder.png" 
              style="width: 120px; height: 120px; border: 3px solid #d4af37; border-radius: 8px; object-fit: cover; background: #222;">
         
         <button class="btn-stat" onclick="changerPhotoSelection(1)" style="width: 30px; height: 30px;">▶</button>
@@ -230,13 +236,11 @@
         
         <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 1.1em;">Niveau: <span id="fiche-level">1</span></span>
-<button class="btn-lvl-up lvl-up-btn" onclick="levelUp()" 
-        style="display: block !important; background: #a00; color: #fff; border: 1px solid #fff; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-weight: bold; font-size: 0.7em; line-height: 1; z-index: 100; position: relative;">
-    LV<br>UP
-</button>        </div>
+      </div>
         
-        <div style="color: #d4af37; font-weight: bold; margin-bottom: 5px;">Points à distribuer: <span id="points-dispo">5</span></div>
-        
+<div id="container-points-dispo" style="display:none; color: #d4af37; font-weight: bold;">
+    Points à distribuer: <span id="points-dispo">0</span>
+</div>        
         <div style="color: #ffd700; font-weight: bold;">
             Fortune: <span id="fiche-argent">400</span> Or
         </div>
@@ -310,7 +314,7 @@
                             <span id="fiche-pv">0</span>
                             <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
                                 <button id="btn-moins-PV" class="btn-stat btn-moins edit-only" onclick="boostVital('PV', -5)">-</button>
-                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 5)">+</button>
+                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('PV', 6)">+</button>
                             </div>
                             <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">VIE</small>
                         </div>
@@ -319,7 +323,7 @@
                             <span id="fiche-fatigue">0</span>
                             <div class="edit-only" style="position: absolute; margin-top: 45px; display: flex; gap: 5px;">
                                 <button id="btn-moins-FT" class="btn-stat btn-moins edit-only" onclick="boostVital('FT', -5)">-</button>
-                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 5)">+</button>
+                                <button class="btn-stat btn-plus edit-only" onclick="boostVital('FT', 6)">+</button>
                             </div>
                             <small style="position: absolute; margin-top: -45px; font-size: 0.6em;">FATIGUE</small>
                         </div>
@@ -376,15 +380,14 @@
 
 	<div style="display: flex; justify-content: space-between; margin-top: 20px;">
     <button class="next-btn" style="background: #444; color:#fff;" onclick="allerAccueil()">← Retour</button>
-        <button class="next-btn" style="background: #8b0000; color:#fff;" onclick="allerInventaire()">🎒 Sac à dos</button>
-    <button class="next-btn" style="background: #4caf50; color:#fff;" onclick="validerChangements()">✅ Valider Level Up</button>
-    <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Sauvegarder</button>
+<button class="next-btn" style="display:none; background: #4caf50;" onclick="validerChangements()">✅ Valider Level Up</button>
+    <button class="next-btn" style="background: #2196f3; color:#fff;" onclick="telechargerFichier()">💾 Télécharger</button>
 </div>
     </div>
 
 
 <div id="ecran-inventaire" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
-        <button onclick="fermerInventaire()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
+        <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
         
         <h2 style="color: #d4af37; border-bottom: 2px solid #444; padding-bottom: 5px; margin-bottom: 20px;">🎒 Inventaire & Équipement</h2>
         
@@ -399,14 +402,19 @@
             <div style="flex: 1.5; background: #1a110b; padding: 15px; border: 2px solid #111; border-radius: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 0;">
     <h3 style="color: #dcdcdc; margin: 0;">📦 Sac à dos</h3>
-    <div style="background: #111; padding: 5px 10px; border: 1px solid #444; border-radius: 4px; font-weight: bold;">
-        Charge : <span id="inv-poids-total">0 / 0 kg</span>
-    </div>
+	
+	
+    <div style="display: flex; gap: 10px;">
+            <div style="background: #111; padding: 5px 10px; border: 1px solid #d4af37; border-radius: 4px; color: #ffd700; font-weight: bold;">
+                💰 <span id="inv-argent-total">0</span> Or
+            </div>
+            <div style="background: #111; padding: 5px 10px; border: 1px solid #444; border-radius: 4px; font-weight: bold; color: #fff;">
+                ⚖️ <span id="inv-poids-total">0 / 0 kg</span>
+            </div>
+        </div>
+
 </div>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px dashed #444; padding-bottom: 15px;">
-                    <input type="text" id="new-item-id" placeholder="ID (ex: AM01)" style="flex: 1; padding:8px; background:#111; color:#fff; border:1px solid #444; text-transform: uppercase;">
-                    <button onclick="ajouterItemParId()" style="padding:8px 15px; background:#4caf50; color:#fff; border:none; cursor:pointer; font-weight:bold; border-radius:4px;">AJOUTER</button>
-                </div>
+           
 
                 <div id="inv-list-full" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 400px; padding-right: 5px;">
                     </div>
@@ -443,7 +451,19 @@
 </div>
 
 
+<div id="ecran-magie-accueil" class="ecran" style="display: none; background: #1a0f1f; border: 3px solid #673ab7;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #673ab7; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #b388ff;">✨ Grimoire de Sorts</h2>
+        <button onclick="allerAccueil()" style="background: #8b0000; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
+    </div>
+    
+    <div id="stat-fatigue-magie" style="text-align: center; margin-bottom: 15px; font-weight: bold; color: #2196f3;">
+        Fatigue actuelle : <span id="val-ft-magie">0</span> / <span id="val-ft-max-magie">0</span>
+    </div>
 
+    <div id="liste-sorts-accueil" style="display: flex; flex-direction: column; gap: 10px;"></div>
+	
+</div>
 
 <div id="ecran-aide" class="ecran" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 10px;">
@@ -481,50 +501,45 @@
     </p>
 </div>
 
-
-
-
-
-<div id="ecran-codex" class="ecran" style="display: none;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h2 style="color: #4caf50; margin:0;">📜 Console MJ</h2>
-        <button onclick="allerAccueil()" style="
-            background: #8b0000;
-            border: 2px solid #555;
-            color: white; 
-            font-size: 1.3em;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1; /* Aligne mieux le texte verticalement */
-        ">
-            &lt;
-        </button>
+<div id="ecran-mj" class="ecran" style="display:none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ff9800; padding-bottom: 10px;">
+        <h2 style="margin: 0; color: #ff9800;">📜 Codex du Maître du Jeu</h2>
+        <button onclick="allerAccueil()" style="background: #8b0000; border: 2px solid #555; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
     </div>
 
-<div style="display: flex; gap: 5px; margin-bottom: 15px;">
-    <button onclick="genererListeCodex('items')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">💎 Objets</button>
-    <button onclick="genererListeCodex('marchands')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">⚖️ Marchands</button>
-    <button onclick="genererListeCodex('coffres')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📦 Coffres</button>
-    <button onclick="genererListeCodex('lieux')" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">📍 Lieux</button>
-    <button onclick="genererListeMusiquesMJ()" style="flex:1; padding:10px; cursor:pointer; background:#333; color:white; border:none;">🎵 Musiques</button>
-</div>
+    <div id="outils-test-mj" style="display: flex; gap: 10px; margin-bottom: 15px; background: rgba(255,152,0,0.1); padding: 10px; border-radius: 5px; border: 1px solid #ff9800;">
+        <button onclick="AllLieux()" style="flex: 1; background: #2e7d32; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold;">🌐 ALL Lieux (Test)</button>
+        <button onclick="RAZLieux()" style="flex: 1; background: #c62828; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold;">♻️ RAZ Lieux (Reset)</button>
+    </div>
 
-    <input type="text" id="recherche-codex" placeholder="Rechercher..." onkeyup="filtrerCodex()" 
-           style="width: 100%; padding: 10px; margin-bottom: 10px; background: #222; color: #fff; border: 1px solid #555;">
+    <div style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
+        <button onclick="switchOngletMJ('joueurs')" class="mj-tab-btn active">👥 Joueurs</button>
+        <button onclick="switchOngletMJ('codex-items')" class="mj-tab-btn">💎 Objets</button>
+        <button onclick="switchOngletMJ('codex-marchands')" class="mj-tab-btn">💰 Marchands</button>
+        <button onclick="switchOngletMJ('codex-coffres')" class="mj-tab-btn">📦 Coffres</button>
+        <button onclick="switchOngletMJ('codex-lieux')" class="mj-tab-btn">📍 Lieux</button>
+        <button onclick="switchOngletMJ('codex-npc')" class="mj-tab-btn">🧙 PNJ</button>
+        <button onclick="switchOngletMJ('codex-ennemis')" class="mj-tab-btn">🗡 Ennemis</button>
+        <button onclick="switchOngletMJ('codex-musique')" class="mj-tab-btn">🎵 Musiques</button>
+        <button onclick="switchOngletMJ('combat')" class="mj-tab-btn" style="background:#5a0000; color:#ff6b6b; border-color:#8b0000;">⚔ Combat</button>
+    </div>
 
-    <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #444;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <tbody id="tbody-codex"></tbody>
-        </table>
+    <div id="mj-section-joueurs" class="mj-section">
+        <div id="mj-liste-joueurs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;"></div>
+    </div>
+
+    <div id="mj-section-combat" class="mj-section" style="display:none;"></div>
+
+    <div id="mj-section-codex" class="mj-section" style="display:none;">
+        <input type="text" id="recherche-codex-mj" placeholder="Rechercher..." onkeyup="filtrerCodexMJ()" 
+               style="width: 100%; padding: 10px; margin-bottom: 10px; background: #111; color: #fff; border: 1px solid #ff9800;">
+        <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #444;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tbody id="tbody-codex-mj"></tbody>
+            </table>
+        </div>
     </div>
 </div>
-
 
 
 <div id="ecran-carte" class="ecran" style="display: none; background: #1a1a1a; color: white; padding: 20px;">
@@ -568,10 +583,90 @@
 
 
 
+<div id="modal-transfert" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#2b1d14; border:3px solid #d4af37; padding:20px; z-index:3000; border-radius:10px; text-align:center; width: 300px; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+    <h3 style="color:#ff9800; margin-top:0;">Donner à qui ?</h3>
+    <div id="liste-destinataires" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; max-height:200px; overflow-y:auto;">
+        </div>
+    <button onclick="document.getElementById('modal-transfert').style.display='none'" style="background:#444; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:5px; width:100%;">❌ Annuler</button>
+</div>
 
+
+<div id="ecran-combat" class="ecran" style="display:none; flex-direction:column;">
+
+    <div class="combat-header">
+        <span class="combat-header-ornement">⚔</span>
+        <span class="combat-header-titre">COMBAT</span>
+        <span class="combat-header-ornement">⚔</span>
+    </div>
+
+    <!-- Barre d'ordre de jeu (vitesse) -->
+    <div id="combat-ordre-bar" class="combat-ordre-bar"></div>
+
+    <!-- Corps : ennemis | joueurs -->
+    <div class="combat-body">
+        <div class="combat-col ennemis">
+            <div class="combat-col-titre">Ennemis</div>
+            <div id="combat-ennemis-liste"></div>
+        </div>
+        <div class="combat-separateur"></div>
+        <div class="combat-col joueurs">
+            <div class="combat-col-titre">Aventuriers</div>
+            <div id="combat-joueurs-liste"></div>
+        </div>
+    </div>
+
+    <!-- Panneau sorts (visible uniquement au tour du joueur) -->
+    <div id="combat-actions-panel" class="combat-actions-panel"></div>
+
+    <!-- Footer statut + bouton MJ -->
+    <div class="combat-footer">
+        <div id="combat-statut">En attente des ordres du Maître du Jeu…</div>
+        <div id="combat-btns-mj" style="display:flex; gap:8px; margin-top:6px; justify-content:center;">
+            <button id="combat-btn-tour-suivant"
+                    onclick="mjTourSuivant()"
+                    style="display:none;"
+                    class="combat-btn-mj">▶ Tour suivant</button>
+            <button id="combat-btn-terminer"
+                    onclick="mjTerminerCombat()"
+                    style="display:none;"
+                    class="combat-btn-mj" style="background:#3a0000; border-color:#8b0000; color:#ff6b6b;">🛑 Terminer</button>
+        </div>
+    </div>
+
+</div>
+
+<div id="ecran-compagnons" class="ecran" style="display:none;">
+    <div class="compagnons-header">
+        <span class="compagnons-header-ornement">✦ Compagnons ✦</span>
+        <button class="compagnons-btn-retour" onclick="allerAccueil()" title="Retour">&#8592;</button>
+    </div>
+    <div class="compagnons-body">
+        <div id="compagnons-liste"></div>
+    </div>
+</div>
+
+<div id="ecran-groupe" class="ecran" style="display:none;">
+    <div class="groupe-header">
+        <span class="groupe-header-ornement">⚔ ✦ ⚔</span>
+        <h2>Groupe d'Aventuriers</h2>
+        <button class="groupe-btn-retour" onclick="allerAccueil()" title="Retour">&#8592;</button>
+    </div>
+    <div class="groupe-body">
+        <div class="groupe-session-info">Session : <span id="groupe-session-nom">—</span></div>
+        <div id="affichage-allies" class="groupe-grid"></div>
+    </div>
+</div>
+
+
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<script src="js/multiplayer.js"></script>
+<script src="js/monde.js"></script>
 <script src="js/racesData.js"></script>
 <script src="js/items.js"></script>
-<script src="js/monde.js"></script>
 <script src="js/magie.js"></script>
 <script src="js/technologie.js"></script>
 <script src="js/skills.js"></script>
@@ -585,7 +680,10 @@
 <script src="js/crafting.js"></script>
 <script src="js/carte.js"></script>
 <script src="js/codex.js"></script>
-
 <script src="js/main.js"></script>
+<script src="js/combat.js"></script>
+
+
+
 </body>
 </html>

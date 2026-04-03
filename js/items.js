@@ -408,98 +408,98 @@ const itemsData = {
         nom: "Potion de soin", desc: "Un liquide rouge effervescent qui referme les plaies.",
         type: "consommable", rarete: "3", poids: 0.5, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 20, align: 2 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { soinPV: 15 }, prerequis: {}, lootable: true, nbUsages: 1
     },
     "CONS04": {
         nom: "Potion d'énergie", desc: "Restaure la fatigue accumulée. Goût de menthe forte.",
         type: "consommable", rarete: "3", poids: 0.5, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 20, align: 2 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { soinFT: 15 }, prerequis: {}, lootable: true, nbUsages: 1
     },
     // --- Botanique & Thérapeutique (Craft) ---
     "CONS05": {
         nom: "Elixir de soins légers", desc: "Médicament de base pour soigner les blessures légères.",
         type: "consommable", rarete: "3", poids: 0.2, prix: 60,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 30, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 20 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS06": {
         nom: "Stimulant", desc: "Produit augmentant temporairement les capacités physiques.",
         type: "consommable", rarete: "5", poids: 0.2, prix: 120,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Bonus à coder
+        stats: { }, prerequis: {}, lootable: false, nbUsages: 1 // Bonus à coder
     },
     "CONS07": {
         nom: "Antidote", desc: "Substance permettant de neutraliser les effets du poison.",
         type: "consommable", rarete: "4", poids: 0.2, prix: 80,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Soin poison à coder
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1 // Soin poison à coder
     },
     "CONS08": {
         nom: "Limiteur de fatigue", desc: "Préparation réduisant la perte de points de fatigue.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 50, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinFT: 50 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS09": {
         nom: "Accélérateur de guérison", desc: "Accélère la régénération naturelle des tissus.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1 // Regen à coder
+        stats: {}, prerequis: {}, lootable: false, nbUsages: 1 // Regen à coder
     },
     "CONS10": {
         nom: "Drogue merveilleuse", desc: "Elixir puissant aux propriétés curatives avancées.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 300,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 80, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 40, }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS11": {
         nom: "Soin universel", desc: "Le remède technologique ultime pour tous les maux.",
         type: "consommable", rarete: "10", poids: 0.2, prix: 500,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 150, soinFT: 150, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 150, soinFT: 150 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS12": {
         nom: "Elixir de persuasion", desc: "Améliore temporairement le charisme et l'élocution.",
         type: "consommable", rarete: "5", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {}, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS13": {
         nom: "Elixir de prouesse", desc: "Augmente la force physique de l'utilisateur.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS14": {
         nom: "Liquide de perception", desc: "Affûte les sens et la vigilance du sujet.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS15": {
         nom: "Fortifiant réflexes", desc: "Améliore la dextérité et la vitesse de réaction.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS16": {
         nom: "Concentré de neurones", desc: "Augmente temporairement l'intelligence.",
         type: "consommable", rarete: "7", poids: 0.2, prix: 220,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS17": {
         nom: "Energisant", desc: "Redonne de la vigueur et de l'énergie au corps.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 250,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 80, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinFT: 80 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS18": {
         nom: "Revitalisant", desc: "Restaure l'ensemble des facultés physiques et mentales.",
         type: "consommable", rarete: "9", poids: 0.2, prix: 400,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 100, soinFT: 100, align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 100, soinFT: 100 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     // --- Explosifs & Chimie (Craft) ---
     "CONS19": {
@@ -518,13 +518,13 @@ const itemsData = {
         nom: "Hallucinite", desc: "Produit chimique provoquant des hallucinations chez la victime.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 180,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 10, portee: 5,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS22": {
         nom: "Acide corrosif", desc: "Composé qui ronge immédiatement les surfaces et armures.",
         type: "consommable", rarete: "7", poids: 0.5, prix: 250,
         equipable: "main_droite", stackable: true, degats: "5-25", armure: 0, vitesse: 8, portee: 6,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS23": {
         nom: "Senteur animale", desc: "Mélange permettant de circuler parmi les bêtes sans être attaqué.",
@@ -568,6 +568,15 @@ const itemsData = {
         equipable: "main_droite", stackable: true, degats: "10-20", armure: 0, vitesse: 8, portee: 5,
         stats: { align: -3 }, prerequis: {}, lootable: false, nbUsages: 1
     },
+
+    "CONS30": {
+        nom: "Reanimateur", desc: "Mixture pouvant faire revenir à la vie.",
+        type: "consommable", rarete: "9", poids: 1.0, prix: 1400,
+        equipable: "main_droite", stackable: true, degats: "", armure: 0, vitesse: 8, portee: 5,
+        stats: { resurrection: true, soinPV: 999 }, prerequis: {}, lootable: true, nbUsages: 1
+    },
+
+
 
     // ---------------- OBJETS DE QUÊTE / UNIQUES (XXX) ----------------
     "XXX01": {
@@ -714,39 +723,39 @@ const itemsData = {
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {}, prerequis: {}, lootable: true, nbUsages: null
     },
-    "COMP09": { nom: "Manche de hache", desc: "Manche en bois robuste.", type: "composant", rarete: "2", poids: 1.0, prix: 8, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP09": { nom: "Manche de hache", desc: "Manche en bois robuste.", type: "composant", rarete: "2", poids: 1.0, prix: 8, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP10": { nom: "Minerai de nain", desc: "Minerai lourd aux reflets rougeâtres.", type: "composant", rarete: "6", poids: 5.0, prix: 80, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP12": { nom: "Plaque d'acier", desc: "Plaque métallique forgée.", type: "composant", rarete: "3", poids: 2.5, prix: 25, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP14": { nom: "Bandelette de cuir", desc: "Lanière solide.", type: "composant", rarete: "1", poids: 0.1, prix: 2, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP12": { nom: "Plaque d'acier", desc: "Plaque métallique forgée.", type: "composant", rarete: "3", poids: 2.5, prix: 25, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP14": { nom: "Bandelette de cuir", desc: "Lanière solide.", type: "composant", rarete: "1", poids: 0.1, prix: 2, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP16": { nom: "Bobine de fils", desc: "Fil d'acier fin.", type: "composant", rarete: "2", poids: 0.5, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP17": { nom: "Acier de nains", desc: "Acier extrêmement pur et résistant.", type: "composant", rarete: "7", poids: 3.0, prix: 200, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP19": { nom: "Gros ressort", desc: "Ressort industriel.", type: "composant", rarete: "3", poids: 0.8, prix: 20, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP20": { nom: "Petit ressort", desc: "Ressort d'horlogerie.", type: "composant", rarete: "3", poids: 0.1, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP21": { nom: "Boîte en métal", desc: "Petit contenant.", type: "composant", rarete: "1", poids: 0.3, prix: 5, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP22": { nom: "Pince métallique", desc: "Outil d'artisan.", type: "composant", rarete: "2", poids: 0.5, prix: 12, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP23": { nom: "Montre à goussets", desc: "Horloge de poche.", type: "composant", rarete: "4", poids: 0.2, prix: 40, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP25": { nom: "Petite machine à vapeur", desc: "Moteur miniature.", type: "composant", rarete: "8", poids: 4.0, prix: 300, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP23": { nom: "Montre à goussets", desc: "Horloge de poche.", type: "composant", rarete: "4", poids: 0.2, prix: 40, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP25": { nom: "Petite machine à vapeur", desc: "Moteur miniature.", type: "composant", rarete: "8", poids: 4.0, prix: 300, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP26": { nom: "Gros engrenage", desc: "Roue dentée.", type: "composant", rarete: "3", poids: 1.0, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP27": { nom: "Pistole cassé", desc: "Arme hors d'usage.", type: "composant", rarete: "2", poids: 1.5, prix: 10, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP27": { nom: "Pistole cassé", desc: "Arme hors d'usage.", type: "composant", rarete: "2", poids: 1.5, prix: 10, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP28": { nom: "Petit tube en métal", desc: "Tuyau en cuivre.", type: "composant", rarete: "1", poids: 0.2, prix: 5, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP29": { nom: "Chambre de revolver", desc: "Pièce mécanique de tir.", type: "composant", rarete: "5", poids: 0.5, prix: 50, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP31": { nom: "Silencieux", desc: "Tube étouffant le son.", type: "composant", rarete: "5", poids: 0.3, prix: 60, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP33": { nom: "Miroir", desc: "Surface réfléchissante.", type: "composant", rarete: "2", poids: 0.1, prix: 10, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP36": { nom: "Gros tuyau", desc: "Cylindre d'acier.", type: "composant", rarete: "3", poids: 2.0, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP29": { nom: "Chambre de revolver", desc: "Pièce mécanique de tir.", type: "composant", rarete: "5", poids: 0.5, prix: 50, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP31": { nom: "Silencieux", desc: "Tube étouffant le son.", type: "composant", rarete: "5", poids: 0.3, prix: 60, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP33": { nom: "Miroir", desc: "Surface réfléchissante.", type: "composant", rarete: "2", poids: 0.1, prix: 10, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP36": { nom: "Gros tuyau", desc: "Cylindre d'acier.", type: "composant", rarete: "3", poids: 2.0, prix: 15, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP38": { nom: "Filament", desc: "Fil métallique fin.", type: "composant", rarete: "3", poids: 0.05, prix: 10, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP40": { nom: "Petite batterie", desc: "Pile chimique.", type: "composant", rarete: "4", poids: 0.5, prix: 30, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP41": { nom: "Boussole", desc: "Outil d'orientation.", type: "composant", rarete: "3", poids: 0.2, prix: 25, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP41": { nom: "Boussole", desc: "Outil d'orientation.", type: "composant", rarete: "3", poids: 0.2, prix: 25, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP42": { nom: "Petit compsoant électrique", desc: "Pièce de circuit.", type: "composant", rarete: "4", poids: 0.1, prix: 20, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP43": { nom: "Grande batterie", desc: "Générateur portable.", type: "composant", rarete: "6", poids: 2.0, prix: 100, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP45": { nom: "Bobine électrique", desc: "Fil de cuivre enroulé.", type: "composant", rarete: "5", poids: 0.8, prix: 50, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP46": { nom: "Harnais électrique", desc: "Sangles avec câblage.", type: "composant", rarete: "6", poids: 1.5, prix: 120, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP47": { nom: "Bonine tesla", desc: "Condensateur de haute énergie.", type: "composant", rarete: "8", poids: 1.0, prix: 300, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP43": { nom: "Grande batterie", desc: "Générateur portable.", type: "composant", rarete: "6", poids: 2.0, prix: 100, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP45": { nom: "Bobine électrique", desc: "Fil de cuivre enroulé.", type: "composant", rarete: "5", poids: 0.8, prix: 50, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP46": { nom: "Harnais électrique", desc: "Sangles avec câblage.", type: "composant", rarete: "6", poids: 1.5, prix: 120, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP47": { nom: "Bonine tesla", desc: "Condensateur de haute énergie.", type: "composant", rarete: "8", poids: 1.0, prix: 300, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP48": { nom: "feuilles de coca", desc: "Plante stimulante.", type: "composant", rarete: "3", poids: 0.1, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP49": { nom: "feuilles de tabac", desc: "Plante à fumer.", type: "composant", rarete: "1", poids: 0.1, prix: 5, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP50": { nom: "Poison", desc: "Fiole toxique standard.", type: "composant", rarete: "3", poids: 0.2, prix: 30, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP51": { nom: "herbe à sorcière", desc: "Herbe médicinale rare.", type: "composant", rarete: "5", poids: 0.1, prix: 40, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP52": { nom: "graisse de serpent", desc: "Onguent huileux.", type: "composant", rarete: "4", poids: 0.2, prix: 25, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-    "COMP53": { nom: "Thermomètre", desc: "Outil médical.", type: "composant", rarete: "3", poids: 0.1, prix: 15, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+    "COMP53": { nom: "Thermomètre", desc: "Outil médical.", type: "composant", rarete: "3", poids: 0.1, prix: 15, equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP54": { nom: "Remède contre la migraine", desc: "Pillule apaisante.", type: "composant", rarete: "2", poids: 0.1, prix: 10, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP55": { nom: "Flacon de Camphre", desc: "Liquide aromatique.", type: "composant", rarete: "3", poids: 0.2, prix: 12, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP56": { nom: "Pilule sanguie", desc: "Capsule rouge.", type: "composant", rarete: "4", poids: 0.1, prix: 20, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },

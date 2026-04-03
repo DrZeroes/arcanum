@@ -24,7 +24,7 @@ function mjDonnerObjetDirect(itemID) {
         
         let qte = parseInt(rep);
         if (isNaN(qte) || qte <= 0) {
-            alert("Quantité invalide.");
+            if (typeof _toast === 'function') _toast("Quantité invalide.", 'error'); else return;
             return;
         }
         quantiteEnCoursDeDonMJ = qte;
@@ -130,34 +130,24 @@ function mjChargerEnnemi(idEnnemi) {
     const ennemi = (typeof ennemisData !== 'undefined') ? ennemisData[idEnnemi] : null;
     if (!ennemi) return;
 
-    const choix = confirm(`Charger "${ennemi.nom}" comme personnage actif ?\n\nOK = remplace ton perso\nAnnuler = affiche les stats`);
+    const stats = ennemi.statsBase;
+    const fo = stats.FO, ini = stats.IN, cn = stats.CN;
+    const pvMax = (fo * 2) + ini;
+    const ftMax = (cn * 2) + ini;
 
-    if (choix) {
-        window.perso = JSON.parse(JSON.stringify(ennemi));
-        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
-        if (typeof demarrerMoteurMulti === 'function') demarrerMoteurMulti();
-        alert(`⚔️ ${ennemi.nom} chargé.`);
-        if (typeof allerAccueil === 'function') allerAccueil();
-    } else {
-        const stats = ennemi.statsBase;
-        const fo = stats.FO, ini = stats.IN, cn = stats.CN;
-        const pvMax = (fo * 2) + ini;
-        const ftMax = (cn * 2) + ini;
+    const lootStr = (ennemi.lootDrop || []).map(l => {
+        const item = (typeof itemsData !== 'undefined') ? itemsData[l.id] : null;
+        return `${item ? item.nom : l.id} x${l.qte}`;
+    }).join(', ');
 
-        const lootStr = (ennemi.lootDrop || []).map(l => {
-            const item = (typeof itemsData !== 'undefined') ? itemsData[l.id] : null;
-            return `${item ? item.nom : l.id} x${l.qte}`;
-        }).join(', ');
+    const compStr = Object.entries(ennemi.compInvesties).map(([k, v]) => `${k}:${v}`).join(', ');
 
-        const compStr = Object.entries(ennemi.compInvesties).map(([k, v]) => `${k}:${v}`).join(', ');
-
-        alert(`⚔️ ${ennemi.nom} (${ennemi.race}, Niv.${ennemi.niveau})\n\n` +
-              `FO:${fo}  IN:${ini}  CN:${cn}  DX:${stats.DX}  CH:${stats.CH}\n` +
-              `PV:${pvMax}  FT:${ftMax}  XP:${ennemi.xp}  Or:${ennemi.argent}\n\n` +
-              `Compétences: ${compStr}\n\n` +
-              `Butin: ${lootStr || 'Rien'}\n\n` +
-              `${ennemi.antecedent}`);
-    }
+    alert(`⚔️ ${ennemi.nom} (${ennemi.race}, Niv.${ennemi.niveau})\n\n` +
+          `FO:${fo}  IN:${ini}  CN:${cn}  DX:${stats.DX}  CH:${stats.CH}\n` +
+          `PV:${pvMax}  FT:${ftMax}  XP:${ennemi.xp}  Or:${ennemi.argent}\n\n` +
+          `Compétences: ${compStr}\n\n` +
+          `Butin: ${lootStr || 'Rien'}\n\n` +
+          `${ennemi.antecedent}`);
 }
 
 function genererEnnemisCodexMJ() {
@@ -242,7 +232,7 @@ function genererNPCsMJ() {
                 </td>
                 <td style="padding:10px; text-align:right;">
                     <button onclick="mjChargerNPC('${id}')" style="background:#1a2e1a; color:#4caf50; border:1px solid #4caf50; padding:5px 10px; cursor:pointer; border-radius:3px; font-size:0.8em;">
-                        ▶ Charger
+                        📋 Stats
                     </button>
                 </td>
             </tr>`;
@@ -268,14 +258,21 @@ function rafraichirListeJoueursMJ() {
             // Section compagnons du joueur
             const comps = j.compagnons_summary || [];
             const compsHtml = comps.length
-                ? comps.map(c => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(50,35,10,0.6); border:1px solid #5a4010; padding:4px 6px; border-radius:3px; margin-top:3px;">
-                        <span style="color:#d4af37; font-size:11px;">🤝 ${c.nom} <span style="color:#888;">Niv.${c.niveau}</span></span>
-                        <span style="display:flex; gap:4px;">
-                            <button onclick="mjLevelUpCompagnon('${id}', ${c.idx}, '${c.nom.replace(/'/g, "\\'")}')" style="background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🌟 LvUp</button>
-                            <button onclick="mjRenvoyerCompagnon('${id}', ${c.idx}, '${c.nom.replace(/'/g, "\\'")}')" style="background:#3a1010; color:#ff6b6b; border:1px solid #8b0000; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">✕ Renvoi</button>
-                        </span>
-                    </div>`).join('')
+                ? comps.map(c => {
+                    const key = id + '-' + c.idx;
+                    const nomSafe = c.nom.replace(/'/g, "\\'");
+                    return `
+                    <div data-comp-key="${key}" style="background:rgba(50,35,10,0.6); border:1px solid #5a4010; padding:4px 6px; border-radius:3px; margin-top:3px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#d4af37; font-size:11px;">🤝 ${c.nom} <span style="color:#888;">Niv.${c.niveau}</span></span>
+                            <span style="display:flex; gap:3px;">
+                                <button onclick="mjLevelUpCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🌟 LvUp</button>
+                                <button onclick="mjAjouterItemCompagnon('${id}', ${c.idx})" style="background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🎒 Item</button>
+                                <button onclick="mjRenvoyerCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#3a1010; color:#ff6b6b; border:1px solid #8b0000; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">✕</button>
+                            </span>
+                        </div>
+                    </div>`;
+                }).join('')
                 : `<div style="color:#555; font-size:10px; margin-top:3px;">Aucun compagnon</div>`;
 
             container.innerHTML += `
@@ -313,39 +310,28 @@ function mjChargerNPC(idNPC) {
     const npc = (typeof personnagesNPC !== 'undefined') ? personnagesNPC[idNPC] : null;
     if (!npc) return;
 
-    const choix = confirm(`Charger "${npc.nom}" comme personnage actif ?\n\nOK = remplace ton perso actuel\nAnnuler = affiche juste la fiche`);
+    const stats = npc.statsBase;
+    const inv   = npc.statsInvesties;
+    const fo = stats.FO + inv.FO, i = stats.IN + inv.IN;
+    const cn = stats.CN + inv.CN;
+    const pvMax = (fo * 2) + i + (npc.boostPV || 0);
+    const ftMax = (cn * 2) + i + (npc.boostFT || 0);
 
-    if (choix) {
-        window.perso = JSON.parse(JSON.stringify(npc)); // deep copy
-        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
-        if (typeof demarrerMoteurMulti === 'function') demarrerMoteurMulti();
-        alert(`✅ ${npc.nom} chargé comme personnage actif.`);
-        if (typeof allerAccueil === 'function') allerAccueil();
-    } else {
-        // Affiche un résumé lisible dans la console MJ
-        const stats = npc.statsBase;
-        const inv = npc.statsInvesties;
-        const fo = stats.FO + inv.FO, i = stats.IN + inv.IN;
-        const cn = stats.CN + inv.CN;
-        const pvMax = (fo * 2) + i + (npc.boostPV || 0);
-        const ftMax = (cn * 2) + i + (npc.boostFT || 0);
+    const equipStr = Object.entries(npc.equipement)
+        .filter(([, v]) => v !== null)
+        .map(([slot, v]) => {
+            const item = (typeof itemsData !== 'undefined') ? itemsData[v.id] : null;
+            return `${slot}: ${item ? item.nom : v.id}`;
+        }).join('\n');
 
-        const equipStr = Object.entries(npc.equipement)
-            .filter(([, v]) => v !== null)
-            .map(([slot, v]) => {
-                const item = (typeof itemsData !== 'undefined') ? itemsData[v.id] : null;
-                return `${slot}: ${item ? item.nom : v.id}`;
-            }).join('\n');
+    const compStr = Object.entries(npc.compInvesties)
+        .map(([k, v]) => `${k}: ${v}`).join(', ');
 
-        const compStr = Object.entries(npc.compInvesties)
-            .map(([k, v]) => `${k}: ${v}`).join(', ');
-
-        alert(`📋 ${npc.nom} (${npc.race}, Niv.${npc.niveau})\n\n` +
-              `FO:${fo} IN:${i} CN:${cn} DX:${stats.DX + inv.DX} CH:${stats.CH + inv.CH}\n` +
-              `PV:${pvMax}  FT:${ftMax}  Or:${npc.argent}\n\n` +
-              `Équipement:\n${equipStr}\n\n` +
-              `Compétences: ${compStr}`);
-    }
+    alert(`📋 ${npc.nom} (${npc.race}, Niv.${npc.niveau})\n\n` +
+          `FO:${fo} IN:${i} CN:${cn} DX:${stats.DX + inv.DX} CH:${stats.CH + inv.CH}\n` +
+          `PV:${pvMax}  FT:${ftMax}  Or:${npc.argent}\n\n` +
+          `Équipement:\n${equipStr}\n\n` +
+          `Compétences: ${compStr}`);
 }
 
 function mjKickJoueur(playerID, nomJoueur) {
@@ -374,7 +360,7 @@ function mjDonnerCompagnon(playerID, playerNom) {
         .join('\n');
     const choixId = prompt(`Compagnon à attribuer à ${playerNom} :\n\n${liste}\n\nID :`);
     if (!choixId) return;
-    if (!personnagesNPC[choixId]) { alert('ID introuvable.'); return; }
+    if (!personnagesNPC[choixId]) { if (typeof _toast === 'function') _toast('ID introuvable.', 'error'); return; }
 
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
         type: 'don',
@@ -384,35 +370,308 @@ function mjDonnerCompagnon(playerID, playerNom) {
 }
 
 /**
- * Le MJ donne un level up à un compagnon précis d'un joueur.
- * Demande quelle stat augmenter.
+ * Le MJ choisit précisément où va le point de level-up d'un compagnon.
+ * Affiche un panel inline (pas de prompt).
  */
 function mjLevelUpCompagnon(playerID, compIdx, compNom) {
-    const stat = prompt(`Level Up de ${compNom}\nStat à augmenter ? (FO / IN / CN / DX / CH)`);
-    if (!stat) return;
-    const statUp = stat.toUpperCase().trim();
-    if (!['FO', 'IN', 'CN', 'DX', 'CH'].includes(statUp)) {
-        alert('Stat invalide. Entrez FO, IN, CN, DX ou CH.');
-        return;
-    }
+    const containerId = 'lvup-panel-' + playerID + '-' + compIdx;
+    const existing = document.getElementById(containerId);
+    if (existing) { existing.remove(); return; } // toggle
+
+    const parent = document.querySelector(`[data-comp-key="${playerID}-${compIdx}"]`);
+    if (!parent) return;
+
+    const panel = document.createElement('div');
+    panel.id = containerId;
+    panel.className = 'comp-levelup-panel';
+    panel.innerHTML = '<div class="lvup-titre">🌟 Level Up ' + compNom + ' — choisir :</div>'
+        + ['FO','IN','CN','DX','CH'].map(s =>
+            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUp('${playerID}',${compIdx},'${s}',this)">+1 ${s}</button>`
+        ).join('')
+        + '<div class="lvup-titre" style="margin-top:6px;">Compétence / Magie</div>'
+        + `<button class="comp-levelup-btn" onclick="mjLvUpComp_menu('${playerID}',${compIdx},'comp',this)">Compétence…</button>`
+        + `<button class="comp-levelup-btn" onclick="mjLvUpComp_menu('${playerID}',${compIdx},'magie',this)">Sort…</button>`;
+    parent.after(panel);
+}
+
+function mjEnvoyerLevelUp(playerID, compIdx, stat, btn) {
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
-        type: 'levelup',
-        compIdx: compIdx,
-        stat: statUp,
-        timestamp: Date.now()
+        type: 'levelup', compIdx: compIdx, stat: stat, timestamp: Date.now()
+    });
+    btn.closest('.comp-levelup-panel').remove();
+    if (typeof _toast === 'function') _toast('Level-up envoyé (+1 ' + stat + ').', 'gold');
+}
+
+function mjLvUpComp_menu(playerID, compIdx, type, btn) {
+    const panel = btn.closest('.comp-levelup-panel');
+    let extra = panel.querySelector('.lvup-extra');
+    if (extra) { extra.remove(); return; }
+    extra = document.createElement('div');
+    extra.className = 'lvup-extra';
+    extra.style.marginTop = '6px';
+
+    if (type === 'comp') {
+        const comps = ['melee','esquive','soins','persuasion','discrétion','reparation','technologie'];
+        extra.innerHTML = comps.map(c =>
+            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUpComp('${playerID}',${compIdx},'comp','${c}',this)">${c}</button>`
+        ).join('');
+    } else {
+        if (typeof magieData === 'undefined') return;
+        extra.innerHTML = Object.keys(magieData).map(e =>
+            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUpComp('${playerID}',${compIdx},'magie','${e}',this)">${e}</button>`
+        ).join('');
+    }
+    panel.appendChild(extra);
+}
+
+function mjEnvoyerLevelUpComp(playerID, compIdx, type, valeur, btn) {
+    const payload = { type: 'levelup', compIdx: compIdx, timestamp: Date.now() };
+    if (type === 'comp') { payload.stat = 'comp'; payload.competence = valeur; }
+    else { payload.stat = 'magie'; payload.ecole = valeur; }
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set(payload);
+    btn.closest('.comp-levelup-panel').remove();
+    if (typeof _toast === 'function') _toast('Level-up envoyé (+1 ' + valeur + ').', 'gold');
+}
+
+/**
+ * Le MJ renvoie un compagnon.
+ */
+function mjRenvoyerCompagnon(playerID, compIdx, compNom) {
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
+        type: 'renvoi', compIdx: compIdx, timestamp: Date.now()
+    });
+    if (typeof _toast === 'function') _toast(compNom + ' renvoyé.', '');
+}
+
+/**
+ * Le MJ ajoute un item à l'inventaire d'un compagnon.
+ */
+function mjAjouterItemCompagnon(playerID, compIdx) {
+    if (typeof itemsData === 'undefined') return;
+    const liste = Object.entries(itemsData)
+        .filter(([,v]) => v.lootable !== false)
+        .map(([id,v]) => id + ' — ' + v.nom).join('\n');
+    const choix = prompt('Ajouter un item à ce compagnon :\n\n' + liste + '\n\nID :');
+    if (!choix) return;
+    const id = choix.trim().toUpperCase();
+    if (!itemsData[id]) { if (typeof _toast === 'function') _toast('ID inconnu.', 'error'); return; }
+    const qte = parseInt(prompt('Quantité ?') || '1') || 1;
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
+        type: 'item_add', compIdx: compIdx, itemId: id, quantite: qte, timestamp: Date.now()
+    });
+    if (typeof _toast === 'function') _toast(itemsData[id].nom + ' ajouté.', 'success');
+}
+
+// ── GESTION DU COMBAT (MJ) ─────────────────────────────────────────────────
+
+/** Quantités choisies par le MJ par ID d'ennemi. */
+let _combatSelection = {};
+
+/**
+ * Génère l'interface de lancement de combat dans le panneau MJ.
+ * Appelée quand on switche vers l'onglet 'combat'.
+ */
+function mjAfficherInterfaceCombat() {
+    const section = document.getElementById('mj-section-combat');
+    if (!section || typeof ennemisData === 'undefined') return;
+    _combatSelection = {};
+
+    // Vérifie si un combat est déjà en cours
+    db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
+        const enCours = snap.val();
+
+        if (enCours && enCours.actif) {
+            const ordre      = enCours.ordre_jeu || [];
+            const tourIdx    = (enCours.tour_actuel || 0) % (ordre.length || 1);
+            const participant = ordre[tourIdx];
+            const ordreHtml  = ordre.map((p, i) =>
+                '<span style="color:' + (i === tourIdx ? '#ff6b6b' : '#555') + '; font-size:0.78em;">'
+                + (i === tourIdx ? '▶ ' : '') + p.nom + ' ⚡' + p.vitesse + '</span>'
+            ).join(' › ');
+
+            const ennemisHtml = (enCours.ennemis || []).map(e =>
+                (e.pvActuel <= 0 ? '☠ ' : '') + e.nom + ' — PV ' + e.pvActuel + '/' + e.pvMax
+            ).join('<br>');
+
+            section.innerHTML =
+                '<div style="background:rgba(139,0,0,0.2); border:1px solid #8b0000; border-radius:6px; padding:16px; margin-bottom:12px;">'
+                + '<div style="color:#ff6b6b; font-size:1.05em; font-weight:bold; margin-bottom:10px;">⚔ COMBAT EN COURS</div>'
+                + '<div style="margin-bottom:10px; line-height:1.8;">' + ordreHtml + '</div>'
+                + '<div style="color:#aaa; font-size:0.8em; margin-bottom:12px; border-top:1px solid #333; padding-top:8px;">' + ennemisHtml + '</div>'
+                + '<div style="color:#888; font-size:0.8em; margin-bottom:12px;">Tour : <strong style="color:#d4af37;">'
+                + (participant ? participant.nom : '?') + '</strong>'
+                + (participant && participant.type === 'ennemi' ? ' (ennemi — vous jouez)' : '') + '</div>'
+                + '<div style="display:flex; gap:8px;">'
+                + '<button onclick="mjTourSuivant()" style="flex:1; background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">▶ Tour suivant</button>'
+                + '<button onclick="ouvrirEcranCombat()" style="flex:1; background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:8px; cursor:pointer; border-radius:4px;">👁 Voir combat</button>'
+                + '<button onclick="mjTerminerCombat()" style="flex:1; background:#3a0000; color:#ff6b6b; border:1px solid #8b0000; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">🛑 Terminer</button>'
+                + '</div></div>';
+            return;
+        }
+
+        // Groupe les ennemis par zone
+        const parZone = {};
+        for (let id in ennemisData) {
+            const e = ennemisData[id];
+            (e.zones || ['?']).forEach(z => {
+                if (!parZone[z]) parZone[z] = [];
+                // Déduplique (un ennemi peut apparaître dans plusieurs zones)
+                if (!parZone[z].find(x => x.id === id)) parZone[z].push({ id, ...e });
+            });
+        }
+
+        let lignes = '';
+        for (let zone in parZone) {
+            const nomZone = (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[zone])
+                ? lieuxDecouverts[zone].nom : zone;
+            lignes += `<tr><td colspan="3" style="padding:6px 8px; background:#1a0d05; color:#d4af37; font-size:0.75em; text-transform:uppercase; letter-spacing:0.1em;">${nomZone}</td></tr>`;
+            parZone[zone].forEach(e => {
+                const fo = e.statsBase.FO + (e.statsInvesties?.FO || 0);
+                const ini = e.statsBase.IN + (e.statsInvesties?.IN || 0);
+                const pvMax = (fo * 2) + ini + (e.boostPV || 0);
+                lignes += `
+                    <tr style="border-bottom:1px solid #2a1d12;">
+                        <td style="padding:6px 10px; color:#ddd; font-size:0.85em;">${e.nom}
+                            <span style="color:#666; font-size:0.75em;"> Niv.${e.niveau} ❤${pvMax}</span>
+                        </td>
+                        <td style="padding:6px 8px; text-align:center;">
+                            <input type="number" id="qty-${e.id}" min="0" max="9" value="0"
+                                style="width:45px; background:#111; color:#fff; border:1px solid #444; padding:3px; text-align:center; border-radius:3px;"
+                                onchange="_combatSelection['${e.id}'] = parseInt(this.value)||0">
+                        </td>
+                        <td style="padding:6px 8px; color:#888; font-size:0.72em;">${e.race}</td>
+                    </tr>`;
+            });
+        }
+
+        section.innerHTML = `
+            <div style="margin-bottom:12px; color:#ff6b6b; font-size:0.8em; text-align:center; text-transform:uppercase; letter-spacing:0.08em;">
+                Définissez les quantités puis lancez le combat
+            </div>
+            <div style="max-height:55vh; overflow-y:auto; border:1px solid #333; border-radius:4px; margin-bottom:14px;">
+                <table style="width:100%; border-collapse:collapse;">${lignes}</table>
+            </div>
+            <button onclick="mjLancerCombat()" style="width:100%; background:#8b0000; color:white; border:none; padding:12px; cursor:pointer; font-size:1em; font-weight:bold; border-radius:4px; letter-spacing:0.05em;">
+                ⚔ LANCER LE COMBAT
+            </button>`;
     });
 }
 
 /**
- * Le MJ renvoie un compagnon : il est retiré du groupe du joueur.
+ * Écrit le combat dans Firebase.
+ * Tous les joueurs connectés basculent automatiquement sur ecran-combat.
  */
-function mjRenvoyerCompagnon(playerID, compIdx, compNom) {
-    if (!confirm(`Renvoyer ${compNom} du groupe ?`)) return;
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
-        type: 'renvoi',
-        compIdx: compIdx,
-        timestamp: Date.now()
+function mjLancerCombat() {
+    const ennemisChoisis = [];
+    let instanceIdx = 0;
+
+    for (let id in _combatSelection) {
+        const qte = _combatSelection[id];
+        if (!qte || qte <= 0) continue;
+
+        const e = ennemisData[id];
+        if (!e) continue;
+
+        const fo  = e.statsBase.FO + (e.statsInvesties?.FO || 0);
+        const ini = e.statsBase.IN + (e.statsInvesties?.IN || 0);
+        const cn  = e.statsBase.CN + (e.statsInvesties?.CN || 0);
+        const pvMax = (fo * 2) + ini + (e.boostPV || 0);
+        const ftMax = (cn * 2) + ini + (e.boostFT || 0);
+
+        for (let i = 0; i < qte; i++) {
+            ennemisChoisis.push({
+                instanceId: instanceIdx++,
+                id,
+                nom: qte > 1 ? `${e.nom} ${i + 1}` : e.nom,
+                race: e.race,
+                niveau: e.niveau,
+                pvActuel: e.pvActuel || pvMax,
+                pvMax,
+                ftActuel: e.ftActuel || ftMax,
+                ftMax,
+                xp: e.xp || 0
+            });
+        }
+    }
+
+    if (ennemisChoisis.length === 0) {
+        if (typeof _toast === 'function') _toast('Sélectionnez au moins un ennemi.', 'error');
+        return;
+    }
+
+    // Récupère les joueurs pour construire l'ordre de jeu basé sur la vitesse
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
+        const joueurs = snap.val() || {};
+        const participants = [];
+
+        // Joueurs + leurs compagnons
+        for (let id in joueurs) {
+            const j = joueurs[id];
+            participants.push({
+                type: 'joueur',
+                id,
+                nom: j.nom,
+                vitesse: j.vitesse || j.niveau || 1
+            });
+            // Compagnons du joueur
+            const comps = j.compagnons_summary || [];
+            comps.forEach(c => {
+                participants.push({
+                    type: 'compagnon',
+                    nom: c.nom,
+                    niveau: c.niveau || 1,
+                    ownerNom: j.nom,
+                    vitesse: Math.max(1, (c.niveau || 1) * 2),
+                    magieInvesties: c.magieInvesties || null
+                });
+            });
+        }
+
+        // Ennemis (vitesse = DX de leur fiche)
+        ennemisChoisis.forEach(e => {
+            const orig = ennemisData[e.id];
+            const dx = orig ? (orig.statsBase.DX + (orig.statsInvesties?.DX || 0)) : 5;
+            participants.push({
+                type: 'ennemi',
+                instanceId: e.instanceId,
+                nom: e.nom,
+                vitesse: dx
+            });
+        });
+
+        // Tri décroissant par vitesse (à égalité, les joueurs passent avant)
+        participants.sort((a, b) => b.vitesse - a.vitesse || (a.type === 'joueur' ? -1 : 1));
+
+        db.ref('parties/' + sessionActuelle + '/combat_actif').set({
+            actif: true,
+            ennemis: ennemisChoisis,
+            ordre_jeu: participants,
+            tour_actuel: 0,
+            timestamp: Date.now()
+        }).then(() => {
+            if (typeof _toast === 'function') _toast('⚔ Combat lancé !', 'gold');
+            mjAfficherInterfaceCombat();
+        });
     });
+}
+
+/** Le MJ passe au tour suivant. */
+function mjTourSuivant() {
+    db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
+        const data = snap.val();
+        if (!data || !data.actif) return;
+        const taille = (data.ordre_jeu || []).length;
+        if (taille === 0) return;
+        const prochainTour = ((data.tour_actuel || 0) + 1) % taille;
+        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel').set(prochainTour);
+    });
+}
+
+/**
+ * Termine le combat côté Firebase → tous les joueurs retournent à l'accueil.
+ */
+function mjTerminerCombat() {
+    db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
 }
 
 function mjLootAleatoire(idJoueur) {
@@ -430,7 +689,7 @@ function mjLootAleatoire(idJoueur) {
             timestamp: Date.now()
         });
     }
-    alert(`🎲 ${nbItems} objets envoyés à l'aventurier !`);
+    if (typeof _toast === 'function') _toast(`🎲 ${nbItems} objets envoyés !`, 'gold');
 }
 
 

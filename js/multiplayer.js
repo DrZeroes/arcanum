@@ -73,6 +73,8 @@ function synchroniserJoueur() {
         pvMax: (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN) + (window.perso.boostPV || 0),
         ftMax: (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0),
         niveau: window.perso.niveau || 1,
+        xp: window.perso.xp || 0,
+        vitesse: (window.perso.statsBase.DX + (window.perso.statsInvesties?.DX || 0)) + (window.perso.boostVitesseInne || 0),
         lieu: (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[window.perso.lieuActuel]) ? lieuxDecouverts[window.perso.lieuActuel].nom : "Inconnu",
 		estMort: window.perso.estMort || false,
         timestamp: Date.now(),
@@ -180,7 +182,7 @@ if (snapshot.val()) {
             }
 
             // Notifications et Sauvegardes
-            alert(`🎁 ${data.expediteur || "Le MJ"} vous a donné : ${quantiteRecue}x ${nomObjet}`);
+            if (typeof _toast === 'function') _toast(`🎁 ${data.expediteur || "Le MJ"} vous a donné : ${quantiteRecue}x ${nomObjet}`, 'gold');
             
             if (typeof autoSave === "function") autoSave();
             if (typeof updateInventaireUI === "function") updateInventaireUI();
@@ -211,9 +213,14 @@ function activerEcouteurStats() {
         const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0);
         
        if (data.stat === 'PV') {
-    // UTILISE ?? 0 AU LIEU DE || maxPV
     let basePV = (window.perso.pvActuel !== undefined) ? window.perso.pvActuel : 0;
-    window.perso.pvActuel = basePV + data.valeur;
+    let valeurEffective = data.valeur;
+    // Si c'est une attaque (valeur négative), on soustrait l'armure du joueur
+    if (data.valeur < 0 && typeof _armureTotal === 'function') {
+        const armure = _armureTotal(window.perso);
+        valeurEffective = Math.min(0, data.valeur + armure); // armure réduit les dégâts
+    }
+    window.perso.pvActuel = basePV + valeurEffective;
     
     // On plafonne pour ne pas dépasser le max
     window.perso.pvActuel = Math.min(maxPV, Math.max(0, window.perso.pvActuel));
@@ -234,7 +241,7 @@ function activerEcouteurStats() {
         
         // Alerte visuelle pour le joueur
         const msg = (data.valeur > 0) ? `✨ Gain : +${data.valeur} ${data.stat}` : `💥 Perte : ${data.valeur} ${data.stat}`;
-        alert(msg);
+        if (typeof _toast === 'function') _toast(msg, data.valeur > 0 ? 'success' : 'error');
     });
 }
 
@@ -243,7 +250,7 @@ function activerEcouteurAlertesMJ() {
     db.ref('parties/' + sessionActuelle + '/alerte_mj').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data && data.texte && data.timestamp > derniereAlerteVue) {
-            alert("📢 MESSAGE DU MJ : \n\n" + data.texte);
+            if (typeof _toast === 'function') _toast('📢 ' + data.texte);
             derniereAlerteVue = data.timestamp;
         }
     });
@@ -418,22 +425,49 @@ function activerEcouteurCompagnons() {
     ref.on('value', (snapshot) => {
         const data = snapshot.val();
         if (!data || !data.type) return;
+        // Ignore les actions stale (> 30s) pour éviter les doublons au rechargement
+        if (data.timestamp && (Date.now() - data.timestamp) > 30000) {
+            ref.remove();
+            return;
+        }
         ref.remove(); // consume immédiatement
 
         if (!window.perso.compagnons) window.perso.compagnons = [];
         const comps = window.perso.compagnons;
 
         if (data.type === 'don') {
-            const npc = (typeof personnagesNPC !== 'undefined') ? personnagesNPC[data.npcId] : null;
-            if (!npc) { alert('⚠️ PNJ introuvable : ' + data.npcId); return; }
+            const npcBase = (typeof personnagesNPC !== 'undefined') ? personnagesNPC[data.npcId] : null;
+            if (!npcBase) { if (typeof _toast === 'function') _toast('⚠️ PNJ introuvable.', 'error'); return; }
             const statCH = (window.perso.statsBase?.CH || 0) + (window.perso.statsInvesties?.CH || 0);
             const maxComps = Math.max(1, Math.floor(statCH / 4));
             if (comps.length >= maxComps) {
-                alert(`⚠️ Limite atteinte (${maxComps} compagnon(s) max selon votre CH).`);
+                if (typeof _toast === 'function') _toast(`⚠️ Limite atteinte (${maxComps} max selon CH).`, 'error');
                 return;
             }
-            comps.push(JSON.parse(JSON.stringify(npc)));
-            alert(`🤝 ${npc.nom} rejoint votre groupe comme compagnon !`);
+            // Un seul exemplaire du même compagnon par groupe (check npcId ET nom)
+            if (comps.some(c => c.npcId === data.npcId || c.nom === npcBase.nom)) {
+                if (typeof _toast === 'function') _toast(`⚠️ ${npcBase.nom} est déjà dans votre groupe.`, 'error');
+                return;
+            }
+            // Repart toujours de la définition fraîche (npcBase) pour avoir tous les champs à jour
+            // puis réapplique la progression sauvegardée si elle existe
+            const npc = JSON.parse(JSON.stringify(npcBase));
+            npc.npcId = data.npcId;
+            const memoire = window.perso.compagnonsMemoire || {};
+            if (memoire[data.npcId]) {
+                const mem = memoire[data.npcId];
+                // Réapplique uniquement la progression (pas les champs de base)
+                npc.niveau         = mem.niveau || npc.niveau;
+                npc.xp             = mem.xp || 0;
+                npc.pvActuel       = mem.pvActuel ?? npc.pvActuel;
+                npc.ftActuel       = mem.ftActuel ?? npc.ftActuel;
+                npc.statsInvesties = mem.statsInvesties ? JSON.parse(JSON.stringify(mem.statsInvesties)) : npc.statsInvesties;
+                npc.magieInvesties = mem.magieInvesties ? JSON.parse(JSON.stringify(mem.magieInvesties)) : (npc.magieInvesties || {});
+                npc.compInvesties  = mem.compInvesties  ? JSON.parse(JSON.stringify(mem.compInvesties))  : npc.compInvesties;
+                npc.inventaire     = mem.inventaire     ? JSON.parse(JSON.stringify(mem.inventaire))     : npc.inventaire;
+            }
+            comps.push(npc);
+            if (typeof _toast === 'function') _toast(`🤝 ${npc.nom} rejoint votre groupe !`, 'success');
         }
         else if (data.type === 'levelup') {
             const comp = comps[data.compIdx];
@@ -441,25 +475,43 @@ function activerEcouteurCompagnons() {
             comp.niveau = (comp.niveau || 1) + 1;
             if (data.stat && comp.statsInvesties) {
                 comp.statsInvesties[data.stat] = (comp.statsInvesties[data.stat] || 0) + 1;
-                // Recalcul PV/FT si stat structurelle modifiée
                 const fo  = comp.statsBase.FO + comp.statsInvesties.FO;
                 const ini = comp.statsBase.IN + comp.statsInvesties.IN;
                 const cn  = comp.statsBase.CN + comp.statsInvesties.CN;
                 comp.pvActuel = (fo * 2) + ini + (comp.boostPV || 0);
                 comp.ftActuel = (cn * 2) + ini + (comp.boostFT || 0);
+            } else if (data.stat === 'magie' && data.ecole) {
+                if (!comp.magieInvesties) comp.magieInvesties = {};
+                comp.magieInvesties[data.ecole] = (comp.magieInvesties[data.ecole] || 0) + 1;
+            } else if (data.stat === 'comp' && data.competence) {
+                if (!comp.compInvesties) comp.compInvesties = {};
+                comp.compInvesties[data.competence] = (comp.compInvesties[data.competence] || 0) + 1;
             }
-            alert(`🌟 ${comp.nom} passe niveau ${comp.niveau} ! (+1 ${data.stat})`);
+            if (typeof _toast === 'function') _toast(`🌟 ${comp.nom} Niv.${comp.niveau} !`, 'gold');
         }
         else if (data.type === 'renvoi') {
             const comp = comps[data.compIdx];
             if (!comp) return;
             const nom = comp.nom;
+            // Mémorise le compagnon avant de le retirer
+            if (!window.perso.compagnonsMemoire) window.perso.compagnonsMemoire = {};
+            if (comp.npcId) window.perso.compagnonsMemoire[comp.npcId] = JSON.parse(JSON.stringify(comp));
             comps.splice(data.compIdx, 1);
-            alert(`👋 ${nom} a quitté votre groupe.`);
+            if (typeof _toast === 'function') _toast(`👋 ${nom} a quitté votre groupe.`);
+        }
+        else if (data.type === 'item_add') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            if (!comp.inventaire) comp.inventaire = [];
+            const existing = comp.inventaire.find(i => i.id === data.itemId);
+            if (existing) { existing.quantite = (existing.quantite || 1) + (data.quantite || 1); }
+            else { comp.inventaire.push({ id: data.itemId, quantite: data.quantite || 1 }); }
+            if (typeof _toast === 'function') _toast(`🎒 Objet ajouté à ${comp.nom}.`, 'success');
         }
 
         window.perso.compagnons = comps;
         if (typeof autoSave === 'function') autoSave();
+        localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
         _syncCompagnonsSummary();
 
         // Rafraîchit l'écran compagnons s'il est ouvert
@@ -473,12 +525,39 @@ function activerEcouteurCompagnons() {
     });
 }
 
+/**
+ * Écoute le nœud combat_actif sur Firebase.
+ * - Premier déclenchement actif → ouvre l'écran combat
+ * - Mise à jour (tour, PV ennemi) → rafraîchit l'affichage sans rouvrir
+ * - Nœud supprimé → retour à l'accueil
+ */
+function activerEcouteurCombat() {
+    const ref = db.ref('parties/' + sessionActuelle + '/combat_actif');
+    ref.off();
+    ref.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.actif === true) {
+            const etaitEnCombat = !!window.combatActif;
+            window.combatActif = data;
+            if (!etaitEnCombat) {
+                if (typeof ouvrirEcranCombat === 'function') ouvrirEcranCombat();
+            } else {
+                if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
+            }
+        } else if (window.combatActif) {
+            if (typeof quitterEcranCombat === 'function') quitterEcranCombat();
+        }
+    });
+}
+
 /** Pousse un résumé léger des compagnons sur Firebase (pour que le MJ puisse les voir). */
 function _syncCompagnonsSummary() {
     if (!window.perso?.nom || !db) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
     const summary = (window.perso.compagnons || []).map((c, i) => ({
-        nom: c.nom, niveau: c.niveau || 1, idx: i
+        nom: c.nom, niveau: c.niveau || 1, idx: i,
+        npcId: c.npcId || null, xp: c.xp || 0,
+        magieInvesties: c.magieInvesties || null
     }));
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnons_summary')
       .set(summary.length ? summary : null);
@@ -502,7 +581,7 @@ function activerEcouteurKick() {
         localStorage.removeItem('arcanum_session_name');
         sessionActuelle = "session1";
 
-        alert("🚫 Vous avez été expulsé de la session par le Maître du Jeu.");
+        if (typeof _toast === 'function') _toast("🚫 Vous avez été expulsé par le Maître du Jeu.", 'error');
 
         if (typeof allerAccueil === 'function') allerAccueil();
     });
@@ -569,7 +648,7 @@ function activerEcouteurCommandesMJ() {
             const btnLvUp = document.getElementById('btn-lvup-joueur');
             if (btnLvUp) btnLvUp.style.setProperty('display', 'block', 'important');
             
-            alert("🌟 Félicitations ! Le MJ vous a fait monter de niveau !");
+            if (typeof _toast === 'function') _toast("🌟 Niveau supérieur !", 'gold');
 
             // 4. On rouvre le verrou après 2 secondes pour les prochains niveaux
             setTimeout(() => { verrouLevelUp = false; }, 2000);
@@ -591,12 +670,13 @@ function activerEcouteurCommandesMJ() {
 function ouvrirInterfaceMJ() {
     const mdpMJ = prompt("Entrez le mot de passe Maître du Jeu :");
     if (mdpMJ === "") {
-        updateSessionName(); 
+        window.estMJ = true;
+        updateSessionName();
         if (typeof cacherTout === "function") cacherTout();
         document.getElementById('ecran-mj').style.display = 'block';
-        switchOngletMJ('joueurs'); 
+        switchOngletMJ('joueurs');
     } else {
-        alert("🔒 Accès refusé.");
+        if (typeof _toast === 'function') _toast("🔒 Accès refusé.", 'error');
     }
 }
 function switchOngletMJ(ongletId) {
@@ -604,10 +684,12 @@ function switchOngletMJ(ongletId) {
 
     // 1. GESTION DES SECTIONS VISIBLES
     const secJoueurs = document.getElementById('mj-section-joueurs');
-    const secCodex = document.getElementById('mj-section-codex');
-    
+    const secCodex   = document.getElementById('mj-section-codex');
+    const secCombat  = document.getElementById('mj-section-combat');
+
     if(secJoueurs) secJoueurs.style.display = 'none';
-    if(secCodex) secCodex.style.display = 'none';
+    if(secCodex)   secCodex.style.display   = 'none';
+    if(secCombat)  secCombat.style.display  = 'none';
 
     // 2. ROUTAGE VERS LES BONS CONTENUS
     if (ongletId === 'joueurs') {
@@ -641,6 +723,11 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-musique') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
+    }
+    else if (ongletId === 'combat') {
+        const secCombat = document.getElementById('mj-section-combat');
+        if (secCombat) secCombat.style.display = 'block';
+        if (typeof mjAfficherInterfaceCombat === "function") mjAfficherInterfaceCombat();
     }
 
     // 3. STYLE DES BOUTONS
@@ -692,7 +779,7 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
         if (error) {
             console.error("❌ Erreur transaction :", error);
         } else if (!committed) {
-            alert("⚠️ Ce joueur a déjà un cadeau en attente. Attendez qu'il le ramasse !");
+            if (typeof _toast === 'function') _toast("⚠️ Ce joueur a déjà un cadeau en attente.", 'error');
         } else {
             // SUCCESS : L'objet est bien arrivé sur le serveur
             console.log("✅ Objet livré.");
@@ -707,7 +794,7 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
             if (typeof autoSave === "function") autoSave();
             if (typeof updateInventaireUI === "function") updateInventaireUI();
             
-            alert(`🎁 ${nomObjet} envoyé avec succès !`);
+            if (typeof _toast === 'function') _toast(`🎁 ${nomObjet} envoyé !`, 'success');
         }
     });
 }
@@ -736,6 +823,7 @@ function demarrerMoteurMulti() {
     activerEcouteurCommandesMJ();
     activerEcouteurKick();
     activerEcouteurCompagnons();
+    activerEcouteurCombat();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT
@@ -772,7 +860,7 @@ function executerDonObjetMJ(destinataireID) {
         expediteur: "Le Maître du Jeu",
         timestamp: Date.now()
     }).then(() => {
-        alert(`✅ Objet envoyé à ${destinataireID.replace('_', ' ')} !`);
+        if (typeof _toast === 'function') _toast(`✅ Objet envoyé à ${destinataireID.replace('_', ' ')} !`, 'success');
         // On ferme la fenêtre de choix si elle existe
         const modal = document.getElementById('modal-transfert');
         if (modal) modal.style.display = 'none';
@@ -859,7 +947,7 @@ function preparerDonObjetMJ(idJoueur) {
     const ongletCoffres = document.querySelector('button[onclick*="coffres"]');
     if (ongletCoffres) {
         ongletCoffres.click(); // On simule un clic sur l'onglet coffre
-        alert("Sélectionnez un objet dans le Codex pour l'envoyer à " + idJoueur.replace('_', ' '));
+        if (typeof _toast === 'function') _toast("Sélectionnez un objet dans le Codex pour l'envoyer à " + idJoueur.replace('_', ' '));
         
         // On mémorise la cible du don
         window.destinataireEnCoursMJ = idJoueur;

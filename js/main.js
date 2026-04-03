@@ -3,6 +3,24 @@
 // ==========================================
 window.perso = window.perso || {};
 
+/**
+ * Remplace alert() partout dans le jeu.
+ * type: 'success' | 'error' | 'gold' | '' (défaut)
+ */
+function _toast(msg, type) {
+    const el = document.createElement('div');
+    el.className = 'toast-notif' + (type ? ' toast-' + type : '');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.add('toast-visible'));
+    });
+    setTimeout(() => {
+        el.classList.remove('toast-visible');
+        setTimeout(() => el.remove(), 400);
+    }, 3500);
+}
+
 let statsCalculees = {}; 
 let investissementsTemporaires = {
     pv: 0, ft: 0, stats: {}, comp: {}, magie: {}, tech: {}
@@ -97,7 +115,7 @@ function cacherTout() {
             'ecran-accueil', 'ecran-creation', 'ecran-fiche',
             'ecran-inventaire', 'ecran-fouille', 'ecran-marchand',
             'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj',
-            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil', 'ecran-compagnons'
+            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil', 'ecran-compagnons', 'ecran-combat'
         ].map(id => document.getElementById(id)).filter(Boolean);
     }
     _ecransCache.forEach(el => el.style.display = 'none');
@@ -187,12 +205,65 @@ function afficherEcranCompagnons() {
 
                 ${equipItems.length ? `<div class="compagnon-equip">🗡 ${equipItems.join(' · ')}</div>` : ''}
                 ${compStr ? `<div class="compagnon-comps">📚 ${compStr}</div>` : ''}
+                ${_compagnon_sortsHtml(c)}
+                ${_compagnon_inventaireHtml(c, comps.indexOf(c))}
+                ${(typeof _genererLedsXP === 'function') ? '<div style="margin-top:6px;">' + _genererLedsXP(c.xp || 0, c.niveau || 1) + '</div>' : ''}
             </div>
         `);
     });
 
     const enTete = `<div class="compagnons-max-info">Compagnons : ${comps.length} / ${maxComps} (CH ${statCH})</div>`;
     container.innerHTML = enTete + fragments.join('');
+}
+
+function _compagnon_sortsHtml(c) {
+    if (typeof magieData === 'undefined') return '';
+    const source = (c.magieInvesties && Object.keys(c.magieInvesties).length > 0)
+        ? c.magieInvesties : (c.magieBase || {});
+    const sorts = [];
+    for (let ecole in source) {
+        const niv = parseInt(source[ecole]) || 0;
+        if (niv > 0 && magieData[ecole]?.sorts) {
+            for (let i = 0; i < niv; i++) {
+                if (magieData[ecole].sorts[i]) sorts.push(magieData[ecole].sorts[i].nom);
+            }
+        }
+    }
+    if (!sorts.length) return '';
+    return `<div class="compagnon-spells">✨ ${sorts.join(' · ')}</div>`;
+}
+
+function _compagnon_inventaireHtml(c, idx) {
+    const items = c.inventaire || [];
+    if (!items.length && !c.argent) return '';
+    let html = '<div class="compagnon-invent">';
+    if (c.argent) html += `<span class="compagnon-invent-item">💰 ${c.argent} or</span>`;
+    if (typeof itemsData !== 'undefined') {
+        items.forEach((it, i) => {
+            const data = itemsData[it.id];
+            if (data) {
+                    html += `<span class="compagnon-invent-item">${data.nom} ×${it.quantite}`
+                    + `<button class="comp-inv-btn" style="margin-left:4px; font-size:0.65em;"
+                        onclick="_retirerItemCompagnon(${idx}, ${i})">✕</button></span>`;
+            }
+        });
+    }
+    html += '</div>';
+    return html;
+}
+
+function _retirerItemCompagnon(compIdx, itemIdx) {
+    const comps = window.perso?.compagnons;
+    if (!comps || !comps[compIdx]) return;
+    const items = comps[compIdx].inventaire || [];
+    if (!items[itemIdx]) return;
+    const it = items[itemIdx];
+    if (it.quantite > 1) { it.quantite--; }
+    else { items.splice(itemIdx, 1); }
+    comps[compIdx].inventaire = items;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    afficherEcranCompagnons();
 }
 
 function ouvrirAide() {
@@ -271,12 +342,16 @@ if (statsBox && window.perso) {
                 <div style="color: #aaa; font-size: 0.85em;">Stats : ${pvReels}/${maxPV} PV | ${ftReels}/${maxFT} FT</div>
             </div>`;
     } else {
-        statsBox.style.background = ""; 
+        statsBox.style.background = "";
         statsBox.style.border = "";
         // On affiche UNIQUEMENT pvReels, sans le remplacer par maxPV
+        const xpLedsHtml = (typeof _genererLedsXP === 'function')
+            ? _genererLedsXP(window.perso.xp || 0, window.perso.niveau || 1, window.perso)
+            : '';
         statsBox.innerHTML = `
-            ❤️ PV : <span id="accueil-pv" style="font-weight:bold;">${pvReels} / ${maxPV}</span> 
+            ❤️ PV : <span id="accueil-pv" style="font-weight:bold;">${pvReels} / ${maxPV}</span>
             ⚡ FT : <span id="accueil-ft" style="font-weight:bold;">${ftReels} / ${maxFT}</span>
+            ${xpLedsHtml}
         `;
     }
 }
@@ -353,7 +428,19 @@ function chargerPersonnage() {
     const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
     if (sauvegarde) {
         window.perso = JSON.parse(sauvegarde);
-        
+
+        // Migration : s'assurer que les compagnons existants ont bien magieInvesties depuis npcBase
+        if (window.perso.compagnons && typeof personnagesNPC !== 'undefined') {
+            window.perso.compagnons.forEach(c => {
+                if (c.npcId && personnagesNPC[c.npcId]) {
+                    const base = personnagesNPC[c.npcId];
+                    if (!c.magieInvesties && base.magieInvesties) {
+                        c.magieInvesties = JSON.parse(JSON.stringify(base.magieInvesties));
+                    }
+                }
+            });
+        }
+
         // 1. On coupe le moteur audio immédiatement pour éviter les chevauchements
         if (typeof AudioEngine !== 'undefined') AudioEngine.stopMusique();
 

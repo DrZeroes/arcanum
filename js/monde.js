@@ -171,12 +171,13 @@ const lieuxDecouverts = {
 const personnagesNPC = {
 
     "virgil": {
-        nom: "Virgil", race: "Humain", sexe: "M", niveau: 8,
+        nom: "Virgil", race: "Humain", sexe: "M", niveau: 1,
         antecedent: "Prêtre déchu de Panari cherchant à se racheter.",
         statsBase:    { FO:8, IN:8, CN:8, DX:8, CH:8 },
-        statsInvesties:{ FO:1, IN:4, CN:2, DX:1, CH:3 },
-        // Totaux : FO:9 IN:12 CN:10 DX:9 CH:11 — pvMax:30 ftMax:32
-        compInvesties: { soins:4, persuasion:3, melee:2 },
+        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
+        magieInvesties: { "Nécromancie blanche": 1 },
+        // Commence niveau 1 avec 1 sort en Nécromancie blanche (Soins légers)
+        compInvesties: { soins:1 },
         equipement: {
             tete: null, torse: { id:"DEF07", quantite:1, durabilite:100, durabiliteMax:100 },
             gants: null, bottes: { id:"DEF06", quantite:1, durabilite:100, durabiliteMax:100 },
@@ -185,7 +186,7 @@ const personnagesNPC = {
             main_gauche: null,
             deux_mains: { id:"AM05", quantite:1, durabilite:100, durabiliteMax:100 }
         },
-        pvActuel: 30, ftActuel: 32, boostPV: 0, boostFT: 0,
+        pvActuel: 24, ftActuel: 24, boostPV: 0, boostFT: 0,
         argent: 65, inventaire: [ { id:"CONS03", quantite:3 } ]
     },
 

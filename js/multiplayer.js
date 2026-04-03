@@ -669,7 +669,7 @@ function activerEcouteurCommandesMJ() {
 
 function ouvrirInterfaceMJ() {
     const mdpMJ = prompt("Entrez le mot de passe Maître du Jeu :");
-    if (mdpMJ === "") {
+    if (mdpMJ === "PASS") {
         window.estMJ = true;
         updateSessionName();
         if (typeof cacherTout === "function") cacherTout();

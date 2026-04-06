@@ -16,6 +16,45 @@ const nomEmplacements = {
 let objetEnCoursUtilisation = null;
 let indexObjetEnCours = null;
 
+/**
+ * Retourne true si cet item doit avoir une durabilité.
+ * Règle : armes (mêlée, distance, feu) et armures uniquement.
+ * Pas les composants, bijoux, consommables, divers, munitions, etc.
+ */
+function _itemADurabilite(itemDef) {
+    if (!itemDef) return false;
+    return ['arme_melee', 'arme_distance', 'arme_feu', 'armure'].includes(itemDef.type);
+}
+
+/** Poids total d'un personnage (inventaire + équipement). */
+function _calculerPoidsPersonnage(p) {
+    if (!p || typeof itemsData === 'undefined') return 0;
+    let poids = 0;
+    (p.inventaire || []).forEach(it => {
+        const def = itemsData[it.id];
+        if (def) poids += def.poids * (it.quantite || it.qte || 1);
+    });
+    if (p.equipement) {
+        for (const slot in p.equipement) {
+            const eq = p.equipement[slot];
+            if (eq && itemsData[eq.id]) poids += itemsData[eq.id].poids;
+        }
+    }
+    return Math.round(poids * 10) / 10;
+}
+
+/** Charge max d'un personnage = FO × 2. */
+function _chargeMax(p) {
+    if (!p) return 0;
+    const fo = (p.statsBase?.FO || 5) + (p.statsInvesties?.FO || 0);
+    return fo * 2;
+}
+
+/** Renvoie true si le personnage dépasse sa charge maximale. */
+function _estSurcharge(p) {
+    return _calculerPoidsPersonnage(p) > _chargeMax(p);
+}
+
 function allerInventaire() {
     cacherTout();
     document.getElementById('ecran-inventaire').style.display = 'block';
@@ -122,7 +161,17 @@ function equiperItem(indexInventaire) {
         perso.equipement.main_droite = itemInv;
     } else {
         if (perso.equipement[slot]) desequiperItem(slot, true);
-        perso.equipement[slot] = itemInv; 
+        perso.equipement[slot] = itemInv;
+    }
+
+    // Initialiser la durabilité uniquement pour les types éligibles (armes + armures)
+    const targetSlot = (slot === 'deux_mains') ? 'main_droite' : slot;
+    const eqApresEquip = perso.equipement[targetSlot];
+    if (eqApresEquip && typeof itemsData !== 'undefined') {
+        const defApres = itemsData[eqApresEquip.id];
+        if (_itemADurabilite(defApres) && eqApresEquip.durabilite === undefined) {
+            eqApresEquip.durabilite = 100; eqApresEquip.durabiliteMax = 100;
+        }
     }
 
     perso.inventaire.splice(indexInventaire, 1);
@@ -295,21 +344,35 @@ function updateInventaireUI() {
         perso.inventaire.forEach((item, index) => {
             let data = itemsData[item.id];
             if (data) {
-                poidsTotal += data.poids * item.quantite;
-                
-                let prixVente = Math.floor(data.prix * (0.7 + reductionClient));
-                prixVente = Math.min(prixVente, data.prix);
-                
-                let btnEquiper = (data.equipable && data.equipable !== "aucun") 
+                poidsTotal += data.poids * (item.quantite || item.qte || 1);
+
+                // Prix de vente : basé sur la durabilité si l'objet en a une, sinon formule standard
+                let prixVente;
+                if (item.durabilite !== undefined && item.durabiliteMax > 0) {
+                    prixVente = Math.floor(data.prix * (item.durabilite / item.durabiliteMax));
+                } else {
+                    prixVente = Math.floor(data.prix * (0.7 + reductionClient));
+                    prixVente = Math.min(prixVente, data.prix);
+                }
+
+                let btnEquiper = (data.equipable && data.equipable !== "aucun")
                     ? `<button onclick="equiperItem(${index})" style="background:#4caf50; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Équiper</button>` : ``;
 
                 let btnConsommer = (data.type === "consommable")
                     ? `<button onclick="preparerUtilisationCible(${index})" style="background:#ff9800; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🧪 Utiliser</button>` : ``;
 
+                // Réparation depuis l'inventaire (objet précédemment équipé avec durabilité)
+                const reparation_pts = perso.compInvesties?.reparation || 0;
+                const durInv = item.durabilite;
+                const durMaxInv = item.durabiliteMax || 100;
+                const btnReparerInv = (durInv !== undefined && reparation_pts > 0 && durInv < durMaxInv)
+                    ? `<button onclick="reparerInventaire(${index})" style="background:#795548; color:#fff; border:none; padding:5px 8px; cursor:pointer; border-radius:3px; font-size:0.8em;">🔧 Réparer</button>`
+                    : '';
+
                 htmlInv += `
                     <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
                         <div style="display:flex; justify-content: space-between;">
-                            <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite})</strong>
+                            <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite || 1})</strong>
                             <div style="text-align: right; min-width: 80px;">
                                 <span style="color:#aaa; display:block; font-size:0.9em;">⚖️ ${data.poids} kg</span>
                                 <span style="color:#d4af37; display:block; font-size:0.9em;">💰 ${prixVente} Or</span>
@@ -317,9 +380,9 @@ function updateInventaireUI() {
                         </div>
                         <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
                         ${getStatsHtml(data, item)}
-                        <div style="display:flex; gap: 5px; margin-top: 8px;">
-                            ${btnEquiper} ${btnConsommer}
-							<button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
+                        <div style="display:flex; gap: 5px; margin-top: 8px; flex-wrap:wrap;">
+                            ${btnEquiper} ${btnConsommer} ${btnReparerInv}
+                            <button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
                             <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
                         </div>
                     </div>`;
@@ -329,22 +392,49 @@ function updateInventaireUI() {
     listInv.innerHTML = htmlInv;
 
     // --- 3. DESSINER L'ÉQUIPEMENT ---
+    // Détecte si la main droite porte une arme à deux mains
+    const itemMainDroite = perso.equipement.main_droite;
+    const estDeuxMains = !!(itemMainDroite && itemsData[itemMainDroite.id]?.equipable === 'deux_mains');
+
     let htmlEq = ``;
     for (let slot in perso.equipement) {
         let itemEq = perso.equipement[slot];
         let nomSlot = nomEmplacements[slot] || slot;
-        
+
+        // Main gauche bloquée par une arme à 2 mains
+        if (slot === 'main_gauche' && estDeuxMains) {
+            htmlEq += `
+                <div style="background:#111; border:1px dashed #8b4513; padding:10px; border-radius:4px; margin-bottom:5px; opacity:0.7;">
+                    <div style="font-size:0.7em; color:#8b4513; text-transform:uppercase;">${nomSlot}</div>
+                    <div style="color:#8b4513; font-style:italic;">⛔ Occupée (arme à deux mains)</div>
+                </div>`;
+            continue;
+        }
+
         if (itemEq && typeof itemEq !== "string" && itemsData[itemEq.id]) {
             let data = itemsData[itemEq.id];
-            poidsTotal += data.poids; 
+            poidsTotal += data.poids;
+            const reparation_pts = perso.compInvesties?.reparation || 0;
+            const durMax = itemEq.durabiliteMax || 100;
+            const dur = itemEq.durabilite !== undefined ? itemEq.durabilite : durMax;
+            const durColor = dur <= 0 ? '#f44336' : dur < 30 ? '#ff9800' : '#4caf50';
+            const durHtml = itemEq.durabilite !== undefined
+                ? `<small style="color:${durColor}"> [${dur}/${durMax}]</small>`
+                : '';
+            const btnReparer = (reparation_pts > 0 && dur < durMax)
+                ? `<button onclick="reparer('${slot}')" style="background:#795548; color:#fff; border:none; padding:4px 7px; cursor:pointer; border-radius:3px; font-size:0.75em; margin-left:4px;">🔧 Réparer</button>`
+                : '';
             htmlEq += `
                 <div style="background: #1a110b; border: 1px solid #4caf50; padding: 10px; border-radius: 4px; margin-bottom: 5px; display:flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 0.7em; color: #4caf50; text-transform: uppercase;">${nomSlot}</div>
-                        <strong style="color: #fff;">${data.nom}</strong>
+                        <strong style="color: #fff;">${data.nom}</strong>${durHtml}
                         ${getStatsHtml(data, itemEq)}
                     </div>
-                    <button onclick="desequiperItem('${slot}')" style="background:#444; color:#fff; border:none; padding:5px; cursor:pointer; border-radius:3px; font-size: 0.8em;">Retirer</button>
+                    <div style="display:flex; gap:4px;">
+                        ${btnReparer}
+                        <button onclick="desequiperItem('${slot}')" style="background:#444; color:#fff; border:none; padding:5px; cursor:pointer; border-radius:3px; font-size: 0.8em;">Retirer</button>
+                    </div>
                 </div>`;
         } else {
             htmlEq += `
@@ -357,13 +447,15 @@ function updateInventaireUI() {
     listEq.innerHTML = htmlEq;
     
     // --- 4. MISE À JOUR DE LA CHARGE FINALE ---
-    let statFO = (perso.statsBase.FO || 8) + (perso.statsInvesties.FO || 0);
+    const chargeMax = _chargeMax(perso);
+    const estSurchargé = poidsTotal > chargeMax;
     let elPoidsInv = document.getElementById('inv-poids-total');
     if (elPoidsInv) {
-        elPoidsInv.innerText = poidsTotal.toFixed(1) + " / " + (statFO * 2) + " kg";
-        elPoidsInv.style.color = (poidsTotal > (statFO * 2)) ? "#f44336" : "#4caf50"; 
+        elPoidsInv.innerText = poidsTotal.toFixed(1) + " / " + chargeMax + " kg"
+            + (estSurchargé ? " ⚠ SURCHARGÉ" : "");
+        elPoidsInv.style.color = estSurchargé ? "#f44336" : "#4caf50";
     }
-    
+
     return poidsTotal;
 }
 
@@ -388,17 +480,18 @@ function finaliserActionObjet(cibleID, nomCible) {
         const soinPV = data.stats ? data.stats.soinPV : 0;
         const soinFT = data.stats ? data.stats.soinFT : 0;
         const estResurrection = data.stats ? data.stats.resurrection : false;
+        const curePoison = data.stats ? data.stats.curePoison : false;
 
         // 2. VÉRIFICATIONS DES RÈGLES DE JEU 🛡️
-        
+
         // Cas A : L'objet est un RÉANIMATEUR
         if (estResurrection) {
             if (!estKO) {
                 alert(`🚫 ${nomCible} n'est pas KO. Le réanimateur n'a aucun effet sur les vivants !`);
                 return;
             }
-        } 
-        // Cas B : L'objet est un SOIN (Potion, Nourriture...)
+        }
+        // Cas B : L'objet est un SOIN (Potion, Nourriture...) — pas de blocage si c'est juste un antidote
         else if (soinPV > 0) {
             if (estKO) {
                 alert(`🚫 ${nomCible} est inconscient(e). Une potion ne servira à rien, il faut un réanimateur !`);
@@ -411,18 +504,33 @@ function finaliserActionObjet(cibleID, nomCible) {
         }
 
         // 3. APPLICATION DES EFFETS 🪄
-        // modif_stat est un nœud unique — on chaîne avec .then() pour éviter
-        // que le second set() écrase le premier avant que le listener le lise.
+        // Bonus Soins : +5% d'efficacité par point de compétence
+        const soins_pts = window.perso?.compInvesties?.soins || 0;
+        const soinMult = 1 + soins_pts * 0.05;
+
         const statRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat');
-        const pvEffectif = (estResurrection && !soinPV) ? 10 : soinPV;
+        const pvBase = (estResurrection && !soinPV) ? 10 : soinPV;
+        const pvEffectif = pvBase > 0 ? Math.round(pvBase * soinMult) : 0;
+        const ftEffectif = soinFT > 0 ? Math.round(soinFT * soinMult) : 0;
         const envoyerStat = (stat, valeur) => statRef.set({ stat, valeur, timestamp: Date.now() });
 
-        if (pvEffectif > 0 && soinFT > 0) {
-            envoyerStat('PV', pvEffectif).then(() => envoyerStat('FT', soinFT));
+        if (pvEffectif > 0 && ftEffectif > 0) {
+            envoyerStat('PV', pvEffectif).then(() => envoyerStat('FT', ftEffectif));
         } else if (pvEffectif > 0) {
             envoyerStat('PV', pvEffectif);
-        } else if (soinFT > 0) {
-            envoyerStat('FT', soinFT);
+        } else if (ftEffectif > 0) {
+            envoyerStat('FT', ftEffectif);
+        }
+
+        // Cure poison (sur soi-même, nettoyer directement ; sur autrui, envoyer via Firebase)
+        if (curePoison) {
+            if (cibleID === (window.perso?.nom || '').replace(/\s+/g, '_')) {
+                window.perso.poison = null;
+                if (typeof _toast === 'function') _toast('✅ Poison neutralisé !', 'success');
+                if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+            } else {
+                statRef.set({ stat: 'curePoison', valeur: 1, timestamp: Date.now() });
+            }
         }
 
         alert(`✅ ${data.nom} utilisé sur ${nomCible} !`);
@@ -444,4 +552,99 @@ function finaliserActionObjet(cibleID, nomCible) {
         if (typeof autoSave === 'function') autoSave();
         if (typeof updateInventaireUI === 'function') updateInventaireUI();
     });
+}
+
+/** Logique commune de réparation — modifie l'objet en place. */
+function _appliquerReparation(objet, reparation_pts) {
+    const degradationPct = Math.max(5, 15 - Math.floor(reparation_pts / 2));
+    const ancienMax = objet.durabiliteMax || 100;
+    const nouveauMax = Math.max(1, Math.floor(ancienMax * (1 - degradationPct / 100)));
+    const nom = (typeof itemsData !== 'undefined' && itemsData[objet.id]?.nom) || objet.id;
+    if (!confirm(`🔧 Réparer ${nom} ?\nDurabilité max : ${ancienMax} → ${nouveauMax} (−${degradationPct}%)\nL'objet sera réparé à ${nouveauMax}.`)) return false;
+    objet.durabiliteMax = nouveauMax;
+    objet.durabilite = nouveauMax;
+    return true;
+}
+
+function reparer(slot) {
+    const perso = window.perso;
+    const itemEq = perso.equipement?.[slot];
+    if (!itemEq) return;
+    const reparation_pts = perso.compInvesties?.reparation || 0;
+    if (reparation_pts <= 0) return;
+    if (!_appliquerReparation(itemEq, reparation_pts)) return;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof updateInventaireUI === 'function') updateInventaireUI();
+    if (typeof _toast === 'function') _toast(`🔧 Réparé ! Durabilité max réduite à ${itemEq.durabiliteMax}.`, 'success');
+}
+
+function reparerInventaire(index) {
+    const perso = window.perso;
+    const item = perso.inventaire?.[index];
+    if (!item || item.durabilite === undefined) return;
+    const reparation_pts = perso.compInvesties?.reparation || 0;
+    if (reparation_pts <= 0) return;
+    if (!_appliquerReparation(item, reparation_pts)) return;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof updateInventaireUI === 'function') updateInventaireUI();
+    if (typeof _toast === 'function') _toast(`🔧 Réparé ! Durabilité max réduite à ${item.durabiliteMax}.`, 'success');
+}
+
+function ouvrirDonnerOr() {
+    const actuel = window.perso?.argent || 0;
+    if (!db || !sessionActuelle) { alert('Pas connecté.'); return; }
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
+        const joueurs = snap.val() || {};
+        const moiID = window.perso.nom.replace(/\s+/g, '_');
+        const autres = Object.entries(joueurs).filter(([id]) => id !== moiID);
+
+        if (autres.length === 0) {
+            if (typeof _toast === 'function') _toast('Aucun autre joueur dans la session.', 'error');
+            return;
+        }
+
+        // Construire une liste simple avec prompt (pas de modal dédié)
+        const choix = autres.map(([id, j], i) => `${i + 1}. ${j.nom}`).join('\n');
+        const rep = prompt(`À qui donner de l'or ?\n${choix}\n\n(entrez le numéro)`, '1');
+        if (!rep) return;
+        const idx = parseInt(rep) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= autres.length) { if (typeof _toast === 'function') _toast('Choix invalide.', 'error'); return; }
+
+        const [destinID, destinJoueur] = autres[idx];
+        const montantStr = prompt(`Combien d'or donner à ${destinJoueur.nom} ? (Vous avez : ${actuel} or)`, '');
+        if (!montantStr) return;
+        const montant = parseInt(montantStr);
+        if (isNaN(montant) || montant <= 0) { if (typeof _toast === 'function') _toast('Montant invalide.', 'error'); return; }
+        if (montant > actuel) { if (typeof _toast === 'function') _toast(`Pas assez d'or !`, 'error'); return; }
+
+        // Déduire du joueur local
+        window.perso.argent -= montant;
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+
+        // Envoyer au destinataire via Firebase
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + destinID + '/modif_argent').set({
+            valeur: montant,
+            de: window.perso.nom,
+            timestamp: Date.now()
+        });
+
+        if (typeof updateInventaireUI === 'function') updateInventaireUI();
+        if (typeof _toast === 'function') _toast(`💰 ${montant} or envoyé à ${destinJoueur.nom} !`, 'success');
+    });
+}
+
+function ouvrirDepenseOr() {
+    const actuel = window.perso?.argent || 0;
+    const saisie = prompt(`Combien d'or voulez-vous dépenser ? (Vous avez : ${actuel} or)`, '');
+    if (saisie === null) return;
+    const montant = parseInt(saisie);
+    if (isNaN(montant) || montant <= 0) { if (typeof _toast === 'function') _toast('Montant invalide.', 'error'); return; }
+    if (montant > actuel) { if (typeof _toast === 'function') _toast(`Pas assez d'or ! (${actuel} or)`, 'error'); return; }
+    window.perso.argent = actuel - montant;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    if (typeof updateInventaireUI === 'function') updateInventaireUI();
+    if (typeof _toast === 'function') _toast(`💸 ${montant} or dépensé. Reste : ${window.perso.argent} or`, 'gold');
 }

@@ -25,94 +25,96 @@ const itemsData = {
     "AM01": {
         nom: "Hache rouillée", desc: "Une hache usée par le temps.",
         type: "arme_melee", rarete: "2", poids: 3.0, prix: 30,
-        equipable: "main_droite", stackable: false, degats: "1-8", armure: 0, vitesse: 10, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "1-8", armure: 0, vitesse: 10, portee: 1, degatsFT: 2,
         stats: {}, prerequis: { FO: 7 }, lootable: true, nbUsages: null
     },
     "AM02": {
         nom: "Marteau de qualité", desc: "Un marteau de forgeron parfaitement équilibré.",
         type: "arme_melee", rarete: "6", poids: 4.5, prix: 150,
-        equipable: "main_droite", stackable: false, degats: "2-12", armure: 0, vitesse: 11, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "2-12", armure: 0, vitesse: 11, portee: 1, degatsFT: 3,
         stats: { }, prerequis: { FO: 9 }, lootable: true, nbUsages: null
     },
     "AM03": {
         nom: "Épée enchantée", desc: "Une lame luisante qui palpite d'une énergie arcanique.",
         type: "arme_melee", rarete: "8", poids: 2.0, prix: 600,
-        equipable: "main_droite", stackable: false, degats: "4-14", armure: 0, vitesse: 14, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "4-14", armure: 0, vitesse: 14, portee: 1, degatsFT: 2,
         stats: { resMagie: 10, FT: 20, align: 10 }, prerequis: { FO: 6 }, lootable: true, nbUsages: null
     },
     "AM04": {
         nom: "Dague simple", desc: "Une petite lame facile à dissimuler.",
         type: "arme_melee", rarete: "3", poids: 0.5, prix: 30,
-        equipable: "main_droite", stackable: false, degats: "1-4", armure: 0, vitesse: 16, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "1-4", armure: 0, vitesse: 16, portee: 1, degatsFT: 1,
         stats: {}, prerequis: {}, lootable: true, nbUsages: null
     },
     "AM05": {
         nom: "Bâton", desc: "Un long bâton en bois robuste, souvent utilisé par les voyageurs.",
         type: "arme_melee", rarete: "2", poids: 1.5, prix: 20,
-        equipable: "deux_mains", stackable: false, degats: "1-6", armure: 0, vitesse: 12, portee: 1,
+        equipable: "deux_mains", stackable: false, degats: "1-3", armure: 0, vitesse: 12, portee: 1, degatsFT: 1,
         stats: { FT: 5 }, prerequis: {}, lootable: true, nbUsages: null
     },
     "AM06": {
         nom: "Épée simple", desc: "Une lame droite standard en fer.",
         type: "arme_melee", rarete: "4", poids: 2.5, prix: 100,
-        equipable: "main_droite", stackable: false, degats: "2-8", armure: 0, vitesse: 12, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "2-8", armure: 0, vitesse: 12, portee: 1, degatsFT: 2,
         stats: {}, prerequis: { FO: 6 }, lootable: true, nbUsages: null
     },
     "AM07": {
         nom: "Couteau rouillé", desc: "Plus dangereux pour le tétanos que pour la blessure.",
         type: "arme_melee", rarete: "1", poids: 0.5, prix: 10,
-        equipable: "main_droite", stackable: false, degats: "1-3", armure: 0, vitesse: 14, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "1-3", armure: 0, vitesse: 14, portee: 1, degatsFT: 1,
         stats: {}, prerequis: {}, lootable: true, nbUsages: null
     },
     "AM08": {
         nom: "Épée rouillée", desc: "Une lame qui a connu des jours meilleurs.",
         type: "arme_melee", rarete: "1", poids: 2.5, prix: 8,
-        equipable: "main_droite", stackable: false, degats: "1-6", armure: 0, vitesse: 10, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "1-6", armure: 0, vitesse: 10, portee: 1, degatsFT: 1,
         stats: {}, prerequis: { FO: 6 }, lootable: true, nbUsages: null
     },
     "AM09": {
         nom: "Vieille rapière", desc: "Fine et élégante, malgré les taches de rouille.",
         type: "arme_melee", rarete: "4", poids: 1.5, prix: 45,
-        equipable: "main_droite", stackable: false, degats: "2-9", armure: 0, vitesse: 15, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "2-9", armure: 0, vitesse: 15, portee: 1, degatsFT: 2,
         stats: {}, prerequis: { DX: 9 }, lootable: true, nbUsages: null
     },
     "AM10": {
         nom: "Hache", desc: "Une hache de bûcheron bien affûtée.",
         type: "arme_melee", rarete: "4", poids: 3.5, prix: 50,
-        equipable: "main_droite", stackable: false, degats: "3-10", armure: 0, vitesse: 9, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "3-10", armure: 0, vitesse: 9, portee: 1, degatsFT: 3,
         stats: {}, prerequis: { FO: 8 }, lootable: true, nbUsages: null
     },
     // --- Mêlée (Craft) ---
     "AM11": {
         nom: "Épée équilibrée", desc: "Arme rapide et précise utilisant les propriétés du pur alliage.",
         type: "arme_melee", rarete: "7", poids: 1.5, prix: 450,
-        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 18, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 18, portee: 1, degatsFT: 3,
         stats: { }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
     },
     "AM12": {
         nom: "Hache ultralégère", desc: "Arme mortelle en minerai nain pesant moitié moins.",
         type: "arme_melee", rarete: "7", poids: 1.8, prix: 500,
-        equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 14, portee: 1,
+        equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 14, portee: 1, degatsFT: 3,
         stats: { }, prerequis: { FO: 7 }, lootable: false, nbUsages: null
     },
     "AM13": {
         nom: "Bâton électrique", desc: "Bâton avec condensateur libérant un choc à l'impact.",
         type: "arme_melee", rarete: "6", poids: 2.0, prix: 350,
-        equipable: "deux_mains", stackable: false, degats: "2-10", armure: 0, vitesse: 13, portee: 1,
-        stats: { resElec: 5, align: -10 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
+        equipable: "deux_mains", stackable: false, degats: "2-10", armure: 0, vitesse: 13, portee: 1, degatsFT: 3,
+        stats: { resElec: 5, align: -10 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null,
+        elementDegats: "elec"
     },
     "AM14": {
         nom: "Bâton Tesla", desc: "Arme avancée projetant des rayons d'énergie paralysants.",
         type: "arme_melee", rarete: "9", poids: 2.5, prix: 1200,
-        equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 15, portee: 3,
-        stats: { resElec: 15, align: -20 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
+        equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 15, portee: 3, degatsFT: 5,
+        stats: { resElec: 15, align: -20 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null,
+        elementDegats: "elec"
     },
 	
 	
 	
 	
 	
-	    "AM15": { nom: "Barre de fer", desc: "Tige métallique standard.", type: "arme_melee", rarete: "1", poids: 1.5, prix: 10, equipable: "main_droite", stackable: false, degats: "1-2", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "AM15": { nom: "Barre de fer", desc: "Tige métallique standard.", type: "arme_melee", rarete: "1", poids: 1.5, prix: 10, equipable: "main_droite", stackable: false, degats: "1-2", armure: 0, vitesse: 0, portee: 0, degatsFT: 1, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
 
 	
 	
@@ -124,14 +126,33 @@ const itemsData = {
     // ---------------- ARMES À DISTANCE (AD) ----------------
     "AD01": {
         nom: "Arc court", desc: "Un arc simple en bois souple. Nécessite des flèches.",
-        type: "arme_distance", rarete: "3", poids: 1.5, prix: 100,
-        equipable: "deux_mains", stackable: false, degats: "1-6", armure: 0, vitesse: 10, portee: 15,
+        type: "arme_distance", soustype: "arc", rarete: "1", poids: 1.5, prix: 100,
+        equipable: "deux_mains", stackable: false, degats: "1-6", armure: 0, vitesse: 10, portee: 15, degatsFT: 1,
         stats: {}, prerequis: { DX: 8 }, lootable: true, nbUsages: null
     },
-    "AD02": {
+       "AD02": {
+        nom: "Arc long", desc: "Un arc long en bois rigide. Nécessite des flèches.",
+        type: "arme_distance", soustype: "arc", rarete: "3", poids: 1.5, prix: 200,
+        equipable: "deux_mains", stackable: false, degats: "3-8", armure: 0, vitesse: 10, portee: 15, degatsFT: 1,
+        stats: {}, prerequis: { DX: 10 }, lootable: true, nbUsages: null
+    },
+       "AD03": {
+        nom: "Arc Elfique", desc: "Un arc elfique. Nécessite des flèches.",
+        type: "arme_distance", soustype: "arc", rarete: "5", poids: 1.5, prix: 300,
+        equipable: "deux_mains", stackable: false, degats: "3-15", armure: 0, vitesse: 10, portee: 15, degatsFT: 1,
+        stats: {}, prerequis: { DX: 12 }, lootable: true, nbUsages: null
+    },
+
+       "AD04": {
+        nom: "Arc magique ", desc: "Un arc emplit de magie. Nécessite des flèches.",
+        type: "arme_distance", soustype: "arc", rarete: "5", poids: 1.5, prix: 300,
+        equipable: "deux_mains", stackable: false, degats: "5-10", armure: 0, vitesse: 10, portee: 15, degatsFT: 1,
+        stats: {FT: 25, align: 10}, prerequis: { DX: 12 }, lootable: true, nbUsages: null
+    },
+    "AD05": {
         nom: "Boomerang", desc: "Une arme exotique qui revient à l'envoyeur. Normalement.",
-        type: "arme_distance", rarete: "4", poids: 1.0, prix: 70,
-        equipable: "main_droite", stackable: false, degats: "1-8", armure: 0, vitesse: 12, portee: 10,
+        type: "arme_distance", rarete: "1", poids: 1.0, prix: 70,
+        equipable: "main_droite", stackable: false, degats: "1-4", armure: 0, vitesse: 12, portee: 10, degatsFT: 1,
         stats: {}, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
 
@@ -139,69 +160,69 @@ const itemsData = {
     "AF01": {
         nom: "Revolver de qualité", desc: "Le barillet tourne avec une précision mortelle.",
         type: "arme_feu", rarete: "6", poids: 1.8, prix: 350,
-        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 15, portee: 12,
+        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 15, portee: 12, degatsFT: 2,
         stats: { align: -10 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
     "AF02": {
         nom: "Revolver rouillé", desc: "Le barillet a du mal à tourner, mais ça fera l'affaire.",
         type: "arme_feu", rarete: "3", poids: 1.8, prix: 220,
-        equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 12, portee: 12,
+        equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 12, portee: 12, degatsFT: 2,
         stats: { align: -5 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
     // --- Armes à Feu (Craft) ---
     "AF03": {
         nom: "Pistolet à silex", desc: "Arme à feu rudimentaire fabriquée avec des pièces de récupération.",
         type: "arme_feu", rarete: "3", poids: 2.0, prix: 150,
-        equipable: "main_droite", stackable: false, degats: "3-10", armure: 0, vitesse: 8, portee: 10,
+        equipable: "main_droite", stackable: false, degats: "3-10", armure: 0, vitesse: 8, portee: 10, degatsFT: 2,
         stats: { align: -10 }, prerequis: { DX: 6 }, lootable: false, nbUsages: null
     },
     "AF04": {
         nom: "Revolver de choix", desc: "Pistolet bien équilibré destiné aux tireurs sérieux.",
         type: "arme_feu", rarete: "7", poids: 1.6, prix: 450,
-        equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 18, portee: 15,
+        equipable: "main_droite", stackable: false, degats: "6-18", armure: 0, vitesse: 18, portee: 15, degatsFT: 2,
         stats: { align: -15 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
     },
     "AF05": {
         nom: "Fusil à répétition", desc: "Fusil permettant de tirer plusieurs coups rapidement.",
         type: "arme_feu", rarete: "8", poids: 3.5, prix: 800,
-        equipable: "deux_mains", stackable: false, degats: "8-20", armure: 0, vitesse: 18, portee: 20,
+        equipable: "deux_mains", stackable: false, degats: "8-20", armure: 0, vitesse: 18, portee: 20, degatsFT: 2,
         stats: { align: -20 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
     },
     "AF06": {
         nom: "Revolver silencieux", desc: "Arme à feu modifiée pour réduire le bruit de la détonation.",
         type: "arme_feu", rarete: "7", poids: 1.7, prix: 600,
-        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 16, portee: 12,
+        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 16, portee: 12, degatsFT: 2,
         stats: { align: -15 }, prerequis: { DX: 8 }, lootable: false, nbUsages: null
     },
     "AF07": {
         nom: "Fusil à lunette", desc: "Fusil de précision équipé d'un système de visée optique.",
         type: "arme_feu", rarete: "8", poids: 4.0, prix: 950,
-        equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 8, portee: 30,
+        equipable: "deux_mains", stackable: false, degats: "10-25", armure: 0, vitesse: 8, portee: 30, degatsFT: 2,
         stats: { align: -20 }, prerequis: { DX: 10 }, lootable: false, nbUsages: null
     },
     "AF08": {
         nom: "Canon portable", desc: "Arme lourde infligeant des dégâts massifs.",
         type: "arme_feu", rarete: "9", poids: 8.0, prix: 1500,
-        equipable: "deux_mains", stackable: false, degats: "20-40", armure: 0, vitesse: 5, portee: 15,
+        equipable: "deux_mains", stackable: false, degats: "20-40", armure: 0, vitesse: 5, portee: 15, degatsFT: 2,
         stats: { align: -25 }, prerequis: { FO: 12, DX: 8 }, lootable: false, nbUsages: null
     },
     "AF09": {
         nom: "Fusil éléphant", desc: "Arme de très gros calibre pour les cibles les plus résistantes.",
         type: "arme_feu", rarete: "10", poids: 5.5, prix: 2200,
-        equipable: "deux_mains", stackable: false, degats: "25-50", armure: 0, vitesse: 6, portee: 25,
+        equipable: "deux_mains", stackable: false, degats: "25-50", armure: 0, vitesse: 6, portee: 25, degatsFT: 2,
         stats: { align: -30 }, prerequis: { FO: 10, DX: 10 }, lootable: false, nbUsages: null
     },
 
 
 
 
-    "AF10": { nom: "Fusil de chasse", desc: "Arme de base.", type: "arme_feu", rarete: "4", poids: 3.0, prix: 80, equipable: "deux_mains", stackable: false, degats: "5-12", armure: 0, vitesse: 5, portee: 8, stats: {align: -10}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF10": { nom: "Fusil de chasse", desc: "Arme de base.", type: "arme_feu", rarete: "4", poids: 3.0, prix: 80, equipable: "deux_mains", stackable: false, degats: "5-12", armure: 0, vitesse: 5, portee: 8, degatsFT: 2, stats: {align: -10}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF11": { nom: "Fusil précis ", desc: "Fusil long canon.", type: "arme_feu", rarete: "6", poids: 3.5, prix: 150, equipable: "deux_mains", stackable: false, degats: "8-16", armure: 0, vitesse: 6, portee: 20, stats: {align: -15}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF11": { nom: "Fusil précis ", desc: "Fusil long canon.", type: "arme_feu", rarete: "6", poids: 3.5, prix: 150, equipable: "deux_mains", stackable: false, degats: "8-16", armure: 0, vitesse: 6, portee: 20, degatsFT: 2, stats: {align: -15}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF12": { nom: "Fusil Clarington", desc: "Fusil de haute qualité.", type: "arme_feu", rarete: "7", poids: 4.0, prix: 300, equipable: "deux_mains", stackable: false, degats: "10-15", armure: 6, vitesse: 15, portee: 15, stats: {align: -20}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF12": { nom: "Fusil Clarington", desc: "Fusil de haute qualité.", type: "arme_feu", rarete: "7", poids: 4.0, prix: 300, equipable: "deux_mains", stackable: false, degats: "10-15", armure: 6, vitesse: 15, portee: 15, degatsFT: 2, stats: {align: -20}, prerequis: {}, lootable: true, nbUsages: null },
 
-    "AF13": { nom: "Pistolet chic", desc: "Arme de noble.", type: "arme_feu", rarete: "3", poids: 1.5, prix: 200, equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 5, portee: 12, stats: {align: -5, CH:1}, prerequis: {}, lootable: true, nbUsages: null },
+    "AF13": { nom: "Pistolet chic", desc: "Arme de noble.", type: "arme_feu", rarete: "3", poids: 1.5, prix: 200, equipable: "main_droite", stackable: false, degats: "4-12", armure: 0, vitesse: 5, portee: 12, degatsFT: 2, stats: {align: -5, CH:1}, prerequis: {}, lootable: true, nbUsages: null },
 
 
 
@@ -421,7 +442,7 @@ const itemsData = {
         nom: "Elixir de soins légers", desc: "Médicament de base pour soigner les blessures légères.",
         type: "consommable", rarete: "3", poids: 0.2, prix: 60,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 20 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 15 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS06": {
         nom: "Stimulant", desc: "Produit augmentant temporairement les capacités physiques.",
@@ -433,13 +454,13 @@ const itemsData = {
         nom: "Antidote", desc: "Substance permettant de neutraliser les effets du poison.",
         type: "consommable", rarete: "4", poids: 0.2, prix: 80,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1 // Soin poison à coder
+        stats: { curePoison: true }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS08": {
         nom: "Limiteur de fatigue", desc: "Préparation réduisant la perte de points de fatigue.",
         type: "consommable", rarete: "6", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinFT: 50 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinFT: 20 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS09": {
         nom: "Accélérateur de guérison", desc: "Accélère la régénération naturelle des tissus.",
@@ -451,13 +472,13 @@ const itemsData = {
         nom: "Drogue merveilleuse", desc: "Elixir puissant aux propriétés curatives avancées.",
         type: "consommable", rarete: "8", poids: 0.2, prix: 300,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 40, }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 30, }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS11": {
         nom: "Soin universel", desc: "Le remède technologique ultime pour tous les maux.",
         type: "consommable", rarete: "10", poids: 0.2, prix: 500,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { soinPV: 150, soinFT: 150 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { soinPV: 30, soinFT: 30, curePoison: true }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS12": {
         nom: "Elixir de persuasion", desc: "Améliore temporairement le charisme et l'élocution.",
@@ -548,32 +569,32 @@ const itemsData = {
         nom: "Grenade fumigène", desc: "Mixture générant un nuage de fumée pour couvrir une fuite.",
         type: "consommable", rarete: "5", poids: 0.5, prix: 150,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 12, portee: 8,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS27": {
         nom: "Grenade étourdissante", desc: "Explosion de salpêtre étourdissant temporairement les ennemis.",
         type: "consommable", rarete: "6", poids: 0.5, prix: 200,
         equipable: "main_droite", stackable: true, degats: "2-8", armure: 0, vitesse: 12, portee: 8,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS28": {
         nom: "Grenade offensive", desc: "Arme de destruction puissante utilisant du TNT et de la poudre.",
         type: "consommable", rarete: "7", poids: 0.8, prix: 300,
         equipable: "main_droite", stackable: true, degats: "15-35", armure: 0, vitesse: 10, portee: 8,
-        stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
     "CONS29": {
         nom: "Ecran de feu", desc: "Mixture inflammable créant un mur de flammes défensif.",
         type: "consommable", rarete: "8", poids: 1.0, prix: 400,
         equipable: "main_droite", stackable: true, degats: "10-20", armure: 0, vitesse: 8, portee: 5,
-        stats: { align: -3 }, prerequis: {}, lootable: false, nbUsages: 1
+        stats: {}, prerequis: {}, lootable: false, nbUsages: 1
     },
 
     "CONS30": {
         nom: "Reanimateur", desc: "Mixture pouvant faire revenir à la vie.",
         type: "consommable", rarete: "9", poids: 1.0, prix: 1400,
         equipable: "main_droite", stackable: true, degats: "", armure: 0, vitesse: 8, portee: 5,
-        stats: { resurrection: true, soinPV: 999 }, prerequis: {}, lootable: true, nbUsages: 1
+        stats: { resurrection: true, soinPV: 5 }, prerequis: {}, lootable: true, nbUsages: 1
     },
 
 

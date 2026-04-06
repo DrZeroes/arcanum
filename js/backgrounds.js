@@ -11,7 +11,7 @@ const backgrounds = [
         rest: {pasRaces:["Ogre"]}, 
         mod: {}, 
         desc: "Nietzsche a dit un jour : « Ce qui ne me tue pas me rend plus fort », et il faisait peut-être référence à vous. Toute ta vie tu as fait des erreurs, mais tu sembles toujours t'en sortir mieux après. En d’autres termes, vous aurez plus échec critique que la normale mais vous gagnez plud rapidement del'expérience.",
-        effets: "Bonus de points d'expérience +10 % / % de chances d'échec critique +20"
+        effets: "-"
     },
     { 
         nom: "Agoraphobe", 
@@ -365,7 +365,7 @@ const backgrounds = [
         rest: {}, 
         mod: {}, 
         desc: "Vous êtes né lors d’un événement astronomique étonnant. En conséquence, vous en ressentez moins coups critiques et ratés critiques, mais lorsque vous les obtenez, leurs résultats ont tendance à être spectaculaires.",
-        effets: "Chance critique -10 / Effet critique +10"
+        effets: "-"
     },
     { 
         nom: "Opération Miracle", 

@@ -123,7 +123,7 @@ const magieData = {
         desc: "Affecte de façon positive la force vitale.", 
         sorts: [
             { nom: "Soins légers", niv: 1, int: 6, cout: 3,soin: 3, desc: "Soigne une petite quantité de points de vie." }, 
-            { nom: "Antidote", niv: 1, int: 9, cout: 5, desc: "Soigne les effets de poison." }, 
+            { nom: "Antidote", niv: 1, int: 9, cout: 5, curePoison: true, desc: "Soigne les effets de poison." }, 
             { nom: "Soins importants", niv: 5, int: 12, cout: 10,soin: 15, desc: "Soigne une grande quantité de points de vie." }, 
             { nom: "Sanctuaire", niv: 10, int: 15, cout: 15, desc: "Empêche les morts-vivants d’attaquer la cible." }, 
             { nom: "Résurrection", niv: 15, int: 18, cout: 20,soin: 999,resurrection: true, desc: "Ramène une cible à la vie." }
@@ -184,18 +184,25 @@ function trouverSort(nomSortCherche) {
     return null; // Sort introuvable
 }
 
-// Transforme les points de magieBase en liste de sorts jouables
+// Transforme les points de magie (base + investis) en liste de sorts jouables
 function getSortsConnus() {
     let sortsAppris = [];
-    if (!perso.magieBase || typeof magieData === 'undefined') return sortsAppris;
+    if (typeof magieData === 'undefined') return sortsAppris;
 
-    for (let ecole in perso.magieBase) {
-        let niveauInvesti = parseInt(perso.magieBase[ecole]); // Sécurité : on s'assure que c'est un nombre
-        if (niveauInvesti > 0 && magieData[ecole] && magieData[ecole].sorts) {
-            for (let i = 0; i < niveauInvesti; i++) {
-                if (magieData[ecole].sorts[i]) {
-                    sortsAppris.push(magieData[ecole].sorts[i].nom);
-                }
+    // Fusionne magieBase et magieInvesties (prend le max de chaque école)
+    const niveauxParEcole = {};
+    for (let ecole in (perso.magieBase || {})) {
+        niveauxParEcole[ecole] = Math.max(niveauxParEcole[ecole] || 0, parseInt(perso.magieBase[ecole]) || 0);
+    }
+    for (let ecole in (perso.magieInvesties || {})) {
+        niveauxParEcole[ecole] = Math.max(niveauxParEcole[ecole] || 0, parseInt(perso.magieInvesties[ecole]) || 0);
+    }
+
+    for (let ecole in niveauxParEcole) {
+        let niveau = niveauxParEcole[ecole];
+        if (niveau > 0 && magieData[ecole]?.sorts) {
+            for (let i = 0; i < niveau; i++) {
+                if (magieData[ecole].sorts[i]) sortsAppris.push(magieData[ecole].sorts[i].nom);
             }
         }
     }
@@ -205,54 +212,67 @@ function getSortsConnus() {
 // Ouvre l'interface du grimoire sur l'accueil
 function ouvrirMagieAccueil() {
     if (typeof cacherTout === "function") cacherTout();
-    
+
     const ecranMagie = document.getElementById('ecran-magie-accueil');
     if (ecranMagie) ecranMagie.style.display = 'block';
-    
-// Calcul de la fatigue
-const maxFT = (perso.statsBase.CN * 2) + (perso.statsBase.IN) + (perso.boostFT || 0);
-if (perso.ftActuel === undefined) perso.ftActuel = maxFT;
 
-document.getElementById('val-ft-magie').innerText = perso.ftActuel;
-document.getElementById('val-ft-max-magie').innerText = maxFT;
+    const maxFT = (perso.statsBase.CN * 2) + (perso.statsBase.IN) + (perso.boostFT || 0);
+    if (perso.ftActuel === undefined) perso.ftActuel = maxFT;
+    document.getElementById('val-ft-magie').innerText = perso.ftActuel;
+    document.getElementById('val-ft-max-magie').innerText = maxFT;
 
     const container = document.getElementById('liste-sorts-accueil');
     if (!container) return;
-    
-    container.innerHTML = ""; // On vide la liste avant de la remplir
+    container.innerHTML = "";
 
-    // 1. On récupère les sorts que le joueur connaît vraiment
-    let mesSorts = getSortsConnus(); 
+    const _sortHtml = (data, ftSource, onclickCall, couleurBord, couleurFond) => {
+        const coutReel = parseInt(data.cout, 10) || 0;
+        const peutLancer = (ftSource >= coutReel);
+        return `
+            <div style="background: ${couleurFond}; border: 1px solid ${couleurBord}; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <strong style="color: #d1c4e9;">${data.nom}</strong><br>
+                    <small style="color: #9575cd; font-style: italic;">Coût : ${coutReel} FT</small>
+                </div>
+                <button onclick="${onclickCall}"
+                    style="background: ${peutLancer ? couleurBord : '#444'}; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: ${peutLancer ? 'pointer' : 'not-allowed'};"
+                    ${peutLancer ? '' : 'disabled'}>
+                    ${peutLancer ? '✨ Lancer' : '❌ Épuisé'}
+                </button>
+            </div>`;
+    };
 
-    // 2. S'il n'en connaît aucun
-    if (mesSorts.length === 0) {
-        container.innerHTML = "<p style='color:#666; text-align:center;'>Aucun sort connu.</p>";
-        return;
+    // --- SORTS DU JOUEUR ---
+    let mesSorts = getSortsConnus();
+    if (mesSorts.length > 0) {
+        container.innerHTML += `<p style="color:#9575cd; font-weight:bold; margin: 4px 0 8px;">✨ Vos sorts</p>`;
+        mesSorts.forEach(nomSort => {
+            const data = trouverSort(nomSort);
+            if (!data) return;
+            const nomSafe = data.nom.replace(/'/g, "\\'");
+            container.innerHTML += _sortHtml(data, perso.ftActuel, `preparerEtLancerSort('${nomSafe}')`, '#673ab7', '#2a1a3a');
+        });
     }
 
-    // 3. LA CORRECTION EST LÀ : on utilise "mesSorts.forEach" au lieu de "perso.sorts" !
-    mesSorts.forEach(nomSort => {
-        const data = trouverSort(nomSort);
-        if (data) {
-            const coutReel = parseInt(data.cout, 10) || 0;
-            const peutLancer = (perso.ftActuel >= coutReel);
+    // --- SORTS DES COMPAGNONS ---
+    const comps = window.perso?.compagnons || [];
+    comps.forEach((comp, i) => {
+        const sortComp = _getSortsConnus_comp(comp);
+        if (sortComp.length === 0) return;
+        const ftMaxComp = (comp.statsBase?.CN || 5) * 2 + (comp.statsBase?.IN || 5) + (comp.boostFT || 0);
+        const ftComp = comp.ftActuel !== undefined ? comp.ftActuel : ftMaxComp;
+        container.innerHTML += `<p style="color:#a5d6a7; font-weight:bold; margin: 12px 0 6px; border-top: 1px solid #333; padding-top: 8px;">🤝 ${comp.nom} <small style="color:#888; font-weight:normal;">FT : ${ftComp}/${ftMaxComp}</small></p>`;
+        sortComp.forEach(nomSort => {
+            const data = trouverSort(nomSort);
+            if (!data) return;
             const nomSafe = data.nom.replace(/'/g, "\\'");
-
-            container.innerHTML += `
-                <div style="background: #2a1a3a; border: 1px solid #673ab7; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="flex: 1;">
-                        <strong style="color: #d1c4e9;">${data.nom}</strong><br>
-                        <small style="color: #9575cd; font-style: italic;">Coût : ${coutReel} FT</small>
-                    </div>
-                    <button onclick="preparerEtLancerSort('${nomSafe}')" 
-                        style="background: ${peutLancer ? '#673ab7' : '#444'}; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: ${peutLancer ? 'pointer' : 'not-allowed'};"
-                        ${peutLancer ? '' : 'disabled'}>
-                        ${peutLancer ? '✨ Lancer' : '❌ Épuisé'}
-                    </button>
-                </div>
-            `;
-        }
+            container.innerHTML += _sortHtml(data, ftComp, `preparerEtLancerSort('${nomSafe}', ${i})`, '#4caf50', '#1a2a1a');
+        });
     });
+
+    if (mesSorts.length === 0 && comps.every(c => _getSortsConnus_comp(c).length === 0)) {
+        container.innerHTML = "<p style='color:#666; text-align:center;'>Aucun sort connu.</p>";
+    }
 }
 
 
@@ -287,25 +307,73 @@ function mettreAJourListeCibles() {
 
 // Cette fonction remplace l'ancienne avec le prompt()
 let sortEnCoursCible = null;
+let sortSourceCompIdx = null; // null = joueur, number = index compagnon
 
-function preparerEtLancerSort(nomSort) {
+// Retourne les sorts connus d'un compagnon (même logique que getSortsConnus pour le joueur)
+function _getSortsConnus_comp(comp) {
+    const sortsAppris = [];
+    if (typeof magieData === 'undefined') return sortsAppris;
+    const niveauxParEcole = {};
+    for (let ecole in (comp.magieBase || {})) {
+        niveauxParEcole[ecole] = Math.max(niveauxParEcole[ecole] || 0, parseInt(comp.magieBase[ecole]) || 0);
+    }
+    for (let ecole in (comp.magieInvesties || {})) {
+        niveauxParEcole[ecole] = Math.max(niveauxParEcole[ecole] || 0, parseInt(comp.magieInvesties[ecole]) || 0);
+    }
+    for (let ecole in niveauxParEcole) {
+        const niveau = niveauxParEcole[ecole];
+        if (niveau > 0 && magieData[ecole]?.sorts) {
+            for (let i = 0; i < niveau; i++) {
+                if (magieData[ecole].sorts[i]) sortsAppris.push(magieData[ecole].sorts[i].nom);
+            }
+        }
+    }
+    return sortsAppris;
+}
+
+function preparerEtLancerSort(nomSort, compIdx) {
     const data = trouverSort(nomSort);
     if (!data) return;
 
-if (window.perso.pvActuel <= 0) {
-        alert("💀 Un mort ne peut pas forger d'objets !");
+    if (window.perso.pvActuel <= 0) {
+        alert("💀 Un mort ne peut pas lancer de sorts !");
         return;
-}
+    }
 
     sortEnCoursCible = data;
+    sortSourceCompIdx = (compIdx !== undefined && compIdx !== null) ? compIdx : null;
+
+    // Bonus IN ≥ 20 : coût des sorts -10% (joueur seulement)
+    const _inTotal = (perso?.statsBase?.IN || 0) + (perso?.statsInvesties?.IN || 0);
+    const coutBase = parseInt(data.cout, 10) || 0;
+    const coutReel = (compIdx === undefined || compIdx === null) && _inTotal >= 20
+        ? Math.max(1, Math.floor(coutBase * 0.9))
+        : coutBase;
+    let ftSource, nomSource;
+    if (sortSourceCompIdx !== null) {
+        const comp = window.perso.compagnons[sortSourceCompIdx];
+        const ftMaxComp = (comp.statsBase?.CN || 5) * 2 + (comp.statsBase?.IN || 5) + (comp.boostFT || 0);
+        ftSource = comp.ftActuel !== undefined ? comp.ftActuel : ftMaxComp;
+        nomSource = comp.nom;
+    } else {
+        ftSource = perso.ftActuel;
+        nomSource = "Vous";
+    }
+    if (ftSource < coutReel) {
+        alert(`💥 ${nomSource} est trop fatigué pour lancer ce sort !`);
+        return;
+    }
+
     const moiID = perso.nom.replace(/\s+/g, '_');
 
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snapshot) => {
         const joueurs = snapshot.val();
         const liste = document.getElementById('liste-destinataires');
-        const titre = document.querySelector('#modal-transfert h3') || document.querySelector('#modal-transfert .titre'); 
-        
-        if (titre) titre.innerText = `Lancer ${data.nom} sur :`;
+        const titre = document.querySelector('#modal-transfert h3') || document.querySelector('#modal-transfert .titre');
+
+        if (titre) titre.innerText = sortSourceCompIdx !== null
+            ? `Lancer ${data.nom} (${nomSource}) sur :`
+            : `Lancer ${data.nom} sur :`;
         liste.innerHTML = "";
 
         // ⚔️ BOUTON ENNEMI (Ajouté ici)
@@ -327,6 +395,16 @@ if (window.perso.pvActuel <= 0) {
             }
         }
 
+        // 🤝 Compagnons du joueur
+        const comps = window.perso?.compagnons || [];
+        if (comps.length > 0) {
+            liste.innerHTML += `<hr style="border:0; border-top:1px solid #444; margin:8px 0;">`;
+            comps.forEach((c, i) => {
+                const nomSafe = c.nom.replace(/'/g, "\\'");
+                liste.innerHTML += `<button onclick="finaliserMagieCible('comp_${i}', '${nomSafe}')" style="background:#2e1f4d; color:#b39ddb; padding:10px; border:1px solid #7c4dff; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">🤝 ${c.nom}</button>`;
+            });
+        }
+
         document.getElementById('modal-transfert').style.display = 'block';
     });
 
@@ -340,35 +418,102 @@ function finaliserMagieCible(cibleID, nomCible) {
     const data = sortEnCoursCible;
     const coutReel = parseInt(data.cout, 10) || 0;
 
-    // 1. VÉRIFICATION COMMUNE : La fatigue
-    if (perso.ftActuel < coutReel) {
-        alert("💥 Vous êtes trop fatigué pour lancer ce sort !");
+    // Détermine la source de FT (joueur ou compagnon)
+    const _ftSource = () => {
+        if (sortSourceCompIdx !== null) {
+            const comp = window.perso.compagnons[sortSourceCompIdx];
+            const ftMax = (comp.statsBase?.CN || 5) * 2 + (comp.statsBase?.IN || 5) + (comp.boostFT || 0);
+            return comp.ftActuel !== undefined ? comp.ftActuel : ftMax;
+        }
+        return perso.ftActuel;
+    };
+    const _deduireFT = () => {
+        if (sortSourceCompIdx !== null) {
+            window.perso.compagnons[sortSourceCompIdx].ftActuel = _ftSource() - coutReel;
+            if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+        } else {
+            perso.ftActuel -= coutReel;
+        }
+    };
+
+    // Vérification commune : fatigue
+    if (_ftSource() < coutReel) {
+        alert("💥 Trop fatigué pour lancer ce sort !");
         return;
     }
 
-    // --- CAS A : CIBLE ENNEMIE (Action immédiate sans Firebase) ---
-    if (cibleID === 'ennemi') {
-        perso.ftActuel -= coutReel; // On déduit le coût
-        
-        let infoEffet = "";
-        const align = perso.alignementMagique || 0;
+    const alignement = sortSourceCompIdx !== null
+        ? (window.perso.compagnons[sortSourceCompIdx].alignementMagique || 0)
+        : (perso.alignementMagique || 0);
 
+    // Bonus IN ≥ 20 : dégâts sorts +10% (joueur seulement)
+    const inTotal = (perso?.statsBase?.IN || 0) + (perso?.statsInvesties?.IN || 0);
+    const bonusIN20 = (sortSourceCompIdx === null && inTotal >= 20) ? 1.1 : 1.0;
+
+    // Jet critique : joueur = avec son background, compagnon = sans background
+    const _casterPerso = sortSourceCompIdx === null ? perso : null;
+    const critSort = (typeof _lancerCritique === 'function')
+        ? _lancerCritique(_casterPerso)
+        : { type: 'normal', mult: 1 };
+    const critLabel = critSort.type === 'echec'
+        ? ' ⚠ ÉCHEC CRITIQUE'
+        : critSort.type === 'critique'
+            ? (critSort.mult >= 2 ? ' ⚡ CRITIQUE ×2 !' : ' ⚡ CRITIQUE ×1.5 !')
+            : '';
+
+    const _calcDegats = (base) => {
+        if (critSort.type === 'echec') return 0;
+        const val = Math.floor((base + (alignement / 100) * base) * bonusIN20);
+        return critSort.type === 'critique' ? Math.round(val * critSort.mult) : val;
+    };
+    const _calcSoin = (base) => {
+        if (base === 999) return 9999; // résurrection : jamais d'échec critique
+        if (critSort.type === 'echec') return 0;
+        const val = Math.floor(base + (alignement / 100) * base);
+        return critSort.type === 'critique' ? Math.round(val * critSort.mult) : val;
+    };
+
+    // --- CAS A : CIBLE ENNEMIE ---
+    if (cibleID === 'ennemi') {
+        _deduireFT();
+        let infoEffet = "";
         if (data.degats) {
-            let degatsModifies = Math.floor(data.degats + (align / 100) * data.degats);
-            infoEffet = `(${degatsModifies} dégâts infligés)`;
+            const d = _calcDegats(data.degats);
+            infoEffet = critSort.type === 'echec'
+                ? `(⚠ ÉCHEC CRITIQUE — sort raté !)`
+                : `(${d} dégâts infligés${critLabel})`;
         } else if (data.soin) {
             infoEffet = "(Cible ennemie soignée ?!)";
         }
-
         alert(`⚔️ Sort ${data.nom} lancé sur l'Ennemi ! ${infoEffet}`);
-        
-        // Nettoyage et fermeture
         fermerModaleEtUpdate();
-        return; // ON S'ARRÊTE ICI POUR L'ENNEMI
+        return;
     }
 
-    // --- CAS B : CIBLE JOUEUR (Nécessite Firebase) ---
-    // Si on arrive ici, c'est que cibleID n'est PAS 'ennemi'
+    // --- CAS B2 : CIBLE COMPAGNON (local) ---
+    if (cibleID.startsWith('comp_')) {
+        const compIdx = parseInt(cibleID.replace('comp_', ''));
+        const comp = window.perso?.compagnons?.[compIdx];
+        if (!comp) return;
+        if (data.soin) {
+            const soin = _calcSoin(data.soin);
+            const pvMax = (comp.statsBase?.FO || 3) * 2 + (comp.statsBase?.IN || 3);
+            comp.pvActuel = Math.min(pvMax, (comp.pvActuel || 0) + soin);
+        }
+        if (data.degats) {
+            comp.pvActuel = Math.max(0, (comp.pvActuel || 0) - _calcDegats(data.degats));
+        }
+        _deduireFT();
+        if (typeof autoSave === 'function') autoSave();
+        alert(`🔮 Sort ${data.nom}${critLabel} lancé sur ${nomCible} !`);
+        fermerModaleEtUpdate();
+        return;
+    }
+
+    // Détermine si la cible c'est le joueur lui-même
+    const moiID = window.perso?.nom?.replace(/\s+/g, '_') || '';
+
+    // --- CAS B : CIBLE JOUEUR (Firebase ou soi-même) ---
     db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID).once('value', (snapshot) => {
         const cibleData = snapshot.val();
         if (!cibleData) return;
@@ -376,7 +521,6 @@ function finaliserMagieCible(cibleID, nomCible) {
         const pvActuels = cibleData.pvActuel || 0;
         const estKO = (pvActuels <= 0 || cibleData.estMort === true);
 
-        // Vérifications de sécurité pour les joueurs
         if (data.degats && estKO) {
             alert(`🚫 ${nomCible} est déjà au sol.`);
             return;
@@ -386,27 +530,31 @@ function finaliserMagieCible(cibleID, nomCible) {
             return;
         }
 
-        // Application des effets sur Firebase
-        const alignement = perso.alignementMagique || 0;
+        const statRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat');
 
-        if (data.soin) {
-            let soinModifie = Math.floor(data.soin + (alignement / 100) * data.soin);
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
-                stat: 'PV', valeur: Math.max(0, soinModifie), timestamp: Date.now()
-            });
+        const soinVal = data.soin ? _calcSoin(data.soin) : 0;
+        const degatsVal = data.degats ? _calcDegats(data.degats) : 0;
+
+        if (soinVal > 0) {
+            statRef.set({ stat: 'PV', valeur: soinVal, timestamp: Date.now() });
+        }
+        if (degatsVal > 0) {
+            statRef.set({ stat: 'PV', valeur: -degatsVal, timestamp: Date.now() });
         }
 
-        if (data.degats) {
-            let degatsModifies = Math.floor(data.degats + (alignement / 100) * data.degats);
-            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat').set({
-                stat: 'PV', valeur: -Math.max(0, degatsModifies), timestamp: Date.now()
-            });
+        // Cure poison (indépendant du critique — effet magique garanti)
+        if (data.curePoison) {
+            if (cibleID === moiID) {
+                window.perso.poison = null;
+                if (typeof _toast === 'function') _toast('✅ Poison neutralisé !', 'success');
+                if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+            } else {
+                statRef.set({ stat: 'curePoison', valeur: 1, timestamp: Date.now() });
+            }
         }
 
-        // Déduction coût et message
-        perso.ftActuel -= coutReel;
-        alert(`🔮 Sort ${data.nom} lancé sur ${nomCible} !`);
-        
+        _deduireFT();
+        alert(`🔮 Sort ${data.nom}${critLabel} lancé sur ${nomCible} !`);
         fermerModaleEtUpdate();
     });
 }

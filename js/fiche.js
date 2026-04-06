@@ -23,6 +23,9 @@ function levelUp() {
     document.getElementById('ecran-fiche').classList.remove('is-locked');
     perso.niveau = (perso.niveau || 1) + 1;
     perso.pointsDispo = (perso.pointsDispo || 0) + (perso.niveau % 5 === 0 ? 2 : 1);
+    // +2 PV max et +2 FT max à chaque niveau
+    perso.boostPV = (perso.boostPV || 0) + 2;
+    perso.boostFT = (perso.boostFT || 0) + 2;
     updateFicheUI();
 }
 
@@ -197,7 +200,13 @@ photoContainer.innerHTML = `
     
     const elDegats = document.getElementById('der-degats');
     if (elDegats) {
-        let modifFo = (statFO > 10) ? (statFO - 10) : (statFO < 10 ? Math.floor((statFO - 10) / 2) : 0);
+        // foMod s'applique uniquement aux armes de mêlée et au corps à corps
+        const _eqFiche = perso.equipement || {};
+        const _slotFiche = _eqFiche.main_droite || _eqFiche.deux_mains || _eqFiche.main_gauche;
+        const _typeFiche = (typeof itemsData !== 'undefined' && _slotFiche) ? (itemsData[_slotFiche.id]?.type || '') : '';
+        const _estMeleeFiche = !_slotFiche || _typeFiche === 'arme_melee';
+        let modifFo = _estMeleeFiche ? ((statFO > 10) ? (statFO - 10) : (statFO < 10 ? Math.floor((statFO - 10) / 2) : 0)) : 0;
+        if (_estMeleeFiche && statFO >= 20) modifFo *= 2; // Bonus FO ≥ 20 : Modif. Dégâts doublé
         elDegats.innerText = (modifFo >= 0 ? "+" : "") + modifFo;
     }
 
@@ -207,7 +216,14 @@ photoContainer.innerHTML = `
         elArmure.style.color = (bonusArmure > 0) ? "#4caf50" : "#fff";
     }
     
-    if (document.getElementById('der-vitesse')) document.getElementById('der-vitesse').innerText = statDX + (perso.boostVitesseInne || 0);
+    if (document.getElementById('der-vitesse')) {
+        let vitesse = statDX >= 20 ? (25 + (statDX - 20)) : statDX;
+        vitesse += (perso.boostVitesseInne || 0);
+        const surcharge = (typeof _estSurcharge === 'function') && _estSurcharge(perso);
+        const elVit = document.getElementById('der-vitesse');
+        elVit.innerText = surcharge ? '1 ⚠' : vitesse;
+        elVit.style.color = surcharge ? '#f44336' : '';
+    }
     if (document.getElementById('der-guerison')) document.getElementById('der-guerison').innerText = Math.floor(statCN / 3);
     if (document.getElementById('der-toxines')) document.getElementById('der-toxines').innerText = statCN;
     

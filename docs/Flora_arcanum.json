@@ -1,0 +1,287 @@
+{
+  "nom": "Flora",
+  "race": "Demi-Elfe",
+  "sexe": "F",
+  "photo": "03.png",
+  "antecedent": "Rat de bibliothèque",
+  "niveau": 2,
+  "pointsDispo": 0,
+  "argent": 277,
+  "boostVitesseInne": 0,
+  "boostPV": 2,
+  "boostFT": 2,
+  "statsBase": {
+    "FO": 7,
+    "IN": 9,
+    "CN": 8,
+    "DX": 8,
+    "CH": 10
+  },
+  "statsInvesties": {
+    "FO": 1,
+    "IN": 0,
+    "CN": 0,
+    "DX": 2,
+    "CH": 1
+  },
+  "compInvesties": {
+    "discretion": 4,
+    "detection_piege": 0,
+    "soins": 0
+  },
+  "compBase": {},
+  "magieInvesties": {
+    "Nécromancie blanche": 1
+  },
+  "techInvesties": {},
+  "bonusInnes": {
+    "align": 5,
+    "resPhys": 0,
+    "resPoison": 0,
+    "resMagie": 0,
+    "resFeu": 0,
+    "resElec": 0
+  },
+  "inventaire": [
+    {
+      "id": "COMP28",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "CONS03",
+      "qte": 2,
+      "quantite": 2,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP08",
+      "qte": 3,
+      "quantite": 3,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "DEF01",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "AD01",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "AM15",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "XXX03",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP65",
+      "qte": 2,
+      "quantite": 2,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "CONS02",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP06",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP22",
+      "qte": 2,
+      "quantite": 2,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "AM15",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "DEF18",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP21",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    {
+      "id": "COMP51",
+      "qte": 2,
+      "quantite": 2,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    }
+  ],
+  "equipement": {
+    "tete": {
+      "id": "DEF23",
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    "torse": {
+      "id": "DEF05",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    "gants": {
+      "id": "DEF18",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    "bottes": null,
+    "anneau": {
+      "id": "BIJ02",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    "amulette": null,
+    "main_droite": {
+      "id": "AM04",
+      "qte": 1,
+      "quantite": 1,
+      "durabilite": 100,
+      "durabiliteMax": 100
+    },
+    "main_gauche": null
+  },
+  "lieuActuel": "tris",
+  "lieuxConnus": [
+    "crash",
+    "arba",
+    "simon",
+    "tris",
+    "tarante"
+  ],
+  "estMort": false,
+  "pvActuel": 23,
+  "ftActuel": 25,
+  "xp": 13,
+  "compagnons": [
+    {
+      "nom": "Magnus",
+      "race": "Nain",
+      "sexe": "M",
+      "niveau": 7,
+      "antecedent": "Forgeron nain en quête de sens après la chute de sa mine.",
+      "statsBase": {
+        "FO": 9,
+        "IN": 8,
+        "CN": 9,
+        "DX": 7,
+        "CH": 7
+      },
+      "statsInvesties": {
+        "FO": 4,
+        "IN": 1,
+        "CN": 2,
+        "DX": 1,
+        "CH": 0
+      },
+      "compInvesties": {
+        "melee": 4,
+        "reparation": 3
+      },
+      "equipement": {
+        "tete": {
+          "id": "DEF11",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        },
+        "torse": {
+          "id": "DEF09",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        },
+        "gants": {
+          "id": "DEF12",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        },
+        "bottes": {
+          "id": "DEF06",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        },
+        "anneau": null,
+        "amulette": null,
+        "main_droite": {
+          "id": "AM10",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        },
+        "main_gauche": {
+          "id": "DEF08",
+          "quantite": 1,
+          "durabilite": 100,
+          "durabiliteMax": 100
+        }
+      },
+      "pvActuel": 35,
+      "ftActuel": 31,
+      "boostPV": 0,
+      "boostFT": 0,
+      "argent": 120,
+      "inventaire": [
+        {
+          "id": "COMP02",
+          "quantite": 5
+        }
+      ],
+      "npcId": "magnus",
+      "magieInvesties": {},
+      "techInvesties": {}
+    }
+  ],
+  "_boostLvlApplique": true,
+  "poison": null,
+  "compagnonsMemoire": {}
+}

@@ -211,7 +211,7 @@ const personnagesNPC = {
     },
 
     "sogg": {
-        nom: "Sogg Mead Mug", race: "Demi-Orque", sexe: "M", niveau: 5,
+        nom: "Sogg Hydromel", race: "Demi-Ogre", sexe: "M", niveau: 5,
         antecedent: "Bagarreur de taverne au cœur simple mais aux poings redoutables.",
         statsBase:    { FO:9, IN:8, CN:9, DX:8, CH:6 },
         statsInvesties:{ FO:5, IN:0, CN:3, DX:0, CH:0 },
@@ -417,6 +417,7 @@ const ennemisData = {
         statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
         // PV:18  FT:16
         compInvesties: { melee:2 },
+        elementDegats: "poison",
         equipement: { tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null },
         pvActuel: 18, ftActuel: 16, boostPV:0, boostFT:0, argent: 0,
         lootDrop: [ { id:"COMP06", qte:1 }, { id:"OR_PIECES", qte:2 } ]
@@ -431,6 +432,7 @@ const ennemisData = {
         statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
         // PV:23  FT:21
         compInvesties: { melee:3, esquive:1 },
+        elementDegats: "poison",
         equipement: { tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null },
         pvActuel: 23, ftActuel: 21, boostPV:0, boostFT:0, argent: 0,
         lootDrop: [ { id:"COMP06", qte:2 }, { id:"COMP05", qte:1 }, { id:"OR_PIECES", qte:5 } ]
@@ -485,6 +487,7 @@ const ennemisData = {
         statsInvesties:{ FO:0, IN:0, CN:2, DX:2, CH:0 },
         // PV:29  FT:33
         compInvesties: { magie_combat:5, esquive:4, discretion:3 },
+        elementDegats: "feu",
         equipement: {
             tete: { id:"DEF04", quantite:1, durabilite:100, durabiliteMax:100 },
             torse: { id:"DEF04", quantite:1, durabilite:100, durabiliteMax:100 },
@@ -577,7 +580,7 @@ const ennemisData = {
             tete:null,
             torse: { id:"DEF01", quantite:1, durabilite:55, durabiliteMax:100 },
             gants:null, bottes:null, anneau:null, amulette:null,
-            main_droite: { id:"AM15", quantite:1, durabilite:80, durabiliteMax:100 },
+            main_droite: { id:"AM13", quantite:1, durabilite:80, durabiliteMax:100 },
             main_gauche:null
         },
         pvActuel: 21, ftActuel: 23, boostPV:0, boostFT:0, argent: 12,
@@ -633,6 +636,7 @@ const ennemisData = {
         statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
         // PV:20  FT:18
         compInvesties: { melee:3, discretion:2 },
+        elementDegats: "poison",
         equipement: {
             tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null,
             main_droite:null, main_gauche:null

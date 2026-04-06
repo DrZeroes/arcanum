@@ -1,0 +1,70 @@
+{
+  "nom": "Elorine",
+  "race": "Elfe noire",
+  "sexe": "F",
+  "photo": "04.png",
+  "antecedent": "Mage de la nuit",
+  "niveau": 1,
+  "pointsDispo": 0,
+  "argent": 400,
+  "boostVitesseInne": 0,
+  "boostPV": 0,
+  "boostFT": 0,
+  "statsBase": {
+    "FO": 5,
+    "IN": 11,
+    "CN": 7,
+    "DX": 6,
+    "CH": 11
+  },
+  "statsInvesties": {
+    "FO": 0,
+    "IN": 0,
+    "CN": 0,
+    "DX": 0,
+    "CH": 0
+  },
+  "compInvesties": {
+    "discretion": 2,
+    "attaque_sournoise": 2,
+    "vol_a_la_tire": 0,
+    "persuasion": 4,
+    "crochetage": 4
+  },
+  "compBase": {
+    "discretion": 2,
+    "attaque_sournoise": 2
+  },
+  "magieInvesties": {
+    "Nécromancie noire": 2,
+    "Déplacement": 2,
+    "Nécromancie blanche": 1
+  },
+  "techInvesties": {},
+  "bonusInnes": {
+    "align": 20,
+    "resPhys": 0,
+    "resPoison": 0,
+    "resMagie": 0,
+    "resFeu": 0,
+    "resElec": 0
+  },
+  "inventaire": [],
+  "equipement": {
+    "tete": null,
+    "torse": null,
+    "gants": null,
+    "bottes": null,
+    "anneau": null,
+    "amulette": null,
+    "main_droite": null,
+    "main_gauche": null
+  },
+  "lieuActuel": "crash",
+  "lieuxConnus": [
+    "crash"
+  ],
+  "estMort": false,
+  "pvActuel": 21,
+  "ftActuel": 25
+}

@@ -43,14 +43,28 @@ function mjDonnerObjetDirect(itemID) {
             liste.innerHTML = "<p style='color:#aaa;'>Aucun joueur connecté.</p>";
         } else {
             for (let id in joueurs) {
-                liste.innerHTML += `
-                    <button onclick="executerDonObjetMJ('${id}')" 
-                            style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">
-                        ${joueurs[id].nom}
-                    </button>`;
+                liste.innerHTML += `<button onclick="executerDonObjetMJ('${id}')" style="background:#4caf50; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">${joueurs[id].nom}</button>`;
             }
         }
-        document.getElementById('modal-transfert').style.display = 'block';
+
+        // Compagnons de tous les joueurs
+        db.ref('parties/' + sessionActuelle + '/compagnons').once('value', snapComps => {
+            const tousComps = snapComps.val() || {};
+            let hasComps = false;
+            for (let ownerID in tousComps) {
+                const arr = tousComps[ownerID];
+                const list = Array.isArray(arr) ? arr : Object.values(arr);
+                list.forEach(c => {
+                    if (!hasComps) {
+                        liste.innerHTML += `<hr style="border:0;border-top:1px solid #444;margin:8px 0;"><div style="color:#888;font-size:0.8em;margin-bottom:4px;">Compagnons</div>`;
+                        hasComps = true;
+                    }
+                    const nomSafe = c.nom.replace(/'/g, "\\'");
+                    liste.innerHTML += `<button onclick="executerDonObjetMJ('comp_${ownerID}_${c.idx}')" style="background:#2e1f4d; color:#b39ddb; padding:10px; border:1px solid #7c4dff; border-radius:5px; cursor:pointer; margin-bottom:5px; width:100%;">🤝 ${c.nom} <span style="color:#888;font-size:0.8em;">(${joueurs?.[ownerID]?.nom || ownerID})</span></button>`;
+                });
+            }
+            document.getElementById('modal-transfert').style.display = 'block';
+        });
     });
 }
 
@@ -251,16 +265,30 @@ function rafraichirListeJoueursMJ() {
 
         if (!joueurs) return;
 
+        db.ref('parties/' + sessionActuelle + '/compagnons').once('value', snapComps => {
+            const tousCompagnons = snapComps.val() || {};
+            // (once suffit : on est déjà dans un on() joueurs — se re-déclenche à chaque maj joueur)
+
         for (let id in joueurs) {
             const j = joueurs[id];
+            if (j.estMJ) continue;
             const estMort = (j.pvActuel <= 0);
 
-            // Section compagnons du joueur
-            const comps = j.compagnons_summary || [];
+            // Section compagnons du joueur (depuis le nœud dédié)
+            const compsRaw = tousCompagnons[id];
+            const comps = compsRaw ? (Array.isArray(compsRaw) ? compsRaw : Object.values(compsRaw)) : [];
             const compsHtml = comps.length
                 ? comps.map(c => {
                     const key = id + '-' + c.idx;
                     const nomSafe = c.nom.replace(/'/g, "\\'");
+                    // Inventaire du compagnon
+                    const invItems = c.inventaire || [];
+                    const invHtml = invItems.length
+                        ? invItems.map(it => {
+                            const def = (typeof itemsData !== 'undefined') ? itemsData[it.id] : null;
+                            return def ? `<span style="color:#ccc; font-size:10px; background:rgba(0,0,0,0.3); border-radius:2px; padding:1px 4px;">${def.nom} ×${it.quantite || 1}</span>` : '';
+                        }).filter(Boolean).join(' ')
+                        : '<span style="color:#555; font-size:10px;">Aucun objet</span>';
                     return `
                     <div data-comp-key="${key}" style="background:rgba(50,35,10,0.6); border:1px solid #5a4010; padding:4px 6px; border-radius:3px; margin-top:3px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -271,6 +299,7 @@ function rafraichirListeJoueursMJ() {
                                 <button onclick="mjRenvoyerCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#3a1010; color:#ff6b6b; border:1px solid #8b0000; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">✕</button>
                             </span>
                         </div>
+                        <div style="margin-top:3px; display:flex; flex-wrap:wrap; gap:3px;">🎒 ${invHtml}</div>
                     </div>`;
                 }).join('')
                 : `<div style="color:#555; font-size:10px; margin-top:3px;">Aucun compagnon</div>`;
@@ -293,6 +322,7 @@ function rafraichirListeJoueursMJ() {
                         <button onclick="mjDonnerLevelUp('${j.nom}')" style="grid-column: span 2; background:#ff9800; color:black; border:none; padding:4px; cursor:pointer; font-size:11px; font-weight:bold;">🌟 LEVEL UP joueur</button>
                         <button onclick="mjDonnerCompagnon('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a2e1a; color:#4caf50; border:1px solid #4caf50; padding:4px; cursor:pointer; font-size:11px;">🤝 Donner Compagnon</button>
                         <button onclick="mjKickJoueur('${id}', '${j.nom}')" style="grid-column: span 2; background:#5a0000; color:#ff6b6b; border:1px solid #8b0000; padding:4px; cursor:pointer; font-size:11px;">🚫 Expulser de la session</button>
+                        <button onclick="mjAutoriserVolATire('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1030; color:#b39ddb; border:1px solid #7c4dff; padding:4px; cursor:pointer; font-size:11px;">🤏 Autoriser Vol à la tire</button>
                     </div>
 
                     <div style="margin-top:6px; border-top:1px solid #333; padding-top:5px;">
@@ -302,6 +332,7 @@ function rafraichirListeJoueursMJ() {
                 </div>
             `;
         }
+        }); // fin once compagnons
     });
 }
 
@@ -370,67 +401,71 @@ function mjDonnerCompagnon(playerID, playerNom) {
 }
 
 /**
- * Le MJ choisit précisément où va le point de level-up d'un compagnon.
- * Affiche un panel inline (pas de prompt).
+ * Panel de level-up compagnon (MJ) — stats, compétences, tech, magie.
  */
 function mjLevelUpCompagnon(playerID, compIdx, compNom) {
     const containerId = 'lvup-panel-' + playerID + '-' + compIdx;
     const existing = document.getElementById(containerId);
-    if (existing) { existing.remove(); return; } // toggle
+    if (existing) { existing.remove(); return; }
 
     const parent = document.querySelector(`[data-comp-key="${playerID}-${compIdx}"]`);
     if (!parent) return;
 
+    const _envoyer = (payload) => {
+        payload.type = 'levelup';
+        payload.compIdx = compIdx;
+        payload.timestamp = Date.now();
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set(payload);
+        document.getElementById(containerId)?.remove();
+        if (typeof _toast === 'function') _toast('🌟 Level-up envoyé à ' + compNom + ' !', 'gold');
+    };
+
+    // --- Stats ---
+    let html = '<div class="lvup-titre">🌟 ' + compNom + ' — Améliorer :</div>';
+    html += '<div class="lvup-section-titre">📊 Stats</div>';
+    html += ['FO','IN','CN','DX','CH'].map(s =>
+        `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:s})}'>+1 ${s}</button>`
+    ).join('');
+
+    // --- Compétences ---
+    html += '<div class="lvup-section-titre">⚔ Compétences</div>';
+    if (typeof competencesData !== 'undefined') {
+        for (let cat in competencesData) {
+            competencesData[cat].forEach(c => {
+                html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'comp', competence:c.id})}'>${c.nom}</button>`;
+            });
+        }
+    }
+
+    // --- Technologie ---
+    html += '<div class="lvup-section-titre">⚙ Technologie</div>';
+    if (typeof techData !== 'undefined') {
+        Object.keys(techData).forEach(d => {
+            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'tech', discipline:d})}'>${d}</button>`;
+        });
+    }
+
+    // --- Magie ---
+    html += '<div class="lvup-section-titre">✨ Magie</div>';
+    if (typeof magieData !== 'undefined') {
+        Object.keys(magieData).forEach(e => {
+            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'magie', ecole:e})}'>${e}</button>`;
+        });
+    }
+
     const panel = document.createElement('div');
     panel.id = containerId;
     panel.className = 'comp-levelup-panel';
-    panel.innerHTML = '<div class="lvup-titre">🌟 Level Up ' + compNom + ' — choisir :</div>'
-        + ['FO','IN','CN','DX','CH'].map(s =>
-            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUp('${playerID}',${compIdx},'${s}',this)">+1 ${s}</button>`
-        ).join('')
-        + '<div class="lvup-titre" style="margin-top:6px;">Compétence / Magie</div>'
-        + `<button class="comp-levelup-btn" onclick="mjLvUpComp_menu('${playerID}',${compIdx},'comp',this)">Compétence…</button>`
-        + `<button class="comp-levelup-btn" onclick="mjLvUpComp_menu('${playerID}',${compIdx},'magie',this)">Sort…</button>`;
-    parent.after(panel);
-}
+    panel.innerHTML = html;
 
-function mjEnvoyerLevelUp(playerID, compIdx, stat, btn) {
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
-        type: 'levelup', compIdx: compIdx, stat: stat, timestamp: Date.now()
+    // Délégation d'événement unique
+    panel.addEventListener('click', e => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        _envoyer(JSON.parse(btn.dataset.action));
     });
-    btn.closest('.comp-levelup-panel').remove();
-    if (typeof _toast === 'function') _toast('Level-up envoyé (+1 ' + stat + ').', 'gold');
-}
 
-function mjLvUpComp_menu(playerID, compIdx, type, btn) {
-    const panel = btn.closest('.comp-levelup-panel');
-    let extra = panel.querySelector('.lvup-extra');
-    if (extra) { extra.remove(); return; }
-    extra = document.createElement('div');
-    extra.className = 'lvup-extra';
-    extra.style.marginTop = '6px';
-
-    if (type === 'comp') {
-        const comps = ['melee','esquive','soins','persuasion','discrétion','reparation','technologie'];
-        extra.innerHTML = comps.map(c =>
-            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUpComp('${playerID}',${compIdx},'comp','${c}',this)">${c}</button>`
-        ).join('');
-    } else {
-        if (typeof magieData === 'undefined') return;
-        extra.innerHTML = Object.keys(magieData).map(e =>
-            `<button class="comp-levelup-btn" onclick="mjEnvoyerLevelUpComp('${playerID}',${compIdx},'magie','${e}',this)">${e}</button>`
-        ).join('');
-    }
-    panel.appendChild(extra);
-}
-
-function mjEnvoyerLevelUpComp(playerID, compIdx, type, valeur, btn) {
-    const payload = { type: 'levelup', compIdx: compIdx, timestamp: Date.now() };
-    if (type === 'comp') { payload.stat = 'comp'; payload.competence = valeur; }
-    else { payload.stat = 'magie'; payload.ecole = valeur; }
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set(payload);
-    btn.closest('.comp-levelup-panel').remove();
-    if (typeof _toast === 'function') _toast('Level-up envoyé (+1 ' + valeur + ').', 'gold');
+    parent.after(panel);
 }
 
 /**
@@ -589,7 +624,12 @@ function mjLancerCombat() {
                 pvMax,
                 ftActuel: e.ftActuel || ftMax,
                 ftMax,
-                xp: e.xp || 0
+                xp: e.xp || 0,
+                elementDegats: e.elementDegats || null,
+                equipement: e.equipement || null,
+                statsBase: e.statsBase || null,
+                statsInvesties: e.statsInvesties || null,
+                compInvesties: e.compInvesties || null
             });
         }
     }
@@ -599,30 +639,50 @@ function mjLancerCombat() {
         return;
     }
 
-    // Récupère les joueurs pour construire l'ordre de jeu basé sur la vitesse
+    // Récupère les joueurs + compagnons pour construire l'ordre de jeu
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
         const joueurs = snap.val() || {};
+
+        db.ref('parties/' + sessionActuelle + '/compagnons').once('value', (snapComps) => {
+        const tousCompagnons = snapComps.val() || {};
         const participants = [];
 
-        // Joueurs + leurs compagnons
+        // Joueurs + leurs compagnons (le MJ est exclu)
         for (let id in joueurs) {
             const j = joueurs[id];
+            if (j.estMJ) continue;
             participants.push({
                 type: 'joueur',
                 id,
                 nom: j.nom,
                 vitesse: j.vitesse || j.niveau || 1
             });
-            // Compagnons du joueur
-            const comps = j.compagnons_summary || [];
+            // Compagnons depuis le nœud dédié
+            const compsRaw = tousCompagnons[id];
+            const comps = compsRaw ? (Array.isArray(compsRaw) ? compsRaw : Object.values(compsRaw)) : [];
             comps.forEach(c => {
+                const cFO = (c.statsBase?.FO || 5) + (c.statsInvesties?.FO || 0);
+                const cIN = (c.statsBase?.IN || 5) + (c.statsInvesties?.IN || 0);
+                const cCN = (c.statsBase?.CN || 5) + (c.statsInvesties?.CN || 0);
+                const cPvMax = (cFO * 2) + cIN + (c.boostPV || 0);
+                const cFtMax = (cCN * 2) + cIN + (c.boostFT || 0);
                 participants.push({
                     type: 'compagnon',
                     nom: c.nom,
                     niveau: c.niveau || 1,
                     ownerNom: j.nom,
+                    ownerID: id,
+                    compIdx: c.idx,
                     vitesse: Math.max(1, (c.niveau || 1) * 2),
-                    magieInvesties: c.magieInvesties || null
+                    pvActuel: c.pvActuel ?? cPvMax,
+                    pvMax: cPvMax,
+                    ftActuel: c.ftActuel ?? cFtMax,
+                    ftMax: cFtMax,
+                    xp: c.xp || 0,
+                    statsBase: c.statsBase || null,
+                    statsInvesties: c.statsInvesties || null,
+                    magieInvesties: c.magieInvesties || null,
+                    inventaire: c.inventaire || null
                 });
             });
         }
@@ -642,27 +702,95 @@ function mjLancerCombat() {
         // Tri décroissant par vitesse (à égalité, les joueurs passent avant)
         participants.sort((a, b) => b.vitesse - a.vitesse || (a.type === 'joueur' ? -1 : 1));
 
+        // Calcul de la discrétion : 2% par point → griser le bouton au 1er tour de chaque ennemi
+        const joueurs_discrets = {};
+        for (let id in joueurs) {
+            if (joueurs[id].estMJ) continue;
+            const discPts = joueurs[id].discretion || 0;
+            if (discPts > 0) {
+                const chance = discPts * 2; // 2% par point
+                joueurs_discrets[id] = Math.floor(Math.random() * 100) < chance;
+            } else {
+                joueurs_discrets[id] = false;
+            }
+        }
+        window._ennemisOntAttaque = new Set(); // reset pour le nouveau combat
+
+        db.ref('parties/' + sessionActuelle + '/combat_log').remove();
         db.ref('parties/' + sessionActuelle + '/combat_actif').set({
             actif: true,
             ennemis: ennemisChoisis,
             ordre_jeu: participants,
             tour_actuel: 0,
+            joueurs_discrets,
             timestamp: Date.now()
         }).then(() => {
             if (typeof _toast === 'function') _toast('⚔ Combat lancé !', 'gold');
             mjAfficherInterfaceCombat();
         });
+        }); // fin once compagnons
     });
 }
 
-/** Le MJ passe au tour suivant. */
+/** Le MJ passe au tour suivant (= passer le tour du participant courant + regen). */
 function mjTourSuivant() {
-    db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
-        const data = snap.val();
+    // Lire combat_actif ET joueurs en une seule requête pour avoir le flag empoisonne
+    db.ref('parties/' + sessionActuelle).once('value', (snapRoot) => {
+        const root = snapRoot.val() || {};
+        const data = root.combat_actif;
+        const joueursFB = root.joueurs || {};
         if (!data || !data.actif) return;
-        const taille = (data.ordre_jeu || []).length;
-        if (taille === 0) return;
-        const prochainTour = ((data.tour_actuel || 0) + 1) % taille;
+        const ordre = data.ordre_jeu || [];
+        if (ordre.length === 0) return;
+
+        const tourIdx = (data.tour_actuel || 0) % ordre.length;
+        const participant = ordre[tourIdx];
+        const prochainTour = (typeof _prochainTourVivant === 'function')
+            ? _prochainTourVivant(ordre, data.tour_actuel || 0)
+            : ((data.tour_actuel || 0) + 1) % ordre.length;
+
+        if (participant && typeof _roleRecuperation === 'function') {
+            if (participant.type === 'joueur') {
+                // Lire le flag empoisonne depuis le nœud joueur Firebase (pas depuis ordre_jeu)
+                const joueurData = joueursFB[participant.id] || {};
+                const estEmpoisonne = !!joueurData.empoisonne;
+
+                if (estEmpoisonne) {
+                    // Joueur empoisonné : pas de regen, le joueur applique le tick de poison lui-même
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + participant.id + '/modif_stat').set({
+                        stat: 'passer_tour', pvGain: 0, ftGain: 0, poisonTick: true, timestamp: Date.now()
+                    });
+                    if (typeof _logCombat === 'function') {
+                        _logCombat(`${participant.nom} passe son tour — ☠ poison actif`);
+                    }
+                } else {
+                    // Regen normale
+                    const guerison = Math.max(1, Math.floor(((participant.pvMax || 10) / 10)));
+                    const recup = _roleRecuperation(guerison);
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + participant.id + '/modif_stat').set({
+                        stat: 'passer_tour', pvGain: recup.pv, ftGain: recup.ft, timestamp: Date.now()
+                    });
+                    if (typeof _logCombat === 'function') {
+                        const msg = recup.pv > 0
+                            ? `${participant.nom} passe son tour et récupère +${recup.pv} PV / +${recup.ft} FT.${recup.label}`
+                            : `${participant.nom} passe son tour — rien récupéré.${recup.label}`;
+                        _logCombat(msg);
+                    }
+                }
+            } else if (participant.type === 'compagnon') {
+                if (typeof mjPasserTourCompagnon === 'function') {
+                    const cn = (participant.statsBase?.CN || 5) + (participant.statsInvesties?.CN || 0);
+                    mjPasserTourCompagnon(participant.ownerID, participant.compIdx, Math.max(1, Math.floor(cn / 3)));
+                    return; // mjPasserTourCompagnon avance le tour lui-même
+                }
+            } else if (participant.type === 'ennemi') {
+                if (typeof mjPasserTourEnnemi === 'function') {
+                    mjPasserTourEnnemi(participant.instanceId);
+                    return; // mjPasserTourEnnemi avance le tour lui-même
+                }
+            }
+        }
+
         db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel').set(prochainTour);
     });
 }
@@ -710,5 +838,87 @@ function ajouterLigneCodexMJ(id, nom, actionFn, texteAction) {
 }
 
 
+// ══════════════════════════════════════════════════════════════
+// VOL À LA TIRE — Interface MJ
+// ══════════════════════════════════════════════════════════════
 
+/**
+ * Ouvre la modal de configuration du vol à la tire pour un joueur spécifique.
+ * Le MJ choisit : rareté globale OU objet précis.
+ */
+function mjAutoriserVolATire(playerID, playerNom) {
+    let modal = document.getElementById('modal-vol-tire');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-vol-tire';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
 
+    // Liste des objets lootables triés par rareté
+    const itemsOptions = (typeof itemsData !== 'undefined')
+        ? Object.entries(itemsData)
+            .filter(([, d]) => d.lootable !== false)
+            .sort(([, a], [, b]) => parseInt(a.rarete) - parseInt(b.rarete))
+            .map(([id, d]) => `<option value="${id}">[R${d.rarete}] ${d.nom}</option>`)
+            .join('')
+        : '';
+
+    const raretesOptions = [1,2,3,4,5,6,7,8,9,10]
+        .map(r => `<option value="${r}">Rareté ${r}</option>`).join('');
+
+    modal.innerHTML = `
+        <div style="background:#1a120a;border:2px solid #7c4dff;border-radius:8px;padding:24px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto;">
+            <h3 style="color:#b39ddb;margin:0 0 16px;">🤏 Vol à la tire — ${playerNom}</h3>
+
+            <div style="margin-bottom:14px;padding:10px;background:rgba(124,77,255,0.1);border:1px solid #5a3a9a;border-radius:6px;">
+                <label style="color:#ccc;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                    <input type="radio" name="vol-type" value="rarete" checked style="accent-color:#7c4dff;">
+                    <strong>Rareté globale du butin</strong>
+                </label>
+                <select id="vol-rarete-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;">
+                    ${raretesOptions}
+                </select>
+            </div>
+
+            <div style="margin-bottom:18px;padding:10px;background:rgba(124,77,255,0.1);border:1px solid #5a3a9a;border-radius:6px;">
+                <label style="color:#ccc;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                    <input type="radio" name="vol-type" value="objet" style="accent-color:#7c4dff;">
+                    <strong>Objet précis</strong>
+                </label>
+                <select id="vol-objet-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;">
+                    ${itemsOptions}
+                </select>
+            </div>
+
+            <div style="display:flex;gap:8px;">
+                <button onclick="_mjConfirmerVolATire('${playerID}','${playerNom}')"
+                    style="flex:1;background:#7c4dff;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    ✅ Autoriser le vol
+                </button>
+                <button onclick="document.getElementById('modal-vol-tire').style.display='none'"
+                    style="background:#333;color:#aaa;border:1px solid #555;padding:10px;border-radius:4px;cursor:pointer;">
+                    Annuler
+                </button>
+            </div>
+        </div>`;
+
+    modal.style.display = 'flex';
+}
+
+function _mjConfirmerVolATire(playerID, playerNom) {
+    const typeVol = document.querySelector('input[name="vol-type"]:checked')?.value;
+    let config;
+
+    if (typeVol === 'rarete') {
+        const rarete = parseInt(document.getElementById('vol-rarete-select').value);
+        config = { actif: true, rarete: rarete, objetId: null, timestamp: Date.now() };
+    } else {
+        const objetId = document.getElementById('vol-objet-select').value;
+        config = { actif: true, rarete: null, objetId: objetId, timestamp: Date.now() };
+    }
+
+    db.ref('parties/' + sessionActuelle + '/vol_a_la_tire/' + playerID).set(config);
+    document.getElementById('modal-vol-tire').style.display = 'none';
+    if (typeof _toast === 'function') _toast(`🤏 Vol à la tire autorisé pour ${playerNom}.`, 'success');
+}

@@ -65,20 +65,31 @@ function synchroniserJoueur() {
 
     const playerID = window.perso.nom.replace(/\s+/g, '_');
     
+    const surcharge = (typeof _estSurcharge === 'function') ? _estSurcharge(window.perso) : false;
+    const dx = window.perso.statsBase.DX + (window.perso.statsInvesties?.DX || 0);
+    const vitesseBase = (dx >= 20 ? (25 + (dx - 20)) : dx) + (window.perso.boostVitesseInne || 0);
+
     const dataSync = {
         nom: window.perso.nom,
-        ownerID: window.userUID, // ✨ L'ID de sécurité pour tes futures règles
-		pvActuel: window.perso.pvActuel ?? 0,
+        ownerID: window.userUID,
+        estMJ: window.estMJ ? true : false,
+        pvActuel: window.perso.pvActuel ?? 0,
         ftActuel: window.perso.ftActuel ?? 0,
-        pvMax: (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN) + (window.perso.boostPV || 0),
-        ftMax: (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0),
+        pvMax: (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN)
+            + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+            + (window.perso.boostPV || 0),
+        ftMax: (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN)
+            + ((window.perso.statsInvesties?.CN || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+            + (window.perso.boostFT || 0),
         niveau: window.perso.niveau || 1,
         xp: window.perso.xp || 0,
-        vitesse: (window.perso.statsBase.DX + (window.perso.statsInvesties?.DX || 0)) + (window.perso.boostVitesseInne || 0),
+        vitesse: surcharge ? 1 : vitesseBase,
         lieu: (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[window.perso.lieuActuel]) ? lieuxDecouverts[window.perso.lieuActuel].nom : "Inconnu",
-		estMort: window.perso.estMort || false,
-        timestamp: Date.now(),
-        compagnons_summary: (window.perso.compagnons || []).map((c, i) => ({ nom: c.nom, niveau: c.niveau || 1, idx: i })) || null
+        discretion: window.perso.compInvesties?.discretion || 0,
+        surcharge: surcharge,
+        estMort: window.perso.estMort || false,
+        empoisonne: !!window.perso.poison,
+        timestamp: Date.now()
     };
 
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID).update(dataSync);
@@ -190,6 +201,138 @@ if (snapshot.val()) {
         }).catch(err => console.error("Erreur lors de la réception du cadeau :", err));
     });
 }
+function activerEcouteurArgent() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const argentRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_argent');
+    argentRef.off();
+    argentRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        argentRef.remove();
+        window.perso.argent = (window.perso.argent || 0) + (data.valeur || 0);
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof updateInventaireUI === 'function') updateInventaireUI();
+        if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+        if (typeof _toast === 'function') _toast(`💰 +${data.valeur} or reçu de ${data.de || '?'} !`, 'gold');
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// VOL À LA TIRE — Côté joueur
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Écoute le nœud Firebase vol_a_la_tire/{playerID}.
+ * Quand le MJ autorise une tentative, affiche le bouton "Voler" sur l'accueil.
+ */
+function activerEcouteurVolATire() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/vol_a_la_tire/' + playerID);
+    ref.off();
+    ref.on('value', (snapshot) => {
+        const data = snapshot.val();
+        const zone = document.getElementById('zone-vol-a-la-tire');
+        if (!zone) return;
+
+        if (data && data.actif) {
+            // Décrire l'opportunité
+            let description = 'Opportunité de vol en cours…';
+            if (data.objetId && typeof itemsData !== 'undefined' && itemsData[data.objetId]) {
+                description = `Objet ciblé : <strong style="color:#d4af37;">${itemsData[data.objetId].nom}</strong>`;
+            } else if (data.rarete) {
+                description = `Butin de rareté <strong style="color:#d4af37;">${data.rarete}</strong>`;
+            }
+
+            // Stocker la config pour le roll
+            window._volATireConfig = { rarete: data.rarete || null, objetId: data.objetId || null };
+
+            zone.style.display = 'block';
+            zone.innerHTML = `
+                <div style="background:rgba(20,10,40,0.95); border:2px solid #7c4dff; border-radius:8px; padding:14px; text-align:center;">
+                    <div style="color:#b39ddb; font-weight:bold; font-size:1.05em; margin-bottom:6px;">🤏 Opportunité de vol</div>
+                    <div style="color:#ccc; font-size:0.85em; margin-bottom:12px;">${description}</div>
+                    <button onclick="tenterVolATire()"
+                        style="background:#7c4dff; color:white; border:none; padding:10px 28px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:1em; letter-spacing:0.03em;">
+                        🤏 Tenter le vol
+                    </button>
+                </div>`;
+        } else {
+            zone.style.display = 'none';
+            zone.innerHTML = '';
+            window._volATireConfig = null;
+        }
+    });
+}
+
+/**
+ * Effectue le jet de vol à la tire et applique le résultat.
+ * Appelée par le bouton "Tenter le vol" sur l'accueil.
+ * Supprime l'autorisation Firebase immédiatement (succès ou échec).
+ */
+function tenterVolATire() {
+    const config = window._volATireConfig;
+    const perso = window.perso;
+    if (!config || !perso) return;
+
+    // — Calcul de la chance —
+    const dx       = (perso.statsBase?.DX || 0) + (perso.statsInvesties?.DX || 0);
+    const volPts   = (perso.compInvesties?.vol_a_la_tire || 0);
+    // Bonus équipement : items avec stats.bonusVol (ex. gants de voleur)
+    let bonusEquip = 0;
+    if (perso.equipement && typeof itemsData !== 'undefined') {
+        for (const slot in perso.equipement) {
+            const eq = perso.equipement[slot];
+            if (eq && itemsData[eq.id]?.stats?.bonusVol) bonusEquip += itemsData[eq.id].stats.bonusVol;
+        }
+    }
+    const chance = Math.min(95, dx * 5 + volPts * 4 + bonusEquip);
+    const roll   = Math.floor(Math.random() * 100) + 1; // 1–100
+    const succes = roll <= chance;
+
+    // — Supprimer l'autorisation Firebase et masquer la zone —
+    const playerID = perso.nom.replace(/\s+/g, '_');
+    db.ref('parties/' + sessionActuelle + '/vol_a_la_tire/' + playerID).remove();
+    const zone = document.getElementById('zone-vol-a-la-tire');
+    if (zone) { zone.style.display = 'none'; zone.innerHTML = ''; }
+    window._volATireConfig = null;
+
+    if (succes) {
+        let objetGagne = null;
+
+        if (config.objetId && typeof itemsData !== 'undefined' && itemsData[config.objetId]) {
+            objetGagne = config.objetId;
+        } else if (config.rarete && typeof itemsData !== 'undefined') {
+            // Cherche un objet lootable de la bonne rareté
+            const candidats = Object.entries(itemsData)
+                .filter(([, d]) => d.lootable === true && parseInt(d.rarete) === config.rarete)
+                .map(([id]) => id);
+            if (candidats.length > 0) {
+                objetGagne = candidats[Math.floor(Math.random() * candidats.length)];
+            }
+        }
+
+        if (objetGagne && typeof itemsData !== 'undefined') {
+            const data = itemsData[objetGagne];
+            const inv  = perso.inventaire || (perso.inventaire = []);
+            // Stackable sans durabilité → empiler
+            const exist = data.stackable
+                ? inv.findIndex(i => i.id === objetGagne && i.durabilite === undefined)
+                : -1;
+            if (exist !== -1) { inv[exist].quantite = (inv[exist].quantite || 1) + 1; inv[exist].qte = inv[exist].quantite; }
+            else               { inv.push({ id: objetGagne, quantite: 1, qte: 1 }); }
+            if (typeof autoSave === 'function') autoSave();
+            if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+            if (typeof _toast === 'function') _toast(`🤏 Vol réussi ! (${roll}/${chance}%) Subtilisé : ${data.nom} !`, 'success');
+        } else {
+            if (typeof _toast === 'function') _toast(`🤏 Vol réussi ! (${roll}/${chance}%) Mais il n'y avait rien à prendre…`, 'success');
+        }
+    } else {
+        if (typeof _toast === 'function') _toast(`🤏 Vol raté ! (${roll}/${chance}%)`, 'error');
+    }
+}
+
 function activerEcouteurStats() {
     if (!window.perso || !window.perso.nom) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
@@ -209,22 +352,106 @@ function activerEcouteurStats() {
         // ON SUPPRIME IMMEDIATEMENT POUR EVITER LA BOUCLE
         modifRef.remove(); 
 
-        const maxPV = (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN) + (window.perso.boostPV || 0);
-        const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0);
+        const maxPV = (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN)
+            + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+            + (window.perso.boostPV || 0);
+        const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN)
+            + ((window.perso.statsInvesties?.CN || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+            + (window.perso.boostFT || 0);
         
        if (data.stat === 'PV') {
     let basePV = (window.perso.pvActuel !== undefined) ? window.perso.pvActuel : 0;
     let valeurEffective = data.valeur;
-    // Si c'est une attaque (valeur négative), on soustrait l'armure du joueur
-    if (data.valeur < 0 && typeof _armureTotal === 'function') {
-        const armure = _armureTotal(window.perso);
-        valeurEffective = Math.min(0, data.valeur + armure); // armure réduit les dégâts
+
+    if (data.valeur < 0) {
+        let degats = -data.valeur;
+        let esquive = false;
+
+        // 0. Esquive : 1% de chance par point de compétence (impossible si surchargé)
+        const esquive_pts = window.perso.compInvesties?.esquive || 0;
+        const persoSurchargé = (typeof _estSurcharge === 'function') && _estSurcharge(window.perso);
+        if (!persoSurchargé && esquive_pts > 0 && Math.floor(Math.random() * 100) < esquive_pts) {
+            esquive = true;
+            if (typeof _toast === 'function') _toast('🏃 Attaque esquivée !', 'success');
+        }
+
+        if (!esquive) {
+            // 1. Résistance élémentaire (avant armure)
+            if (data.element) {
+                const resMap = { feu: 'resFeu', elec: 'resElec', poison: 'resPoison' };
+                const resKey = resMap[data.element];
+                const res = resKey ? (window.perso.bonusInnes?.[resKey] || 0) : 0;
+                if (res !== 0) {
+                    const mult = 1 - (res / 100);
+                    degats = Math.max(0, Math.round(degats * mult));
+                    const elemLabels = { feu:'🔥 Feu', elec:'⚡ Élec.', poison:'☠ Poison' };
+                    const resLabel = res > 0 ? `résistance ${res}%` : `faiblesse ${Math.abs(res)}%`;
+                    if (typeof _toast === 'function') _toast(`${elemLabels[data.element]} — ${resLabel} → ${degats} dégâts`, res > 0 ? 'success' : 'error');
+                }
+            }
+
+            // 2. Armure physique (toujours)
+            if (typeof _armureTotal === 'function') {
+                const armure = _armureTotal(window.perso);
+                degats = Math.max(0, degats - armure);
+            }
+
+            // 3. Contamination poison (50% de base, réduite par resPoison ; CN ≥ 20 = immunité)
+            if (data.element === 'poison' && degats > 0 && !window.perso.poison) {
+                const CN = (window.perso.statsBase?.CN || 5) + (window.perso.statsInvesties?.CN || 0);
+                if (CN >= 20) {
+                    if (typeof _toast === 'function') _toast('🛡 Immunité au poison (CN ≥ 20) !', 'success');
+                } else {
+                    const resP = window.perso.bonusInnes?.resPoison || 0;
+                    const chanceContamination = 50 * (1 - resP / 100);
+                    if (Math.random() * 100 < chanceContamination) {
+                        window.perso.poison = { chanceGuerison: CN };
+                        if (typeof _toast === 'function') _toast('☠ Vous êtes empoisonné !', 'error');
+                        if (typeof _logCombat === 'function') {
+                            const detail = `☠ ${window.perso.nom} est empoisonné ! (chance contamination: ${Math.round(chanceContamination)}%, CN=${CN})`;
+                            _logCombat(`☠ ${window.perso.nom} est empoisonné !`, detail);
+                        }
+                        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                        if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
+                    }
+                }
+            }
+
+            // 4. Usure de l'armure portée
+            const armorSlots = ['tete', 'torse', 'gants', 'bottes', 'main_gauche'];
+            const perteArmure = data.critique ? 10 : 1;
+            armorSlots.forEach(slot => {
+                const piece = window.perso.equipement?.[slot];
+                if (piece && piece.durabilite !== undefined) {
+                    piece.durabilite = Math.max(0, (piece.durabilite || 0) - perteArmure);
+                    if (piece.durabilite === 0 && typeof _toast === 'function') {
+                        const nomPiece = (typeof itemsData !== 'undefined' && itemsData[piece.id]?.nom) || slot;
+                        _toast(`🛡 ${nomPiece} est brisée !`, 'error');
+                    }
+                }
+            });
+
+            valeurEffective = -degats;
+        } // fin !esquive
     }
-    window.perso.pvActuel = basePV + valeurEffective;
-    
-    // On plafonne pour ne pas dépasser le max
-    window.perso.pvActuel = Math.min(maxPV, Math.max(0, window.perso.pvActuel));
+
+    window.perso.pvActuel = Math.min(maxPV, Math.max(0, basePV + valeurEffective));
     console.log(`❤️ [DEBUG] PV mis à jour : ${window.perso.pvActuel} / ${maxPV}`);
+
+        // Dégâts de fatigue associés au coup
+        if (!esquive && data.valeur < 0 && data.degatsFT) {
+            window.perso.ftActuel = Math.max(0, (window.perso.ftActuel ?? maxFT) - data.degatsFT);
+            if (typeof _toast === 'function') _toast(`⚡ -${data.degatsFT} FT (coup reçu)`, 'error');
+        }
+
+    // Si le joueur tombe à 0 PV pendant un combat, le marquer KO dans l'ordre de jeu
+    if (window.perso.pvActuel <= 0 && window.combatActif) {
+        const ordreKO = (window.combatActif.ordre_jeu || []).map(p => {
+            if (p.type === 'joueur' && p.joueurID === playerID) return Object.assign({}, p, { ko: true });
+            return p;
+        });
+        db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreKO);
+    }
 }
  else if (data.stat === 'FT') {
             window.perso.ftActuel = (window.perso.ftActuel || maxFT) + data.valeur;
@@ -232,16 +459,45 @@ function activerEcouteurStats() {
             console.log(`🔋 Nouveau FT : ${window.perso.ftActuel}/${maxFT}`);
         }
 
+        // Passer le tour forcé par le MJ → regen PV + FT (ou tick poison si empoisonné)
+        if (data.stat === 'passer_tour') {
+            if (data.poisonTick && window.perso.poison) {
+                // Le MJ a détecté un joueur empoisonné : appliquer le tick localement
+                if (typeof _appliquerPoison === 'function') _appliquerPoison();
+            } else {
+                if (data.pvGain > 0) {
+                    window.perso.pvActuel = Math.min(maxPV, (window.perso.pvActuel || 0) + data.pvGain);
+                }
+                if (data.ftGain > 0) {
+                    window.perso.ftActuel = Math.min(maxFT, (window.perso.ftActuel || 0) + data.ftGain);
+                }
+                if (typeof _toast === 'function') {
+                    const msgPT = data.pvGain > 0
+                        ? `⏭ Tour passé — +${data.pvGain} PV / +${data.ftGain} FT`
+                        : `⏭ Tour passé — rien récupéré`;
+                    _toast(msgPT, data.pvGain > 0 ? 'success' : 'info');
+                }
+            }
+        }
+
+        // Cure poison reçue d'un autre joueur ou d'un item/sort
+        if (data.stat === 'curePoison') {
+            window.perso.poison = null;
+            if (typeof _toast === 'function') _toast('✅ Poison neutralisé !', 'success');
+        }
+
         // --- TRAITEMENT ET UI ---
         if (typeof verifierMort === 'function') verifierMort();
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
-        
+
         if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
         if (typeof updateFicheUI === 'function') updateFicheUI();
-        
-        // Alerte visuelle pour le joueur
-        const msg = (data.valeur > 0) ? `✨ Gain : +${data.valeur} ${data.stat}` : `💥 Perte : ${data.valeur} ${data.stat}`;
-        if (typeof _toast === 'function') _toast(msg, data.valeur > 0 ? 'success' : 'error');
+
+        // Toast dégâts/soin (sauf si toast élément déjà affiché)
+        if (!data.element || data.valeur > 0) {
+            const msg = (data.valeur > 0) ? `✨ Gain : +${data.valeur} ${data.stat}` : `💥 Perte : ${data.valeur} ${data.stat}`;
+            if (typeof _toast === 'function') _toast(msg, data.valeur > 0 ? 'success' : 'error');
+        }
     });
 }
 
@@ -473,11 +729,11 @@ function activerEcouteurCompagnons() {
             const comp = comps[data.compIdx];
             if (!comp) return;
             comp.niveau = (comp.niveau || 1) + 1;
-            if (data.stat && comp.statsInvesties) {
+            if (data.stat && !['magie','comp','tech'].includes(data.stat) && comp.statsInvesties) {
                 comp.statsInvesties[data.stat] = (comp.statsInvesties[data.stat] || 0) + 1;
-                const fo  = comp.statsBase.FO + comp.statsInvesties.FO;
-                const ini = comp.statsBase.IN + comp.statsInvesties.IN;
-                const cn  = comp.statsBase.CN + comp.statsInvesties.CN;
+                const fo  = (comp.statsBase?.FO || 3) + (comp.statsInvesties?.FO || 0);
+                const ini = (comp.statsBase?.IN || 3) + (comp.statsInvesties?.IN || 0);
+                const cn  = (comp.statsBase?.CN || 3) + (comp.statsInvesties?.CN || 0);
                 comp.pvActuel = (fo * 2) + ini + (comp.boostPV || 0);
                 comp.ftActuel = (cn * 2) + ini + (comp.boostFT || 0);
             } else if (data.stat === 'magie' && data.ecole) {
@@ -486,8 +742,12 @@ function activerEcouteurCompagnons() {
             } else if (data.stat === 'comp' && data.competence) {
                 if (!comp.compInvesties) comp.compInvesties = {};
                 comp.compInvesties[data.competence] = (comp.compInvesties[data.competence] || 0) + 1;
+            } else if (data.stat === 'tech' && data.discipline) {
+                if (!comp.techInvesties) comp.techInvesties = {};
+                comp.techInvesties[data.discipline] = (comp.techInvesties[data.discipline] || 0) + 1;
             }
-            if (typeof _toast === 'function') _toast(`🌟 ${comp.nom} Niv.${comp.niveau} !`, 'gold');
+            if (typeof _toast === 'function') _toast(`🌟 ${comp.nom} monte au niveau ${comp.niveau} !`, 'gold');
+            if (typeof verifierBoutonCraft === 'function') verifierBoutonCraft();
         }
         else if (data.type === 'renvoi') {
             const comp = comps[data.compIdx];
@@ -508,11 +768,70 @@ function activerEcouteurCompagnons() {
             else { comp.inventaire.push({ id: data.itemId, quantite: data.quantite || 1 }); }
             if (typeof _toast === 'function') _toast(`🎒 Objet ajouté à ${comp.nom}.`, 'success');
         }
+        else if (data.type === 'item_remove') {
+            const comp = comps[data.compIdx];
+            if (!comp || !comp.inventaire) return;
+            const ii = comp.inventaire.findIndex(i => i.id === data.itemId);
+            if (ii !== -1) {
+                if ((comp.inventaire[ii].quantite || 1) > 1) comp.inventaire[ii].quantite--;
+                else comp.inventaire.splice(ii, 1);
+            }
+        }
+        else if (data.type === 'xp_gain') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            comp.xp = (comp.xp || 0) + (data.montant || 1);
+            const needed = 10 + ((comp.niveau || 1) - 1) * 5;
+            if (comp.xp >= needed) {
+                comp.xp -= needed;
+                // Notifier le joueur — c'est le MJ qui choisit la compétence via son panel
+                if (typeof _toast === 'function') _toast(`🌟 ${comp.nom} peut monter de niveau ! Le MJ va choisir sa progression.`, 'gold');
+            }
+            if (typeof _rafraichirJaugeXP === 'function') _rafraichirJaugeXP();
+        }
+        else if (data.type === 'soin') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            const foComp = (comp.statsBase?.FO || 3) + (comp.statsInvesties?.FO || 0);
+            const inComp = (comp.statsBase?.IN || 3) + (comp.statsInvesties?.IN || 0);
+            const cnComp = (comp.statsBase?.CN || 3) + (comp.statsInvesties?.CN || 0);
+            const pvMaxComp = (foComp * 2) + inComp + (comp.boostPV || 0);
+            const ftMaxComp = (cnComp * 2) + inComp + (comp.boostFT || 0);
+            if (data.pvGain > 0) comp.pvActuel = Math.min(pvMaxComp, (comp.pvActuel || 0) + data.pvGain);
+            if (data.ftGain > 0) comp.ftActuel = Math.min(ftMaxComp, (comp.ftActuel || 0) + data.ftGain);
+            if (typeof _toast === 'function') _toast(`💚 ${comp.nom} : +${data.pvGain || 0} PV / +${data.ftGain || 0} FT`, 'success');
+        }
+        else if (data.type === 'ft_gain') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            const cnComp = (comp.statsBase?.CN || 3) + (comp.statsInvesties?.CN || 0);
+            const ftMaxComp = (cnComp * 2) + ((comp.statsBase?.IN || 3) + (comp.statsInvesties?.IN || 0)) + (comp.boostFT || 0);
+            comp.ftActuel = Math.min(ftMaxComp, (comp.ftActuel || 0) + (data.montant || 1));
+            if (typeof _toast === 'function') _toast(`⚡ ${comp.nom} récupère ${data.montant} FT.`, 'success');
+        }
+        else if (data.type === 'passer_tour') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            const cnComp = (comp.statsBase?.CN || 3) + (comp.statsInvesties?.CN || 0);
+            const inComp = (comp.statsBase?.IN || 3) + (comp.statsInvesties?.IN || 0);
+            const foComp = (comp.statsBase?.FO || 3) + (comp.statsInvesties?.FO || 0);
+            const ftMaxComp = (cnComp * 2) + inComp + (comp.boostFT || 0);
+            const pvMaxComp = (foComp * 2) + inComp + (comp.boostPV || 0);
+            const ftGain = data.ftGain || 0;
+            const pvGain = data.pvGain || 0;
+            comp.ftActuel = Math.min(ftMaxComp, (comp.ftActuel || 0) + ftGain);
+            comp.pvActuel = Math.min(pvMaxComp, (comp.pvActuel || 0) + pvGain);
+            if (pvGain > 0 || ftGain > 0) {
+                if (typeof _toast === 'function') _toast(`${comp.nom} : +${pvGain} PV / +${ftGain} FT`, 'success');
+            } else {
+                if (typeof _toast === 'function') _toast(`${comp.nom} passe son tour — rien récupéré.`, 'error');
+            }
+        }
 
         window.perso.compagnons = comps;
-        if (typeof autoSave === 'function') autoSave();
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
-        _syncCompagnonsSummary();
+        _syncCompagnonsSummary(); // compagnons d'abord → MJ verra les données à jour
+        if (typeof autoSave === 'function') autoSave(); // joueur ensuite → déclenche le on() MJ
 
         // Rafraîchit l'écran compagnons s'il est ouvert
         const ecranComp = document.getElementById('ecran-compagnons');
@@ -540,6 +859,7 @@ function activerEcouteurCombat() {
             const etaitEnCombat = !!window.combatActif;
             window.combatActif = data;
             if (!etaitEnCombat) {
+                window._combatPremierCoupFait = false; // reset attaque sournoise
                 if (typeof ouvrirEcranCombat === 'function') ouvrirEcranCombat();
             } else {
                 if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
@@ -550,17 +870,144 @@ function activerEcouteurCombat() {
     });
 }
 
-/** Pousse un résumé léger des compagnons sur Firebase (pour que le MJ puisse les voir). */
+/** Ouvre une modale côté joueur pour choisir le bonus de level-up du compagnon. */
+function _ouvrirChoixLevelUpCompagnon(compIdx, comp) {
+    let modal = document.getElementById('modal-lvup-comp');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-lvup-comp';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const _appliquer = (payload) => {
+        const c = window.perso?.compagnons?.[compIdx];
+        if (!c) return;
+        c.niveau = (c.niveau || 1) + 1;
+        if (payload.stat && !['magie','comp','tech'].includes(payload.stat)) {
+            if (!c.statsInvesties) c.statsInvesties = {};
+            c.statsInvesties[payload.stat] = (c.statsInvesties[payload.stat] || 0) + 1;
+            const fo = (c.statsBase?.FO||3)+(c.statsInvesties?.FO||0);
+            const ini = (c.statsBase?.IN||3)+(c.statsInvesties?.IN||0);
+            const cn = (c.statsBase?.CN||3)+(c.statsInvesties?.CN||0);
+            c.pvActuel = (fo*2)+ini+(c.boostPV||0);
+            c.ftActuel = (cn*2)+ini+(c.boostFT||0);
+        } else if (payload.stat === 'magie' && payload.ecole) {
+            if (!c.magieInvesties) c.magieInvesties = {};
+            c.magieInvesties[payload.ecole] = (c.magieInvesties[payload.ecole] || 0) + 1;
+        } else if (payload.stat === 'comp' && payload.competence) {
+            if (!c.compInvesties) c.compInvesties = {};
+            c.compInvesties[payload.competence] = (c.compInvesties[payload.competence] || 0) + 1;
+        } else if (payload.stat === 'tech' && payload.discipline) {
+            if (!c.techInvesties) c.techInvesties = {};
+            c.techInvesties[payload.discipline] = (c.techInvesties[payload.discipline] || 0) + 1;
+        }
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+        if (typeof verifierBoutonCraft === 'function') verifierBoutonCraft();
+        if (typeof _toast === 'function') _toast(`🌟 ${c.nom} monte au niveau ${c.niveau} !`, 'gold');
+        modal.style.display = 'none';
+    };
+
+    let html = `<div style="background:#1a1208;border:2px solid #d4af37;border-radius:8px;padding:20px;max-width:420px;width:92%;max-height:80vh;overflow-y:auto;">
+        <h3 style="color:#d4af37;margin:0 0 12px;">🌟 ${comp.nom} — Choisir l'amélioration</h3>`;
+
+    // Stats
+    html += `<div class="lvup-section-titre">📊 Stats</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">`;
+    ['FO','IN','CN','DX','CH'].forEach(s => {
+        html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:s})}'>+1 ${s}</button>`;
+    });
+    html += `</div>`;
+
+    // Compétences
+    html += `<div class="lvup-section-titre">⚔ Compétences</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">`;
+    if (typeof competencesData !== 'undefined') {
+        for (let cat in competencesData) {
+            competencesData[cat].forEach(c => {
+                html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'comp',competence:c.id})}'>${c.nom}</button>`;
+            });
+        }
+    }
+    html += `</div>`;
+
+    // Technologie
+    html += `<div class="lvup-section-titre">⚙ Technologie</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">`;
+    if (typeof techData !== 'undefined') {
+        Object.keys(techData).forEach(d => {
+            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'tech',discipline:d})}'>${d}</button>`;
+        });
+    }
+    html += `</div>`;
+
+    // Magie
+    html += `<div class="lvup-section-titre">✨ Magie</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">`;
+    if (typeof magieData !== 'undefined') {
+        Object.keys(magieData).forEach(e => {
+            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'magie',ecole:e})}'>${e}</button>`;
+        });
+    }
+    html += `</div></div>`;
+
+    modal.innerHTML = html;
+    modal.style.display = 'flex';
+    modal.addEventListener('click', e => {
+        const btn = e.target.closest('[data-action]');
+        if (btn) _appliquer(JSON.parse(btn.dataset.action));
+    }, { once: true });
+}
+
+function activerEcouteurCombatLog() {
+    const ref = db.ref('parties/' + sessionActuelle + '/combat_log');
+    ref.off();
+    ref.on('value', (snapshot) => {
+        const logDiv = document.getElementById('combat-log');
+        if (!logDiv) return;
+        const data = snapshot.val();
+        if (!data) { logDiv.innerHTML = ''; return; }
+        const entries = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+        logDiv.innerHTML = entries.map(e => {
+            const affiche = (window.estMJ && e.detail) ? e.detail : e.texte;
+            let cls = 'combat-log-entry';
+            if (affiche.includes('ÉCHEC CRITIQUE')) cls += ' log-echec';
+            else if (affiche.includes('CRITIQUE')) cls += ' log-critique';
+            return `<div class="${cls}">${affiche}</div>`;
+        }).join('');
+    });
+}
+
+/** Pousse les données complètes des compagnons dans parties/{session}/compagnons/{playerID}. */
 function _syncCompagnonsSummary() {
     if (!window.perso?.nom || !db) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
-    const summary = (window.perso.compagnons || []).map((c, i) => ({
-        nom: c.nom, niveau: c.niveau || 1, idx: i,
-        npcId: c.npcId || null, xp: c.xp || 0,
-        magieInvesties: c.magieInvesties || null
-    }));
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnons_summary')
-      .set(summary.length ? summary : null);
+    const data = (window.perso.compagnons || []).map((c, i) => {
+        const cFO  = (c.statsBase?.FO || 5) + (c.statsInvesties?.FO || 0);
+        const cIN  = (c.statsBase?.IN || 5) + (c.statsInvesties?.IN || 0);
+        const cCN  = (c.statsBase?.CN || 5) + (c.statsInvesties?.CN || 0);
+        const cPvMax = (cFO * 2) + cIN + (c.boostPV || 0);
+        const cFtMax = (cCN * 2) + cIN + (c.boostFT || 0);
+        return {
+            recrutee: true,
+            proprietaire: playerID,
+            idx: i,
+            nom: c.nom,
+            niveau: c.niveau || 1,
+            npcId: c.npcId || null,
+            xp: c.xp || 0,
+            pvActuel: c.pvActuel ?? cPvMax,
+            pvMax: cPvMax,
+            ftActuel: c.ftActuel ?? cFtMax,
+            ftMax: cFtMax,
+            statsBase: c.statsBase || null,
+            statsInvesties: c.statsInvesties || null,
+            magieInvesties: c.magieInvesties || null,
+            compInvesties: c.compInvesties || null,
+            inventaire: c.inventaire || null,
+            equipement: c.equipement || null,
+            estMort: c.estMort || false
+        };
+    });
+    db.ref('parties/' + sessionActuelle + '/compagnons/' + playerID)
+      .set(data.length ? data : null);
 }
 
 function activerEcouteurKick() {
@@ -671,6 +1118,7 @@ function ouvrirInterfaceMJ() {
     const mdpMJ = prompt("Entrez le mot de passe Maître du Jeu :");
     if (mdpMJ === "PASS") {
         window.estMJ = true;
+        sessionStorage.setItem('arcanum_estMJ', '1');
         updateSessionName();
         if (typeof cacherTout === "function") cacherTout();
         document.getElementById('ecran-mj').style.display = 'block';
@@ -810,11 +1258,17 @@ function demarrerMoteurMulti() {
         console.warn("⚠️ Moteur Multi en attente : personnage non chargé.");
         return;
     }
+
+    // Restaurer le statut MJ après rechargement de page
+    if (sessionStorage.getItem('arcanum_estMJ') === '1') {
+        window.estMJ = true;
+    }
     
     console.log("🌐 Initialisation du mode multijoueur complète...");
 
     // 2. REPLANTAGE DES ÉCOUTEURS (Les antennes)
     activerEcouteurCadeaux();
+    activerEcouteurArgent();
     activerEcouteurStats();
     activerEcouteurDeplacementGroupe();
     activerEcouteurPartageLieux();
@@ -823,7 +1277,10 @@ function demarrerMoteurMulti() {
     activerEcouteurCommandesMJ();
     activerEcouteurKick();
     activerEcouteurCompagnons();
+    _syncCompagnonsSummary();
+    activerEcouteurVolATire();
     activerEcouteurCombat();
+    activerEcouteurCombatLog();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT
@@ -853,24 +1310,38 @@ let quantiteEnCoursDeDonMJ = 1;
 function executerDonObjetMJ(destinataireID) {
     if (!objetEnCoursDeDon) return;
 
-    // Le MJ envoie l'objet dans la branche 'cadeau' du joueur
+    const modal = document.getElementById('modal-transfert');
+    const _reset = () => { objetEnCoursDeDon = null; quantiteEnCoursDeDonMJ = 1; if (modal) modal.style.display = 'none'; };
+
+    // Cas compagnon : destinataireID = 'comp_{ownerID}_{compIdx}'
+    if (destinataireID.startsWith('comp_')) {
+        const parts = destinataireID.split('_');
+        // format: comp_{ownerID}_{compIdx} — ownerID peut contenir des _
+        const compIdx = parseInt(parts[parts.length - 1]);
+        const ownerID = parts.slice(1, -1).join('_');
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + ownerID + '/compagnon_action').set({
+            type: 'item_add',
+            compIdx,
+            itemId: objetEnCoursDeDon,
+            quantite: quantiteEnCoursDeDonMJ || 1,
+            timestamp: Date.now()
+        }).then(() => {
+            if (typeof _toast === 'function') _toast(`✅ Objet envoyé au compagnon !`, 'success');
+            _reset();
+        });
+        return;
+    }
+
+    // Cas joueur normal
     db.ref('parties/' + sessionActuelle + '/joueurs/' + destinataireID + '/cadeau').set({
         id: objetEnCoursDeDon,
         qte: quantiteEnCoursDeDonMJ || 1,
         expediteur: "Le Maître du Jeu",
         timestamp: Date.now()
     }).then(() => {
-        if (typeof _toast === 'function') _toast(`✅ Objet envoyé à ${destinataireID.replace('_', ' ')} !`, 'success');
-        // On ferme la fenêtre de choix si elle existe
-        const modal = document.getElementById('modal-transfert');
-        if (modal) modal.style.display = 'none';
-        
-        // Reset
-        objetEnCoursDeDon = null;
-        quantiteEnCoursDeDonMJ = 1;
-    }).catch(err => {
-        console.error("Erreur don MJ:", err);
-    });
+        if (typeof _toast === 'function') _toast(`✅ Objet envoyé à ${destinataireID.replace(/_/g, ' ')} !`, 'success');
+        _reset();
+    }).catch(err => { console.error("Erreur don MJ:", err); });
 }
 
 

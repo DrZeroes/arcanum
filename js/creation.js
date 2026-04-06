@@ -43,10 +43,13 @@ function buildChar() {
         document.getElementById('desc-box').innerText = currentBg.desc;
 document.getElementById('raceTraits').innerHTML = `<strong>Effets :</strong> ${currentBg.effets || "Aucun"}`;    }
 
-    statsCalculees = final; 
-    for (let s in final) { 
+    // Plancher à 1 pour toutes les stats (background/sexe ne peuvent pas descendre sous 1)
+    ['FO', 'IN', 'CN', 'DX', 'CH'].forEach(s => { if (final[s] !== undefined) final[s] = Math.max(1, final[s]); });
+
+    statsCalculees = final;
+    for (let s in final) {
         let el = document.getElementById('val-' + s);
-        if(el) el.innerText = final[s]; 
+        if(el) el.innerText = final[s];
     }
     document.getElementById('pv-total').innerText = (final.FO * 2) + final.IN;
     document.getElementById('fatigue-total').innerText = (final.CN * 2) + final.IN;

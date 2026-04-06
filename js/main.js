@@ -129,6 +129,17 @@ function allerAccueil() {
     rafraichirAccueil();
 }
 
+function lancerD20Accueil() {
+    const roll = 1 + Math.floor(Math.random() * 20);
+    const el = document.getElementById('d20-resultat');
+    if (!el) return;
+    const isCrit = roll === 20;
+    const isFail = roll === 1;
+    el.textContent = roll;
+    el.style.color = isCrit ? '#ffd700' : isFail ? '#ff4444' : '#e0c8ff';
+    el.style.textShadow = isCrit ? '0 0 10px #ffd700' : isFail ? '0 0 8px #ff4444' : 'none';
+}
+
 function ouvrirEcranCompagnons() {
     cacherTout();
     const ecran = document.getElementById('ecran-compagnons');
@@ -155,29 +166,40 @@ function afficherEcranCompagnons() {
 
     const fragments = [];
     comps.forEach((c) => {
-        const fo  = c.statsBase.FO + (c.statsInvesties?.FO || 0);
-        const ini = c.statsBase.IN + (c.statsInvesties?.IN || 0);
-        const cn  = c.statsBase.CN + (c.statsInvesties?.CN || 0);
-        const dx  = c.statsBase.DX + (c.statsInvesties?.DX || 0);
-        const ch  = c.statsBase.CH + (c.statsInvesties?.CH || 0);
+        const idx = comps.indexOf(c);
+        // Bonus d'équipement sur stats
+        const eqBonus = { FO:0, IN:0, CN:0, DX:0, CH:0 };
+        if (c.equipement && typeof itemsData !== 'undefined') {
+            for (let slot in c.equipement) {
+                const eq = c.equipement[slot];
+                if (!eq) continue;
+                const def = itemsData[eq.id];
+                if (def?.stats) for (let s in eqBonus) if (def.stats[s]) eqBonus[s] += def.stats[s];
+            }
+        }
+        // Bonus CH ≥ 20 du joueur : +2 à toutes les stats du compagnon
+        const playerCH = (window.perso?.statsBase?.CH || 0) + (window.perso?.statsInvesties?.CH || 0);
+        const bonusCH20 = playerCH >= 20 ? 2 : 0;
+        const fo  = c.statsBase.FO + (c.statsInvesties?.FO || 0) + eqBonus.FO + bonusCH20;
+        const ini = c.statsBase.IN + (c.statsInvesties?.IN || 0) + eqBonus.IN + bonusCH20;
+        const cn  = c.statsBase.CN + (c.statsInvesties?.CN || 0) + eqBonus.CN + bonusCH20;
+        const dx  = c.statsBase.DX + (c.statsInvesties?.DX || 0) + eqBonus.DX + bonusCH20;
+        const ch  = c.statsBase.CH + (c.statsInvesties?.CH || 0) + eqBonus.CH + bonusCH20;
         const pvMax = (fo * 2) + ini + (c.boostPV || 0);
         const ftMax = (cn * 2) + ini + (c.boostFT || 0);
         const pvPct = pvMax > 0 ? Math.round((c.pvActuel / pvMax) * 100) : 0;
         const ftPct = ftMax > 0 ? Math.round((c.ftActuel / ftMax) * 100) : 0;
 
-        // Équipement non-null
-        const equipItems = [];
-        if (c.equipement && typeof itemsData !== 'undefined') {
-            for (let slot in c.equipement) {
-                const eq = c.equipement[slot];
-                if (eq && itemsData[eq.id]) equipItems.push(itemsData[eq.id].nom);
-            }
-        }
-
         // Compétences investies
         const compStr = c.compInvesties
             ? Object.entries(c.compInvesties).filter(([, v]) => v > 0).map(([k, v]) => `${k}:${v}`).join(' · ')
             : '';
+
+        // Charge du compagnon
+        const poidsComp = (typeof _calculerPoidsPersonnage === 'function') ? _calculerPoidsPersonnage(c) : 0;
+        const chargeCompMax = (typeof _chargeMax === 'function') ? _chargeMax(c) : fo * 2;
+        const compSurcharge = poidsComp > chargeCompMax;
+        const chargeColor = compSurcharge ? '#f44336' : poidsComp > chargeCompMax * 0.8 ? '#ff9800' : '#4caf50';
 
         fragments.push(`
             <div class="compagnon-card">
@@ -193,20 +215,24 @@ function afficherEcranCompagnons() {
                     <div class="compagnon-bar-track"><div class="compagnon-bar-fill pv" style="width:${pvPct}%"></div></div>
                     <div class="compagnon-bar-label"><span>⚡ FT</span><span>${c.ftActuel} / ${ftMax}</span></div>
                     <div class="compagnon-bar-track"><div class="compagnon-bar-fill ft" style="width:${ftPct}%"></div></div>
+                    <div class="compagnon-bar-label" style="margin-top:4px;">
+                        <span>⚖ Charge</span>
+                        <span style="color:${chargeColor};">${poidsComp.toFixed(1)} / ${chargeCompMax} kg${compSurcharge ? ' ⚠' : ''}</span>
+                    </div>
                 </div>
 
                 <div class="compagnon-stats-grid">
-                    <div class="compagnon-stat"><span class="cs-label">FO</span><span class="cs-val">${fo}</span></div>
-                    <div class="compagnon-stat"><span class="cs-label">IN</span><span class="cs-val">${ini}</span></div>
-                    <div class="compagnon-stat"><span class="cs-label">CN</span><span class="cs-val">${cn}</span></div>
-                    <div class="compagnon-stat"><span class="cs-label">DX</span><span class="cs-val">${dx}</span></div>
-                    <div class="compagnon-stat"><span class="cs-label">CH</span><span class="cs-val">${ch}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">FO</span><span class="cs-val">${fo}${eqBonus.FO ? '<span style="color:#4caf50;font-size:0.7em">+'+eqBonus.FO+'</span>' : ''}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">IN</span><span class="cs-val">${ini}${eqBonus.IN ? '<span style="color:#4caf50;font-size:0.7em">+'+eqBonus.IN+'</span>' : ''}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CN</span><span class="cs-val">${cn}${eqBonus.CN ? '<span style="color:#4caf50;font-size:0.7em">+'+eqBonus.CN+'</span>' : ''}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">DX</span><span class="cs-val">${dx}${eqBonus.DX ? '<span style="color:#4caf50;font-size:0.7em">+'+eqBonus.DX+'</span>' : ''}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CH</span><span class="cs-val">${ch}${eqBonus.CH ? '<span style="color:#4caf50;font-size:0.7em">+'+eqBonus.CH+'</span>' : ''}</span></div>
                 </div>
 
-                ${equipItems.length ? `<div class="compagnon-equip">🗡 ${equipItems.join(' · ')}</div>` : ''}
+                ${_compagnon_equipementHtml(c, idx)}
                 ${compStr ? `<div class="compagnon-comps">📚 ${compStr}</div>` : ''}
                 ${_compagnon_sortsHtml(c)}
-                ${_compagnon_inventaireHtml(c, comps.indexOf(c))}
+                ${_compagnon_inventaireHtml(c, idx)}
                 ${(typeof _genererLedsXP === 'function') ? '<div style="margin-top:6px;">' + _genererLedsXP(c.xp || 0, c.niveau || 1) + '</div>' : ''}
             </div>
         `);
@@ -235,21 +261,197 @@ function _compagnon_sortsHtml(c) {
 
 function _compagnon_inventaireHtml(c, idx) {
     const items = c.inventaire || [];
-    if (!items.length && !c.argent) return '';
+    const reparation_pts = window.perso?.compInvesties?.reparation || 0;
     let html = '<div class="compagnon-invent">';
     if (c.argent) html += `<span class="compagnon-invent-item">💰 ${c.argent} or</span>`;
     if (typeof itemsData !== 'undefined') {
         items.forEach((it, i) => {
-            const data = itemsData[it.id];
-            if (data) {
-                    html += `<span class="compagnon-invent-item">${data.nom} ×${it.quantite}`
-                    + `<button class="comp-inv-btn" style="margin-left:4px; font-size:0.65em;"
-                        onclick="_retirerItemCompagnon(${idx}, ${i})">✕</button></span>`;
-            }
+            const def = itemsData[it.id];
+            if (!def) return;
+            const durStr = it.durabilite !== undefined
+                ? ` <small style="color:${it.durabilite <= 0 ? '#f44336' : it.durabilite < 30 ? '#ff9800' : '#aaa'};">[${it.durabilite}/${it.durabiliteMax || 100}]</small>`
+                : '';
+            const btnRepComp = (it.durabilite !== undefined && reparation_pts > 0 && it.durabilite < (it.durabiliteMax || 100))
+                ? ` <button class="comp-inv-btn" style="color:#ff9800;" title="Réparer" onclick="_reparerInvCompagnon(${idx},${i})">🔧</button>`
+                : '';
+            html += `<span class="compagnon-invent-item">${def.nom} ×${it.quantite || 1}${durStr}`
+                + ` <button class="comp-inv-btn" title="Reprendre" onclick="_reprendreItemCompagnon(${idx},${i})">⬆</button>`
+                + btnRepComp
+                + ` <button class="comp-inv-btn" style="color:#e57373;" title="Jeter" onclick="_retirerItemCompagnon(${idx},${i})">✕</button>`
+                + `</span>`;
         });
+    }
+    html += `<button class="comp-inv-btn" style="margin-top:4px; font-size:0.75em; padding:2px 7px;" onclick="ouvrirDonnerItemCompagnon(${idx})">＋ Donner un objet</button>`;
+    html += '</div>';
+    return html;
+}
+
+/** Reprend 1 exemplaire d'un item du compagnon vers l'inventaire du joueur. */
+function _reprendreItemCompagnon(compIdx, itemIdx) {
+    const comps = window.perso?.compagnons;
+    if (!comps?.[compIdx]) return;
+    const items = comps[compIdx].inventaire || [];
+    const it = items[itemIdx];
+    if (!it) return;
+
+    // Vérifier la charge du joueur avant d'accepter l'objet
+    if (typeof _estSurcharge === 'function' && _estSurcharge(window.perso)) {
+        if (typeof _toast === 'function') _toast('⚠ Inventaire plein ! Vous êtes surchargé.', 'error');
+        return;
+    }
+
+    // Retirer du compagnon (1 exemplaire)
+    if ((it.quantite || 1) > 1) { it.quantite--; it.qte = it.quantite; }
+    else items.splice(itemIdx, 1);
+    comps[compIdx].inventaire = items;
+
+    // Dégradation de durabilité au transfert (objets équipables uniquement)
+    const transferItem = { id: it.id, quantite: 1, qte: 1 };
+    if (it.durabilite !== undefined) {
+        transferItem.durabilite = Math.max(0, (it.durabilite || 0) - 5);
+        transferItem.durabiliteMax = it.durabiliteMax || 100;
+    }
+
+    // Ajouter au joueur — items avec durabilité toujours en entrée séparée
+    const inv = window.perso.inventaire;
+    if (it.durabilite === undefined) {
+        const exist = inv.findIndex(i => i.id === it.id && i.durabilite === undefined);
+        if (exist !== -1) { inv[exist].quantite = (inv[exist].quantite || 1) + 1; inv[exist].qte = inv[exist].quantite; }
+        else inv.push(transferItem);
+    } else {
+        inv.push(transferItem);
+    }
+
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    afficherEcranCompagnons();
+}
+
+/** Affiche les slots d'équipement du compagnon avec boutons équiper/déséquiper. */
+function _compagnon_equipementHtml(c, idx) {
+    if (typeof itemsData === 'undefined') return '';
+    const slots = { tete:'Tête', torse:'Torse', gants:'Mains', bottes:'Pieds',
+                    anneau:'Anneau', amulette:'Amulette', main_droite:'Main D.', main_gauche:'Main G.' };
+    if (!c.equipement) c.equipement = {};
+    const eq = c.equipement;
+
+    // Détecte arme 2 mains
+    const estDeuxMains = !!(eq.main_droite && itemsData[eq.main_droite.id]?.equipable === 'deux_mains');
+
+    let html = '<div class="compagnon-equip-slots">';
+    for (let slot in slots) {
+        const item = eq[slot];
+        if (slot === 'main_gauche' && estDeuxMains) {
+            html += `<div class="comp-eq-slot blocked"><span class="comp-eq-label">${slots[slot]}</span><span style="color:#8b4513;font-size:0.7em;">⛔ 2 mains</span></div>`;
+            continue;
+        }
+        if (item && itemsData[item.id]) {
+            const def = itemsData[item.id];
+            const armStr = def.armure ? ` 🛡${def.armure}` : '';
+            const degStr = def.degats && def.degats !== '0' ? ` ⚔${def.degats}` : '';
+            const durComp = item.durabilite;
+            const durMaxComp = item.durabiliteMax || 100;
+            const durColorComp = durComp !== undefined ? (durComp <= 0 ? '#f44336' : durComp < 30 ? '#ff9800' : '#aaa') : '';
+            const durStrComp = durComp !== undefined
+                ? ` <small style="color:${durColorComp};">[${durComp}/${durMaxComp}]</small>` : '';
+            const repPts = window.perso?.compInvesties?.reparation || 0;
+            const btnRepEq = (durComp !== undefined && repPts > 0 && durComp < durMaxComp)
+                ? `<button class="comp-inv-btn" style="color:#ff9800;" title="Réparer" onclick="_reparerEquipCompagnon(${idx},'${slot}')">🔧</button>`
+                : '';
+            html += `<div class="comp-eq-slot equipped">
+                <span class="comp-eq-label">${slots[slot]}</span>
+                <span class="comp-eq-nom">${def.nom}${armStr}${degStr}${durStrComp}</span>
+                <div style="display:flex;gap:2px;">${btnRepEq}<button class="comp-inv-btn" style="color:#e57373;" onclick="_desequiperCompagnon(${idx},'${slot}')">✕</button></div>
+            </div>`;
+        } else {
+            html += `<div class="comp-eq-slot empty"><span class="comp-eq-label">${slots[slot]}</span><span style="color:#444;font-size:0.7em;">—</span></div>`;
+        }
+    }
+    // Bouton pour équiper un objet depuis l'inventaire du compagnon
+    const equipables = (c.inventaire || []).filter(it => {
+        const def = itemsData[it.id];
+        return def && def.equipable && def.equipable !== 'aucun';
+    });
+    if (equipables.length) {
+        html += `<button class="comp-inv-btn" style="margin-top:4px;font-size:0.75em;padding:2px 7px;" onclick="ouvrirEquiperCompagnon(${idx})">🗡 Équiper un objet</button>`;
     }
     html += '</div>';
     return html;
+}
+
+function ouvrirEquiperCompagnon(compIdx) {
+    const c = window.perso?.compagnons?.[compIdx];
+    if (!c) return;
+    const equipables = (c.inventaire || []).filter(it => {
+        const def = typeof itemsData !== 'undefined' ? itemsData[it.id] : null;
+        return def && def.equipable && def.equipable !== 'aucun';
+    });
+    let modal = document.getElementById('modal-comp-equip');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-comp-equip';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    let html = `<div style="background:#1a120a;border:2px solid #d4af37;border-radius:8px;padding:20px;max-width:360px;width:90%;max-height:70vh;overflow-y:auto;">
+        <h3 style="color:#d4af37;margin:0 0 12px;">🗡 Équiper ${c.nom}</h3>
+        <div style="display:flex;flex-direction:column;gap:6px;">`;
+    equipables.forEach((it) => {
+        const def = itemsData[it.id];
+        const invIdx = c.inventaire.indexOf(it);
+        html += `<button onclick="_equiperCompagnon(${compIdx},${invIdx})" style="background:#2a1a0a;border:1px solid #5a3a10;color:#eee;padding:8px;border-radius:4px;cursor:pointer;text-align:left;">
+            ${def.nom} <span style="color:#888;font-size:0.8em;">[${def.equipable}]</span></button>`;
+    });
+    html += `</div><button onclick="document.getElementById('modal-comp-equip').style.display='none'" style="margin-top:12px;background:#333;color:#aaa;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;">Fermer</button></div>`;
+    modal.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function _equiperCompagnon(compIdx, invIdx) {
+    const c = window.perso?.compagnons?.[compIdx];
+    if (!c || !c.inventaire?.[invIdx]) return;
+    if (!c.equipement) c.equipement = {};
+    const it = c.inventaire[invIdx];
+    const def = itemsData[it.id];
+    if (!def?.equipable) return;
+    let slot = def.equipable;
+    // Arme 2 mains : libérer main droite et gauche
+    if (slot === 'deux_mains') {
+        if (c.equipement.main_droite) c.inventaire.push(c.equipement.main_droite);
+        if (c.equipement.main_gauche) c.inventaire.push(c.equipement.main_gauche);
+        c.equipement.main_droite = it;
+        c.equipement.main_gauche = null;
+    } else {
+        if (c.equipement[slot]) c.inventaire.push(c.equipement[slot]);
+        c.equipement[slot] = it;
+    }
+    c.inventaire.splice(invIdx, 1);
+
+    // Initialiser la durabilité uniquement pour les types éligibles (armes + armures)
+    const targetSlotComp = (slot === 'deux_mains') ? 'main_droite' : slot;
+    const eqCompApres = c.equipement[targetSlotComp];
+    if (eqCompApres && typeof itemsData !== 'undefined' && typeof _itemADurabilite === 'function') {
+        const defComp = itemsData[eqCompApres.id];
+        if (_itemADurabilite(defComp) && eqCompApres.durabilite === undefined) {
+            eqCompApres.durabilite = 100; eqCompApres.durabiliteMax = 100;
+        }
+    }
+
+    document.getElementById('modal-comp-equip').style.display = 'none';
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    afficherEcranCompagnons();
+}
+
+function _desequiperCompagnon(compIdx, slot) {
+    const c = window.perso?.compagnons?.[compIdx];
+    if (!c?.equipement?.[slot]) return;
+    if (!c.inventaire) c.inventaire = [];
+    c.inventaire.push(c.equipement[slot]);
+    c.equipement[slot] = null;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    afficherEcranCompagnons();
 }
 
 function _retirerItemCompagnon(compIdx, itemIdx) {
@@ -263,6 +465,105 @@ function _retirerItemCompagnon(compIdx, itemIdx) {
     comps[compIdx].inventaire = items;
     if (typeof autoSave === 'function') autoSave();
     if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    afficherEcranCompagnons();
+}
+
+/** Répare un objet équipé sur un compagnon. */
+function _reparerEquipCompagnon(compIdx, slot) {
+    const c = window.perso?.compagnons?.[compIdx];
+    if (!c?.equipement?.[slot]) return;
+    const reparation_pts = window.perso?.compInvesties?.reparation || 0;
+    if (reparation_pts <= 0) return;
+    if (typeof _appliquerReparation !== 'function') return;
+    if (!_appliquerReparation(c.equipement[slot], reparation_pts)) return;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _toast === 'function') _toast(`🔧 Réparé ! Durabilité max réduite à ${c.equipement[slot].durabiliteMax}.`, 'success');
+    afficherEcranCompagnons();
+}
+
+/** Répare un objet dans l'inventaire d'un compagnon. */
+function _reparerInvCompagnon(compIdx, itemIdx) {
+    const c = window.perso?.compagnons?.[compIdx];
+    const item = c?.inventaire?.[itemIdx];
+    if (!item || item.durabilite === undefined) return;
+    const reparation_pts = window.perso?.compInvesties?.reparation || 0;
+    if (reparation_pts <= 0) return;
+    if (typeof _appliquerReparation !== 'function') return;
+    if (!_appliquerReparation(item, reparation_pts)) return;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _toast === 'function') _toast(`🔧 Réparé ! Durabilité max réduite à ${item.durabiliteMax}.`, 'success');
+    afficherEcranCompagnons();
+}
+
+/** Ouvre une modal pour choisir quel objet du joueur donner au compagnon. */
+function ouvrirDonnerItemCompagnon(compIdx) {
+    const inv = window.perso?.inventaire || [];
+    let modal = document.getElementById('modal-comp-don');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-comp-don';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    let html = `<div style="background:#1a120a;border:2px solid #d4af37;border-radius:8px;padding:20px;max-width:360px;width:90%;max-height:70vh;overflow-y:auto;">
+        <h3 style="color:#d4af37;margin:0 0 12px;">Donner au compagnon</h3>
+        <div style="display:flex;flex-direction:column;gap:6px;">`;
+    if (!inv.length) {
+        html += `<p style="color:#888;text-align:center;">Votre inventaire est vide.</p>`;
+    } else {
+        inv.forEach((it, i) => {
+            const def = typeof itemsData !== 'undefined' ? itemsData[it.id] : null;
+            if (!def) return;
+            html += `<button onclick="_donnerItemCompagnon(${compIdx},${i})" style="background:#2a1a0a;border:1px solid #5a3a10;color:#eee;padding:8px;border-radius:4px;cursor:pointer;text-align:left;">
+                ${def.nom} <span style="color:#aaa;">×${it.quantite || 1}</span></button>`;
+        });
+    }
+    html += `</div><button onclick="document.getElementById('modal-comp-don').style.display='none'" style="margin-top:12px;background:#333;color:#aaa;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;">Fermer</button></div>`;
+    modal.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function _donnerItemCompagnon(compIdx, invIdx) {
+    const comps = window.perso?.compagnons;
+    const inv = window.perso?.inventaire;
+    if (!comps?.[compIdx] || !inv?.[invIdx]) return;
+
+    // Vérifier la charge du compagnon avant d'accepter l'objet
+    const comp = comps[compIdx];
+    if (typeof _calculerPoidsPersonnage === 'function' && typeof _chargeMax === 'function') {
+        const poidsComp = _calculerPoidsPersonnage(comp);
+        const chargeComp = _chargeMax(comp);
+        if (poidsComp >= chargeComp) {
+            if (typeof _toast === 'function') _toast(`⚠ ${comp.nom} est surchargé !`, 'error');
+            return;
+        }
+    }
+
+    const it = inv[invIdx];
+    // Retirer du joueur (1 exemplaire)
+    if ((it.quantite || 1) > 1) { it.quantite--; it.qte = it.quantite; }
+    else inv.splice(invIdx, 1);
+
+    // Dégradation de durabilité au transfert
+    const transferItem = { id: it.id, quantite: 1, qte: 1 };
+    if (it.durabilite !== undefined) {
+        transferItem.durabilite = Math.max(0, (it.durabilite || 0) - 5);
+        transferItem.durabiliteMax = it.durabiliteMax || 100;
+    }
+
+    // Ajouter au compagnon — items avec durabilité toujours en entrée séparée
+    if (!comp.inventaire) comp.inventaire = [];
+    if (it.durabilite === undefined) {
+        const exist = comp.inventaire.findIndex(i => i.id === it.id && i.durabilite === undefined);
+        if (exist !== -1) comp.inventaire[exist].quantite = (comp.inventaire[exist].quantite || 1) + 1;
+        else comp.inventaire.push(transferItem);
+    } else {
+        comp.inventaire.push(transferItem);
+    }
+
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+    document.getElementById('modal-comp-don').style.display = 'none';
     afficherEcranCompagnons();
 }
 
@@ -290,6 +591,50 @@ function appliquerFondActuel() {
         backgroundPosition: "center center",
         backgroundAttachment: "fixed"
     });
+}
+
+// Appelée quand le joueur passe son tour en combat — applique le poison actif
+// Retourne le nombre de PV perdus (pour affichage dans le log)
+function _appliquerPoison() {
+    if (!window.perso?.poison) return 0;
+
+    const CN = (window.perso.statsBase?.CN || 5) + (window.perso.statsInvesties?.CN || 0);
+    // CN ≥ 20 : immunité totale, guérison immédiate
+    if (CN >= 20) {
+        window.perso.poison = null;
+        if (typeof _toast === 'function') _toast('🛡 Immunité au poison (CN ≥ 20) !', 'success');
+        if (typeof autoSave === 'function') autoSave();
+        return 0;
+    }
+
+    const maxPV = (window.perso.statsBase.FO * 2) + window.perso.statsBase.IN
+        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostPV || 0);
+    const resPoison = window.perso.bonusInnes?.resPoison || 0;
+
+    // 1. Tentative de guérison naturelle AVANT le tic de dégâts
+    const purgeSkill = (window.perso.compInvesties?.purge_toxines || 0);
+    const chanceBase = Math.max(5, purgeSkill); // min 5% même sans compétence
+    const chanceActuelle = window.perso.poison.chanceGuerison || chanceBase;
+    if (Math.floor(Math.random() * 100) < chanceActuelle) {
+        window.perso.poison = null;
+        if (typeof _toast === 'function') _toast('✅ Poison neutralisé — aucun dégât ce tour !', 'success');
+        if (typeof autoSave === 'function') autoSave();
+        rafraichirAccueil();
+        return 0; // guéri avant le tic, pas de dégâts
+    }
+    // Raté : la chance augmente pour le prochain tour
+    window.perso.poison.chanceGuerison = chanceActuelle + chanceBase;
+
+    // 2. Dégâts de poison : 15% des PV max, réduits par résistance
+    const degatsBase = Math.ceil(maxPV * 0.15);
+    const degats = Math.max(1, Math.round(degatsBase * (1 - resPoison / 100)));
+    window.perso.pvActuel = Math.max(0, (window.perso.pvActuel || 0) - degats);
+    if (typeof _toast === 'function') _toast(`☠ Poison : −${degats} PV (chance guérison : ${Math.min(100, chanceActuelle + chanceBase)}%)`, 'error');
+
+    if (typeof autoSave === 'function') autoSave();
+    rafraichirAccueil();
+    return degats;
 }
 
 function rafraichirAccueil() {
@@ -327,8 +672,12 @@ if (statsBox && window.perso) {
     statsBox.style.display = 'block';
     
     // 1. Calcul des maximums réels
-    const maxPV = (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN) + (window.perso.boostPV || 0);
-    const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN) + (window.perso.boostFT || 0);
+    const maxPV = (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN)
+        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostPV || 0);
+    const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN)
+        + ((window.perso.statsInvesties?.CN || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostFT || 0);
 
     // 2. Récupération des valeurs actuelles SANS valeur par défaut automatique
     const pvReels = window.perso.pvActuel;
@@ -348,8 +697,11 @@ if (statsBox && window.perso) {
         const xpLedsHtml = (typeof _genererLedsXP === 'function')
             ? _genererLedsXP(window.perso.xp || 0, window.perso.niveau || 1, window.perso)
             : '';
+        const poisonBadge = window.perso.poison
+            ? `<span style="display:inline-block; background:#2a0a00; color:#ff6b35; border:1px solid #ff6b35; border-radius:4px; padding:1px 6px; margin-left:8px; font-weight:bold; font-size:0.9em; animation:poison-pulse 1.5s ease-in-out infinite;" title="Empoisonné — guérison : ${window.perso.poison.chanceGuerison}%">☠ EMPOISONNÉ</span>`
+            : '';
         statsBox.innerHTML = `
-            ❤️ PV : <span id="accueil-pv" style="font-weight:bold;">${pvReels} / ${maxPV}</span>
+            ❤️ PV : <span id="accueil-pv" style="font-weight:bold;">${pvReels} / ${maxPV}</span>${poisonBadge}
             ⚡ FT : <span id="accueil-ft" style="font-weight:bold;">${ftReels} / ${maxFT}</span>
             ${xpLedsHtml}
         `;
@@ -365,7 +717,11 @@ if (statsBox && window.perso) {
         const btnMagie = document.getElementById('btn-menu-magie');
         if (btnMagie) {
             let mesSorts = (typeof getSortsConnus === "function") ? getSortsConnus() : [];
-            btnMagie.style.display = (mesSorts.length > 0) ? 'block' : 'none';
+            const compOntSorts = (window.perso?.compagnons || []).some(c =>
+                Object.values(c.magieInvesties || {}).some(v => parseInt(v) > 0) ||
+                Object.values(c.magieBase || {}).some(v => parseInt(v) > 0)
+            );
+            btnMagie.style.display = (mesSorts.length > 0 || compOntSorts) ? 'block' : 'none';
         }
 
         // Bouton Compagnons : visible si le joueur a au moins un compagnon
@@ -399,6 +755,7 @@ function verifierMort() {
     if (window.perso.pvActuel <= 0) {
         window.perso.pvActuel = 0;
         window.perso.estMort = true;
+        window.perso.poison = null; // La mort efface l'empoisonnement
         document.body.style.filter = "grayscale(100%)";
         if (typeof AudioEngine !== 'undefined') AudioEngine.stopMusique();
     } else {
@@ -424,22 +781,144 @@ function verifierMort() {
 }
 
 
+/**
+ * Normalise un objet perso chargé depuis localStorage ou JSON importé.
+ * Ajoute tous les champs manquants avec leurs valeurs par défaut.
+ * N'écrase JAMAIS une valeur existante.
+ */
+function _migrerPerso(p) {
+    if (!p) return p;
+
+    // ── Champs scalaires ──────────────────────────────────────
+    if (p.boostPV === undefined) p.boostPV = 0;
+    if (p.boostFT === undefined) p.boostFT = 0;
+    // Rattrapage rétroactif : +2 PV/FT par niveau passé (marqué par _boostLvlApplique)
+    const _niveauxBonus = (p.niveau || 1) - 1; // nb de level-ups déjà faits
+    if (!p._boostLvlApplique && _niveauxBonus > 0) {
+        p.boostPV = (p.boostPV || 0) + _niveauxBonus * 2;
+        p.boostFT = (p.boostFT || 0) + _niveauxBonus * 2;
+    }
+    p._boostLvlApplique = true; // flag : ne jamais réappliquer
+    if (p.boostVitesseInne  === undefined) p.boostVitesseInne  = 0;
+    if (p.poison            === undefined) p.poison            = null;
+    if (p.compagnonsMemoire === undefined) p.compagnonsMemoire = {};
+    if (!p.inventaire)    p.inventaire    = [];
+    if (!p.techInvesties) p.techInvesties = {};
+    if (!p.compInvesties) p.compInvesties = {};
+    if (!p.magieInvesties) p.magieInvesties = {};
+    if (!p.bonusInnes) p.bonusInnes = { align: 0, resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 };
+    if (!p.statsInvesties) p.statsInvesties = { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 };
+
+    // ── Équipement : slots manquants ──────────────────────────
+    if (!p.equipement) p.equipement = {};
+    ['tete','torse','gants','bottes','anneau','amulette','main_droite','main_gauche'].forEach(s => {
+        if (!(s in p.equipement)) p.equipement[s] = null;
+    });
+
+    // ── Durabilité sur items équipés : ajout si manquant, nettoyage si incorrect ──
+    const _ALL_SLOTS = ['tete','torse','gants','bottes','main_droite','main_gauche','deux_mains','anneau','amulette'];
+    _ALL_SLOTS.forEach(slot => {
+        const eq = p.equipement[slot];
+        if (!eq || typeof itemsData === 'undefined') return;
+        const def = itemsData[eq.id];
+        if (!def) return;
+        if (typeof _itemADurabilite === 'function' && _itemADurabilite(def)) {
+            // Doit avoir durabilité
+            if (eq.durabilite    === undefined) eq.durabilite    = 100;
+            if (eq.durabiliteMax === undefined) eq.durabiliteMax = 100;
+        } else {
+            // Ne doit PAS avoir durabilité → nettoyer
+            delete eq.durabilite;
+            delete eq.durabiliteMax;
+        }
+    });
+
+    // ── Inventaire : nettoyer durabilité sur items qui ne doivent pas en avoir ──
+    (p.inventaire || []).forEach(it => {
+        if (it.durabilite === undefined) return; // pas de durabilité → rien à faire
+        if (typeof itemsData === 'undefined') return;
+        const def = itemsData[it.id];
+        if (!def || !(typeof _itemADurabilite === 'function' && _itemADurabilite(def))) {
+            delete it.durabilite;
+            delete it.durabiliteMax;
+        }
+    });
+
+    // ── PV / FT actuels : recalculer si absent ou hors-borne ─
+    const _fo  = (p.statsBase?.FO || 8) + (p.statsInvesties?.FO || 0);
+    const _ini = (p.statsBase?.IN || 8) + (p.statsInvesties?.IN || 0);
+    const _cn  = (p.statsBase?.CN || 8) + (p.statsInvesties?.CN || 0);
+    const _maxPV = (_fo * 2) + _ini + (p.boostPV || 0);
+    const _maxFT = (_cn * 2) + _ini + (p.boostFT || 0);
+    if (p.pvActuel === undefined || p.pvActuel === null) p.pvActuel = _maxPV;
+    if (p.ftActuel === undefined || p.ftActuel === null) p.ftActuel = _maxFT;
+    // Corriger si la valeur dépasse le max (ex : stats réduites depuis)
+    if (p.pvActuel > _maxPV) p.pvActuel = _maxPV;
+    if (p.ftActuel > _maxFT) p.ftActuel = _maxFT;
+
+    // ── Compagnons ────────────────────────────────────────────
+    if (!p.compagnons) p.compagnons = [];
+    p.compagnons.forEach(c => {
+        if (!c.inventaire)    c.inventaire    = [];
+        if (!c.magieInvesties) c.magieInvesties = {};
+        if (!c.compInvesties)  c.compInvesties  = {};
+        if (!c.techInvesties)  c.techInvesties  = {};
+        if (!c.statsInvesties) c.statsInvesties = { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 };
+        if (c.boostPV === undefined) c.boostPV = 0;
+        if (c.boostFT === undefined) c.boostFT = 0;
+        if (!c.equipement) c.equipement = {};
+        ['tete','torse','gants','bottes','anneau','amulette','main_droite','main_gauche'].forEach(s => {
+            if (!(s in c.equipement)) c.equipement[s] = null;
+        });
+        // Durabilité équipement compagnon : ajout si manquant, nettoyage si incorrect
+        _ALL_SLOTS.forEach(slot => {
+            const eq = c.equipement[slot];
+            if (!eq || typeof itemsData === 'undefined') return;
+            const def = itemsData[eq.id];
+            if (!def) return;
+            if (typeof _itemADurabilite === 'function' && _itemADurabilite(def)) {
+                if (eq.durabilite    === undefined) eq.durabilite    = 100;
+                if (eq.durabiliteMax === undefined) eq.durabiliteMax = 100;
+            } else {
+                delete eq.durabilite;
+                delete eq.durabiliteMax;
+            }
+        });
+        // Inventaire compagnon : nettoyer durabilité incorrecte
+        (c.inventaire || []).forEach(it => {
+            if (it.durabilite === undefined) return;
+            if (typeof itemsData === 'undefined') return;
+            const def = itemsData[it.id];
+            if (!def || !(typeof _itemADurabilite === 'function' && _itemADurabilite(def))) {
+                delete it.durabilite; delete it.durabiliteMax;
+            }
+        });
+        // Magie depuis npcBase si absent
+        if (c.npcId && typeof personnagesNPC !== 'undefined' && personnagesNPC[c.npcId]) {
+            const base = personnagesNPC[c.npcId];
+            if (!c.magieInvesties || Object.keys(c.magieInvesties).length === 0) {
+                if (base.magieInvesties) c.magieInvesties = JSON.parse(JSON.stringify(base.magieInvesties));
+            }
+        }
+        // PV / FT compagnon
+        const cFO  = (c.statsBase?.FO || 5) + (c.statsInvesties?.FO || 0);
+        const cIN  = (c.statsBase?.IN || 5) + (c.statsInvesties?.IN || 0);
+        const cCN  = (c.statsBase?.CN || 5) + (c.statsInvesties?.CN || 0);
+        const cMaxPV = (cFO * 2) + cIN + (c.boostPV || 0);
+        const cMaxFT = (cCN * 2) + cIN + (c.boostFT || 0);
+        if (c.pvActuel === undefined || c.pvActuel === null) c.pvActuel = cMaxPV;
+        if (c.ftActuel === undefined || c.ftActuel === null) c.ftActuel = cMaxFT;
+        if (c.pvActuel > cMaxPV) c.pvActuel = cMaxPV;
+        if (c.ftActuel > cMaxFT) c.ftActuel = cMaxFT;
+    });
+
+    return p;
+}
+
 function chargerPersonnage() {
     const sauvegarde = localStorage.getItem('arcanum_sauvegarde');
     if (sauvegarde) {
-        window.perso = JSON.parse(sauvegarde);
-
-        // Migration : s'assurer que les compagnons existants ont bien magieInvesties depuis npcBase
-        if (window.perso.compagnons && typeof personnagesNPC !== 'undefined') {
-            window.perso.compagnons.forEach(c => {
-                if (c.npcId && personnagesNPC[c.npcId]) {
-                    const base = personnagesNPC[c.npcId];
-                    if (!c.magieInvesties && base.magieInvesties) {
-                        c.magieInvesties = JSON.parse(JSON.stringify(base.magieInvesties));
-                    }
-                }
-            });
-        }
+        window.perso = _migrerPerso(JSON.parse(sauvegarde));
 
         // 1. On coupe le moteur audio immédiatement pour éviter les chevauchements
         if (typeof AudioEngine !== 'undefined') AudioEngine.stopMusique();
@@ -478,10 +957,7 @@ function reprendrePartie() {
         if (!sauvegarde) return;
         window.perso = JSON.parse(sauvegarde);
     }
-    if (!window.perso.inventaire) window.perso.inventaire = [];
-    if (!window.perso.equipement) window.perso.equipement = {
-        tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null
-    };
+    _migrerPerso(window.perso);
     cacherTout();
     const ecranFiche = document.getElementById('ecran-fiche');
     if (ecranFiche) {
@@ -518,9 +994,9 @@ function importerFichier(e) {
     if(!e.target.files[0]) return;
     const reader = new FileReader();
     reader.onload = function(ev) {
-        const p = JSON.parse(ev.target.result);
-        if (p.nom) { 
-            localStorage.setItem('arcanum_sauvegarde', JSON.stringify(p)); 
+        const p = _migrerPerso(JSON.parse(ev.target.result));
+        if (p.nom) {
+            localStorage.setItem('arcanum_sauvegarde', JSON.stringify(p));
             window.perso = p;
             if (typeof updateFicheUI === 'function') updateFicheUI(); 
             cacherTout(); 

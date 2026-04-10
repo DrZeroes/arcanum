@@ -43,11 +43,11 @@ function _calculerPoidsPersonnage(p) {
     return Math.round(poids * 10) / 10;
 }
 
-/** Charge max d'un personnage = FO × 2. */
+/** Charge max d'un personnage = 5 + FO × 2. */
 function _chargeMax(p) {
     if (!p) return 0;
-    const fo = (p.statsBase?.FO || 5) + (p.statsInvesties?.FO || 0);
-    return fo * 2;
+    const fo = Math.max(0, (p.statsBase?.FO || 5) + (p.statsInvesties?.FO || 0) + ((typeof _bonusEffets === 'function') ? _bonusEffets(p, 'FO') : 0));
+    return 5 + fo * 2;
 }
 
 /** Renvoie true si le personnage dépasse sa charge maximale. */

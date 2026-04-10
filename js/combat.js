@@ -6,6 +6,8 @@
 // ============================================================
 
 window.combatActif = null;
+// Actions rapides : { tourKey: numéro du tour initialisé, restantes: nb d'actions bonus restantes }
+window._actionsRapides = { tourKey: -1, restantes: 0 };
 
 /** Enregistre un message dans l'historique Firebase et affiche une toast. */
 /**
@@ -76,6 +78,55 @@ function _verifierFinCombat(ennemisMAJ) {
     if (window.estMJ) {
         setTimeout(() => db.ref('parties/' + sessionActuelle + '/combat_actif').remove(), 4000);
     }
+}
+
+/**
+ * Vérifie si tous les joueurs (non-MJ) ET tous les compagnons sont morts → défaite.
+ * ordreActuel : tableau ordre_jeu à jour (avec les derniers flags ko des compagnons).
+ */
+function _verifierDefaite(ordreActuel) {
+    const ordre = ordreActuel || [];
+
+    // Index ko depuis ordre_jeu (plus frais que Firebase joueurs après une attaque)
+    const koParId = {};
+    ordre.forEach(p => { if (p.ko) koParId[p.id || p.nom] = true; });
+
+    // Joueurs dans l'ordre (non-MJ)
+    const joueursOrdre = ordre.filter(p => p.type === 'joueur');
+    // Compagnons dans l'ordre
+    const compsOrdre   = ordre.filter(p => p.type === 'compagnon');
+
+    // Si aucun joueur ni compagnon → pas de défaite possible
+    if (joueursOrdre.length === 0 && compsOrdre.length === 0) return;
+
+    // Un joueur/compagnon est KO si : flag ko=true OU pvActuel <= 0
+    const tousJoueursKO = joueursOrdre.length === 0 || joueursOrdre.every(p =>
+        p.ko || (p.pvActuel !== undefined && p.pvActuel <= 0)
+    );
+    const tousCompsKO = compsOrdre.length === 0 || compsOrdre.every(p =>
+        p.ko || (p.pvActuel ?? 0) <= 0
+    );
+
+    if (!tousJoueursKO || !tousCompsKO) return;
+
+    // Double-vérification via Firebase joueurs pour les cas où pvActuel n'est pas dans ordre_jeu
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
+        const joueurs = snap.val() || {};
+        const joueursActifs = Object.values(joueurs).filter(j => !j.estMJ);
+        const confirme = joueursActifs.every(j => {
+            const id = j.nom?.replace(/\s+/g, '_');
+            // KO si : dans ordre_jeu avec ko=true, OU pvActuel Firebase = 0
+            return koParId[id] || (j.pvActuel || 0) <= 0;
+        });
+
+        if (confirme) {
+            _logCombat('💀 Tous les alliés sont tombés — DÉFAITE !');
+            db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
+            if (window.estMJ) {
+                setTimeout(() => db.ref('parties/' + sessionActuelle + '/combat_actif').remove(), 4000);
+            }
+        }
+    });
 }
 
 // ── Barre d'ordre de jeu ─────────────────────────────────────
@@ -157,11 +208,18 @@ function _afficherJoueurs() {
 
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
         const joueurs = snap.val() || {};
+        // Index des joueurs marqués KO dans ordre_jeu (source de vérité plus fraîche que joueurs FB)
+        const ordreKO = {};
+        (window.combatActif?.ordre_jeu || []).forEach(p => {
+            if (p.type === 'joueur' && p.ko) ordreKO[p.id] = true;
+        });
         const frags = Object.values(joueurs).filter(j => !j.estMJ).map(j => {
-            const pvPct  = j.pvMax > 0 ? Math.round(((j.pvActuel ?? 0) / j.pvMax) * 100) : 0;
+            // Si marqué KO dans ordre_jeu, forcer pvActuel à 0 (évite stale data après attaque monstre)
+            const pvActuel = ordreKO[j.nom?.replace(/\s+/g, '_')] ? 0 : (j.pvActuel ?? 0);
+            const pvPct  = j.pvMax > 0 ? Math.round((pvActuel / j.pvMax) * 100) : 0;
             const ftPct  = j.ftMax > 0 ? Math.round(((j.ftActuel ?? 0) / j.ftMax) * 100) : 0;
             const estMoi  = j.nom === window.perso?.nom;
-            const estMort = j.pvActuel <= 0;
+            const estMort = pvActuel <= 0;
             const estEmpoisonne = estMoi ? !!window.perso?.poison : !!j.empoisonne;
             const pvBarStyle = estEmpoisonne ? 'background:#8b4513;' : '';
             const poisonLabel = estEmpoisonne ? '<span style="color:#9c4;font-size:10px;margin-left:4px;">☠ Empoisonné</span>' : '';
@@ -170,7 +228,7 @@ function _afficherJoueurs() {
                     <div class="combat-joueur-nom">${j.nom}${poisonLabel}
                         <span class="combat-joueur-niv">Niv.${j.niveau || 1}</span>
                     </div>
-                    <div class="combat-bar-label"><span>❤ PV</span><span>${j.pvActuel ?? 0} / ${j.pvMax ?? 0}</span></div>
+                    <div class="combat-bar-label"><span>❤ PV</span><span>${pvActuel} / ${j.pvMax ?? 0}</span></div>
                     <div class="combat-bar-track"><div class="combat-bar-fill pv" style="width:${pvPct}%;${pvBarStyle}"></div></div>
                     <div class="combat-bar-label"><span>⚡ FT</span><span>${j.ftActuel ?? 0} / ${j.ftMax ?? 0}</span></div>
                     <div class="combat-bar-track"><div class="combat-bar-fill ft" style="width:${ftPct}%;"></div></div>
@@ -267,6 +325,16 @@ function _afficherPanneauActions(data) {
         return;
     }
 
+    // ── Joueur mort : aucune action possible ──
+    const persoMort = window.perso;
+    if ((persoMort?.pvActuel ?? 0) <= 0) {
+        panel.innerHTML = `<div class="combat-actions-titre" style="color:#8b0000; text-align:center; padding:16px;">
+            💀 Vous êtes mort<br><span style="font-size:0.85em; color:#aaa;">En attente de résurrection…</span>
+        </div>`;
+        if (statut) { statut.textContent = '💀 Vous êtes mort.'; statut.style.color = '#8b0000'; }
+        return;
+    }
+
     // ── Régénération PV au début du tour (une seule fois par tour) ──
     const perso    = window.perso;
     const tourKey  = data.tour_actuel || 0;
@@ -282,7 +350,18 @@ function _afficherPanneauActions(data) {
             if (typeof autoSave === 'function') autoSave();
             if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
         }
+        _decrementerEffetsTemporaires();
     }
+
+    // ── Init actions rapides pour ce tour ──
+    const _eqRapideSlot = perso.equipement?.main_droite || perso.equipement?.deux_mains || perso.equipement?.main_gauche;
+    const _weaponActionsParTour = (typeof itemsData !== 'undefined' && _eqRapideSlot)
+        ? (itemsData[_eqRapideSlot.id]?.actionsParTour || 1) : 1;
+    if (window._actionsRapides.tourKey !== tourKey) {
+        window._actionsRapides = { tourKey: tourKey, max: _weaponActionsParTour, restantes: _weaponActionsParTour };
+    }
+    const _estActionBonus = window._actionsRapides.restantes < window._actionsRapides.max
+        && window._actionsRapides.restantes > 0;
 
     // ── Épuisé : seul "Passer le tour" est disponible ──
     const guerison = _getGuerison(perso);
@@ -313,7 +392,10 @@ function _afficherPanneauActions(data) {
         const slot = eq.main_droite || eq.deux_mains || eq.main_gauche;
         if (slot && itemsData[slot.id]) armNom = itemsData[slot.id].nom;
     }
-    let html = `<div class="combat-actions-titre">Actions</div>
+    const _bonusLabel = _estActionBonus
+        ? `<div class="combat-actions-titre" style="color:#f0b429; font-size:0.9em;">⚡ Action rapide !</div>`
+        : '';
+    let html = _bonusLabel + `<div class="combat-actions-titre">Actions</div>
         <button class="combat-sort-btn attaque" onclick="ouvrirCiblesAttaque()">
             <span class="sort-nom">⚔ ${armNom}</span>
             <span class="sort-meta">FO ${fo > 10 ? '+' : ''}${foMod} · Mêlée ${melee}${armureTot > 0 ? ' · 🛡' + armureTot : ''}</span>
@@ -370,17 +452,22 @@ function _genererBoutonsConsommables(perso) {
         const soinPV = data.stats?.soinPV || 0;
         const soinFT = data.stats?.soinFT || 0;
         const degParts = data.degats && data.degats !== '0' ? String(data.degats).split('-') : null;
-        const estOffensif = !!degParts;
-        const estSoin     = soinPV > 0 || soinFT > 0;
-        if (!estOffensif && !estSoin) return; // pas d'effet connu en combat
+        const estOffensif  = !!degParts;
+        const estResurrect = !!data.stats?.resurrection;
+        const estSoin      = !estResurrect && (soinPV > 0 || soinFT > 0);
+        if (!estOffensif && !estSoin && !estResurrect) return; // pas d'effet connu en combat
         const key = it.id;
         if (vus[key]) return; // déjà affiché
         vus[key] = true;
         const qte = it.quantite || 1;
-        const meta = estSoin
+        const meta = estResurrect
+            ? `✨ Résurrection (+${soinPV} PV)`
+            : estSoin
             ? (soinPV > 0 ? `💚+${soinPV}PV` : '') + (soinFT > 0 ? ` ⚡+${soinFT}FT` : '')
             : `⚔ ${data.degats} dég.`;
-        const onclick = estSoin
+        const onclick = estResurrect
+            ? `ouvrirCiblesObjet('${it.id}', 'resurrection')`
+            : estSoin
             ? `ouvrirCiblesObjet('${it.id}', 'soin')`
             : `ouvrirCiblesObjet('${it.id}', 'offensif')`;
         html += `<button class="combat-sort-btn${estOffensif ? ' attaque' : ''}" onclick="${onclick}">
@@ -419,7 +506,7 @@ function ouvrirCiblesObjet(itemId, mode) {
             });
         }
         panel.innerHTML = html + annuler;
-    } else {
+    } else if (mode === 'soin') {
         // Mode soin : fetch tous les joueurs en une seule passe puis rendre
         const _itemSoinDef = (typeof itemsData !== 'undefined') ? itemsData[_objetCombatEnCours?.itemId] : null;
         const _soinPV = _itemSoinDef?.stats?.soinPV || 0;
@@ -466,6 +553,28 @@ function ouvrirCiblesObjet(itemId, mode) {
         } else {
             _renderSoin({});
         }
+    } else if (mode === 'resurrection') {
+        // Cible uniquement les alliés morts (pvActuel <= 0)
+        const _renderResurrect = (joueurs) => {
+            let html = titre + `<div class="combat-cibles-label allie">✨ Alliés morts</div>`;
+            let nbCibles = 0;
+            for (let id in joueurs) {
+                if (joueurs[id].estMJ) continue;
+                if (joueurs[id].nom === window.perso?.nom) continue;
+                if ((joueurs[id].pvActuel || 0) > 0) continue; // vivant : pas de cible pour résurrection
+                html += `<button class="combat-cible-btn allie" onclick="utiliserObjetCombat('${id}')">
+                    💀 ${joueurs[id].nom}
+                </button>`;
+                nbCibles++;
+            }
+            if (nbCibles === 0) html += `<p class="combat-vide" style="color:#f66;">Aucun allié mort à ressusciter.</p>`;
+            panel.innerHTML = html + annuler;
+        };
+        if (typeof db !== 'undefined') {
+            db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => _renderResurrect(snap.val() || {}));
+        } else {
+            _renderResurrect({});
+        }
     }
 }
 
@@ -506,6 +615,16 @@ function utiliserObjetCombat(cibleId) {
             ordre_jeu: ordreMAJObj,
             tour_actuel: _prochainTourVivant(ordreMAJObj, data?.tour_actuel || 0)
         });
+    } else if (mode === 'resurrection') {
+        // Ressusciter un allié mort
+        const soinPV = itemDef.stats?.soinPV || 5;
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/modif_stat').set({
+            stat: 'PV', valeur: soinPV, resurrection: true, timestamp: Date.now()
+        });
+        msg = `${window.perso.nom} utilise ${itemDef.nom} — ✨ Résurrection ! (+${soinPV} PV)`;
+        const ordreActuel = data?.ordre_jeu || [];
+        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+            .set(_prochainTourVivant(ordreActuel, data?.tour_actuel || 0));
     } else {
         const soinPV = itemDef.stats?.soinPV || 0;
         const soinFT = itemDef.stats?.soinFT || 0;
@@ -617,8 +736,8 @@ function ouvrirCiblesSortCombat(nomSort) {
 
     const data           = window.combatActif;
     const ennemisVivants = (data?.ennemis || []).filter(e => e.pvActuel > 0);
-    const peutEnnemis    = !!s.degats || (!s.soin && !s.resurrection);
-    const peutAllie      = !!s.soin || !!s.resurrection;
+    const peutEnnemis    = !!s.degats || (!s.soin && !s.resurrection && !s.buffStat);
+    const peutAllie      = !!s.soin || !!s.resurrection || !!s.buffStat;
 
     const panel = document.getElementById('combat-actions-panel');
     if (!panel) return;
@@ -644,7 +763,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             html += `<div class="combat-cibles-label allie">💚 Alliés</div>`;
             const moiId = (window.perso?.nom || '').replace(/\s+/g, '_');
             const moiPV = window.perso?.pvActuel ?? 0, moiPVMax = window.perso?.pvMax ?? 0;
-            if (s.resurrection || moiPV < moiPVMax) {
+            if (s.resurrection || s.buffStat || moiPV < moiPVMax) {
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortCombat('${moiId}', 'joueur')">Vous-même</button>`;
                 nbCibles++;
@@ -652,9 +771,9 @@ function ouvrirCiblesSortCombat(nomSort) {
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
                 if (joueurs[id].nom === window.perso?.nom) continue;
-                if (!s.resurrection && (joueurs[id].pvActuel || 0) <= 0) continue;
+                if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel || 0) <= 0) continue;
                 if (s.resurrection && (joueurs[id].pvActuel || 0) > 0) continue;
-                if (!s.resurrection && (joueurs[id].pvActuel || 0) >= (joueurs[id].pvMax || 0)) continue;
+                if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel || 0) >= (joueurs[id].pvMax || 0)) continue;
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortCombat('${id}', 'joueur')">
                     ${joueurs[id].nom} <span class="cible-pv">PV ${joueurs[id].pvActuel}/${joueurs[id].pvMax}</span>
@@ -663,7 +782,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             }
             const compagnons = (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'compagnon' && !p.ko);
             compagnons.forEach(c => {
-                if (!s.resurrection && (c.pvActuel ?? 0) >= (c.pvMax || 0)) return;
+                if (!s.resurrection && !s.buffStat && (c.pvActuel ?? 0) >= (c.pvMax || 0)) return;
                 const nomSafe = c.nom.replace(/'/g, "\\'");
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortSurCompagnon('${c.ownerID}', ${c.compIdx}, '${nomSafe}')">
@@ -732,14 +851,37 @@ function finaliserSortCombat(cibleId, typeCible) {
             msg = `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
         }
 
-        _verifierFinCombat(ennemisMAJ);
         const ordreMAJSort = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
-        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
-            ennemis:    ennemisMAJ,
-            ordre_jeu:  ordreMAJSort,
-            tour_actuel: _prochainTourVivant(ordreMAJSort, data.tour_actuel || 0)
-        });
-        _logCombat(msg);
+
+        // ── Sort rapide ──────────────────────────────────────────
+        const _tousEnnemisKOSort = ennemisMAJ.every(e => e.pvActuel <= 0);
+        _verifierFinCombat(ennemisMAJ);
+        if (s.rapide && !_tousEnnemisKOSort) {
+            const _tourActuelSort = data.tour_actuel || 0;
+            if (window._actionsRapides.tourKey !== _tourActuelSort) {
+                window._actionsRapides = { tourKey: _tourActuelSort, max: 2, restantes: 2 };
+            }
+            window._actionsRapides.restantes = Math.max(0, window._actionsRapides.restantes - 1);
+        }
+        const _aEncoreActionsSort = s.rapide && !_tousEnnemisKOSort && window._actionsRapides.restantes > 0;
+
+        if (_aEncoreActionsSort) {
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ennemis:   ennemisMAJ,
+                ordre_jeu: ordreMAJSort
+            });
+            _logCombat(msg);
+            window.combatActif = Object.assign({}, window.combatActif, { ennemis: ennemisMAJ, ordre_jeu: ordreMAJSort });
+            _afficherEnnemis(window.combatActif);
+            _afficherPanneauActions(window.combatActif);
+        } else {
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ennemis:    ennemisMAJ,
+                ordre_jeu:  ordreMAJSort,
+                tour_actuel: _prochainTourVivant(ordreMAJSort, data.tour_actuel || 0)
+            });
+            _logCombat(msg);
+        }
 
     } else if (typeCible === 'joueur') {
         const moiId = window.userUID || '';
@@ -781,9 +923,37 @@ function finaliserSortCombat(cibleId, typeCible) {
             }
             soinMsg = `${window.perso.nom} lance ${s.nom}${critLabel} : +${soin} PV à ${estSurMoi ? window.perso.nom : 'un allié'} !`;
         }
-        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
-            .set(_prochainTourVivant(data.ordre_jeu || [], data.tour_actuel || 0));
-        _logCombat(soinMsg);
+
+        if (s.buffStat) {
+            const signe = s.buffVal > 0 ? '+' : '';
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: s.buffVal > 0 ? '✨' : '💀',
+                nom: s.nom.trim(),
+                type: s.buffVal > 0 ? 'benediction' : 'malediction',
+                stats: { [s.buffStat]: s.buffVal },
+                temporaire: true,
+                toursRestants: s.buffDuree || 3
+            });
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — ${s.buffStat} ${signe}${s.buffVal} pendant ${s.buffDuree || 3} tours !`;
+        }
+
+        // ── Rapid + avancement de tour ─────────────────────────
+        const _tourActuelJoueur = data.tour_actuel || 0;
+        if (s.rapide) {
+            if (window._actionsRapides.tourKey !== _tourActuelJoueur) {
+                window._actionsRapides = { tourKey: _tourActuelJoueur, max: 2, restantes: 2 };
+            }
+            window._actionsRapides.restantes = Math.max(0, window._actionsRapides.restantes - 1);
+        }
+        if (s.rapide && window._actionsRapides.restantes > 0) {
+            _logCombat(soinMsg);
+            _afficherPanneauActions(data);
+        } else {
+            db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+                .set(_prochainTourVivant(data.ordre_jeu || [], _tourActuelJoueur));
+            _logCombat(soinMsg);
+        }
     }
 
     _sortCombatEnCours = null;
@@ -1342,23 +1512,25 @@ function mjAttaqueMonstreJoueur(joueurID, joueurNom) {
             });
         }
 
-        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
-            .set(_prochainTourVivant(ordre, data.tour_actuel || 0));
         _logCombat(msgCourt, msgDetail);
 
-        // Vérifier défaite: tous les joueurs KO après ce coup
-        db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
-            const joueurs = snap.val() || {};
-            const tousKO = Object.values(joueurs).every(j => {
-                const pvApres = j.id === joueurID ? Math.max(0, (j.pvActuel || 0) - degats) : (j.pvActuel || 0);
-                return pvApres <= 0;
-            });
-            if (tousKO) {
-                db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
-                if (window.estMJ) {
-                    setTimeout(() => db.ref('parties/' + sessionActuelle + '/combat_actif').remove(), 4000);
+        // Lire pvActuel du joueur pour mettre à jour ordre_jeu immédiatement
+        // (le joueur n'a pas encore traité modif_stat → on calcule nous-mêmes le nouveau PV)
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + joueurID + '/pvActuel').once('value', (snapPV) => {
+            const pvAvant = snapPV.val() ?? 0;
+            const newPV = Math.max(0, pvAvant - degatsFinaux);
+            const ordreMAJ = ordre.map(p => {
+                if (p.type === 'joueur' && p.id === joueurID) {
+                    return Object.assign({}, p, { pvActuel: newPV, ko: newPV <= 0 });
                 }
-            }
+                return p;
+            });
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ordre_jeu: ordreMAJ,
+                tour_actuel: _prochainTourVivant(ordreMAJ, data.tour_actuel || 0)
+            });
+            // Vérifier défaite avec l'ordre mis à jour (KO immédiatement reflété)
+            _verifierDefaite(ordreMAJ);
         });
     }); // fin snapSurcharge
 }
@@ -1403,6 +1575,7 @@ function mjAttaqueMonstreCompagnon(instanceId, compIdx, ownerID, compNom) {
         tour_actuel: _prochainTourVivant(ordreMAJ, data.tour_actuel || 0)
     });
     _logCombat(monstre.nom + ' attaque ' + compNom + critLabel + ' : ' + degatsFinaux + ' dégâts !');
+    _verifierDefaite(ordreMAJ);
 }
 
 function mjAttaqueCompagnonEnnemi(instanceId) {
@@ -1533,6 +1706,27 @@ function _getGuerison(p) {
 }
 
 /**
+ * Décrémente les effets temporaires du joueur en début de tour.
+ * Supprime de Firebase les effets arrivés à 0 tour, avec toast de notification.
+ */
+function _decrementerEffetsTemporaires() {
+    const effets = window.perso?.effets_actifs;
+    if (!effets) return;
+    const playerID = (window.perso.nom || '').replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs');
+    Object.entries(effets).forEach(([cle, effet]) => {
+        if (!effet.temporaire) return;
+        const restants = (effet.toursRestants || 0) - 1;
+        if (restants <= 0) {
+            ref.child(cle).remove();
+            if (typeof _toast === 'function') _toast(`✨ ${effet.nom} a expiré.`, 'info');
+        } else {
+            ref.child(cle + '/toursRestants').set(restants);
+        }
+    });
+}
+
+/**
  * Roll de récupération (passer le tour).
  * 0-4 → échec critique (0 récup) | 99 → critique ×2 | sinon normal.
  * @returns {{ pv:number, ft:number, label:string }}
@@ -1628,12 +1822,18 @@ function _prochainTourVivant(ordre, from) {
     return (from + 1) % ordre.length;
 }
 
-/** Marque les ennemis KO dans l'ordre de jeu. */
+/** Marque les participants KO dans l'ordre de jeu (ennemis, joueurs, compagnons). */
 function _marquerKODansOrdre(ordre, ennemisMAJ) {
     return ordre.map(p => {
-        if (p.type !== 'ennemi') return p;
-        const e = ennemisMAJ.find(en => en.instanceId === p.instanceId);
-        return (e && e.pvActuel <= 0) ? Object.assign({}, p, { ko: true }) : p;
+        if (p.type === 'ennemi') {
+            const e = ennemisMAJ ? ennemisMAJ.find(en => en.instanceId === p.instanceId) : null;
+            return (e && e.pvActuel <= 0) ? Object.assign({}, p, { ko: true }) : p;
+        }
+        // Joueurs et compagnons : basé sur pvActuel déjà dans l'entrée ordre_jeu
+        if (p.pvActuel !== undefined && p.pvActuel <= 0) {
+            return Object.assign({}, p, { ko: true });
+        }
+        return p;
     });
 }
 
@@ -1800,23 +2000,43 @@ function lancerAttaqueMelee(instanceId) {
 
     ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degatsFinaux);
     _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
-    _verifierFinCombat(ennemisMAJ);
     const armInfo  = armEnnemi > 0 ? ` [armure -${armEnnemi}]` : '';
     const foInfo   = foMod !== 0 ? ` FO(${foMod > 0 ? '+' : ''}${foMod})` : '';
     const critCourt = critLabel.includes('ÉCHEC') ? ' ⚠ ÉCHEC CRITIQUE' : critLabel.includes('CRITIQUE') ? critLabel : '';
     const msgCourt  = `${perso.nom} attaque ${ennemisMAJ[idx].nom}${critCourt}${degatsFinaux > 0 ? ' : ' + degatsFinaux + ' dégâts !' : ' : attaque ratée !'}`;
     const msgDetail = `${perso.nom} attaque ${ennemisMAJ[idx].nom} : ${arme.label}${foInfo}${skillLabel}${sourLabel}${armInfo}${critLabel} = ${degatsFinaux} dég. (PV ennemi : ${ennemisMAJ[idx].pvActuel})`;
-    const msg = msgCourt;
 
     const ordreMAJ     = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
     const prochainTour = _prochainTourVivant(ordreMAJ, data.tour_actuel || 0);
 
-    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
-        ennemis:    ennemisMAJ,
-        ordre_jeu:  ordreMAJ,
-        tour_actuel: prochainTour
-    });
-    _logCombat(msgCourt, msgDetail);
+    // ── Actions rapides ──────────────────────────────────────────
+    const _actionsArme = _itemDefA?.actionsParTour || 1;
+    const _tourActuel  = data.tour_actuel || 0;
+    if (window._actionsRapides.tourKey !== _tourActuel) {
+        window._actionsRapides = { tourKey: _tourActuel, max: _actionsArme, restantes: _actionsArme };
+    }
+    window._actionsRapides.restantes = Math.max(0, window._actionsRapides.restantes - 1);
+    const _tousEnnemisKO = ennemisMAJ.every(e => e.pvActuel <= 0);
+    _verifierFinCombat(ennemisMAJ);
+
+    if (window._actionsRapides.restantes > 0 && !_tousEnnemisKO) {
+        // Bonus d'action : ne pas avancer le tour
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ennemis:   ennemisMAJ,
+            ordre_jeu: ordreMAJ
+        });
+        _logCombat(msgCourt, msgDetail);
+        window.combatActif = Object.assign({}, window.combatActif, { ennemis: ennemisMAJ, ordre_jeu: ordreMAJ });
+        _afficherEnnemis(window.combatActif);
+        _afficherPanneauActions(window.combatActif);
+    } else {
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ennemis:    ennemisMAJ,
+            ordre_jeu:  ordreMAJ,
+            tour_actuel: prochainTour
+        });
+        _logCombat(msgCourt, msgDetail);
+    }
 
     if (typeof autoSave === 'function') autoSave();
 }

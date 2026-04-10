@@ -22,7 +22,7 @@ const magieData = {
     "Air": {
         desc: "Ecole basée sur la manipulation de l’élément air. La plupart des sorts sont surtout défensif, mais il y a quelques sort plus ou moins offensifs.",
         sorts: [
-            { nom: "Vitalité de l'Air", niv: 1, int: 6, cout: 5, desc: "Augmente la constitution de la cible" },
+            { nom: "Vitalité de l'Air", niv: 1, int: 6, cout: 5, desc: "Augmente la constitution de la cible pendant 3 tours.", buffStat: "CN", buffVal: 3, buffDuree: 3, rapide: true },
             { nom: "Vapeurs toxiques", niv: 1, int: 9, cout: 5, degats: 8,desc: "Crée un nuage de gaz qui inflige des dégâts si la cible ne résiste pas." },
             { nom: "Rafale de vent", niv: 5, int: 12, cout: 10, degats: 15,desc: "Génère une rafale qui projette objets et créatures." },
             { nom: "Incarnation d'Air", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en air et la rend difficile à toucher." },
@@ -32,7 +32,7 @@ const magieData = {
     "Terre": { 
         desc: "Sortilèges basés sur la terre et la roche.", 
         sorts: [
-            { nom: "Force de la Terre", niv: 1, int: 6, cout: 5, desc: "Augmente la force de la cible." }, 
+            { nom: "Force de la Terre", niv: 1, int: 6, cout: 5, desc: "Augmente la force de la cible pendant 3 tours.", buffStat: "FO", buffVal: 3, buffDuree: 3, rapide: true },
             { nom: "Projectile de pierre", niv: 1, int: 9, cout: 5, degats: 8, desc: "Lance un projectile de pierre infligeant des dégâts." }, 
             { nom: "Mur de pierres", niv: 5, int: 12, cout: 10, desc: "Crée un mur de pierre bloquant le passage." }, 
             { nom: "Incarnation de Pierre", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en pierre." }, 
@@ -42,7 +42,7 @@ const magieData = {
     "Feu": { 
         desc: "Sortilèges basés sur le feu et la chaleur.", 
         sorts: [
-            { nom: "Agilité du Feu", niv: 1, int: 6, cout: 5, desc: "Augmente la dexterité de la cible." }, 
+            { nom: "Agilité du Feu", niv: 1, int: 6, cout: 5, desc: "Augmente la dextérité de la cible pendant 3 tours.", buffStat: "DX", buffVal: 3, buffDuree: 3, rapide: true },
             { nom: "Mur de feu", niv: 1, int: 9, cout: 5, desc: "Crée un mur de flammes infligeant des dégâts." }, 
             { nom: "Boule de feu", niv: 5, int: 12, cout: 10, degats: 15, desc: "Lance une boule de feu infligeant de lourds dégâts." }, 
             { nom: "Incarnation de Feu", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en feu." }, 
@@ -52,7 +52,7 @@ const magieData = {
     "Eau": { 
         desc: "Sortilèges basés sur l'eau et la glace.", 
         sorts: [
-            { nom: "Pureté de l’Eau", niv: 1, int: 6, cout: 5, desc: "Améliore le charisme de la cible." }, 
+            { nom: "Pureté de l’Eau", niv: 1, int: 6, cout: 5, desc: "Améliore le charisme de la cible pendant 3 tours.", buffStat: "CH", buffVal: 3, buffDuree: 3, rapide: true },
             { nom: "Brouillard", niv: 1, int: 9, cout: 5, desc: "Crée un brouillard qui gêne la vision." }, 
             { nom: "Fureur de glace", niv: 5, int: 12, cout: 10, degats: 15, desc: "Inflige des dégâts de glace." }, 
             { nom: "Incarnation d’Eau", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en eau." }, 
@@ -92,7 +92,7 @@ const magieData = {
     "Transformation": { 
         desc: "Modifier la structure matérielle d'une cible.", 
         sorts: [
-            { nom: "Main de fer", niv: 1, int: 6, cout: 5, desc: "Augmente la puissance physique de la cible." }, 
+            { nom: "Main de fer", niv: 1, int: 6, cout: 5, desc: "Augmente fortement la force de la cible pendant 3 tours.", buffStat: "FO", buffVal: 5, buffDuree: 3, rapide: true },
             { nom: "Faiblesse", niv: 1, int: 9, cout: 5, desc: "Diminue les caractéristiques physiques de la cible." }, 
             { nom: "Rétrécissement", niv: 5, int: 12, cout: 10, desc: "Réduit la taille de la cible." }, 
             { nom: "Pétrification", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en pierre." }, 
@@ -112,7 +112,7 @@ const magieData = {
     "Nécromancie noire": { 
         desc: "Ecole basée sur la modification de la vie, négativement. Très intéressant à bas niveau, puisque c’est ici que vous apprendrez le seul sort offensif de 1er niveau.", 
         sorts: [
-            { nom: "Blessure ", niv: 1, int: 6, cout: 3,degats: 6, desc: "diminue la vie de la cible." }, 
+            { nom: "Blessure ", niv: 1, int: 6, cout: 3, degats: 6, desc: "diminue la vie de la cible.", rapide: true },
             { nom: "Rappel d’un esprit", niv: 1, int: 9, cout: 5, desc: "Permet de parler à l’esprit d’un cadavre." }, 
             { nom: "Invocation de morts-vivants", niv: 5, int: 12, cout: 10, desc: "Invoque des morts-vivants hostiles autour de la cible." }, 
             { nom: "Création de morts-vivants", niv: 10, int: 15, cout: 15, desc: "Réanime un cadavre qui devient allié." }, 

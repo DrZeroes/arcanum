@@ -44,7 +44,7 @@ const itemsData = {
         nom: "Dague simple", desc: "Une petite lame facile à dissimuler.",
         type: "arme_melee", rarete: "3", poids: 0.5, prix: 30,
         equipable: "main_droite", stackable: false, degats: "1-4", armure: 0, vitesse: 16, portee: 1, degatsFT: 1,
-        stats: {}, prerequis: {}, lootable: true, nbUsages: null
+        stats: {}, prerequis: {}, lootable: true, nbUsages: null, actionsParTour: 2
     },
     "AM05": {
         nom: "Bâton", desc: "Un long bâton en bois robuste, souvent utilisé par les voyageurs.",
@@ -62,7 +62,7 @@ const itemsData = {
         nom: "Couteau rouillé", desc: "Plus dangereux pour le tétanos que pour la blessure.",
         type: "arme_melee", rarete: "1", poids: 0.5, prix: 10,
         equipable: "main_droite", stackable: false, degats: "1-3", armure: 0, vitesse: 14, portee: 1, degatsFT: 1,
-        stats: {}, prerequis: {}, lootable: true, nbUsages: null
+        stats: {}, prerequis: {}, lootable: true, nbUsages: null, actionsParTour: 2
     },
     "AM08": {
         nom: "Épée rouillée", desc: "Une lame qui a connu des jours meilleurs.",
@@ -74,7 +74,7 @@ const itemsData = {
         nom: "Vieille rapière", desc: "Fine et élégante, malgré les taches de rouille.",
         type: "arme_melee", rarete: "4", poids: 1.5, prix: 45,
         equipable: "main_droite", stackable: false, degats: "2-9", armure: 0, vitesse: 15, portee: 1, degatsFT: 2,
-        stats: {}, prerequis: { DX: 9 }, lootable: true, nbUsages: null
+        stats: {}, prerequis: { DX: 9 }, lootable: true, nbUsages: null, actionsParTour: 2
     },
     "AM10": {
         nom: "Hache", desc: "Une hache de bûcheron bien affûtée.",
@@ -160,7 +160,7 @@ const itemsData = {
     "AF01": {
         nom: "Revolver de qualité", desc: "Le barillet tourne avec une précision mortelle.",
         type: "arme_feu", rarete: "6", poids: 1.8, prix: 350,
-        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 15, portee: 12, degatsFT: 2,
+        equipable: "main_droite", stackable: false, degats: "5-15", armure: 0, vitesse: 15, portee: 12, degatsFT: 2, actionsParTour: 2,
         stats: { align: -10 }, prerequis: { DX: 7 }, lootable: true, nbUsages: null
     },
     "AF02": {
@@ -186,7 +186,7 @@ const itemsData = {
         nom: "Fusil à répétition", desc: "Fusil permettant de tirer plusieurs coups rapidement.",
         type: "arme_feu", rarete: "8", poids: 3.5, prix: 800,
         equipable: "deux_mains", stackable: false, degats: "8-20", armure: 0, vitesse: 18, portee: 20, degatsFT: 2,
-        stats: { align: -20 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null
+        stats: { align: -20 }, prerequis: { DX: 9 }, lootable: false, nbUsages: null, actionsParTour: 2
     },
     "AF06": {
         nom: "Revolver silencieux", desc: "Arme à feu modifiée pour réduire le bruit de la détonation.",

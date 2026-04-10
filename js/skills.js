@@ -23,7 +23,4 @@ const competencesData = {
         { id: "crochetage", nom: "Crochetage", stat: "DX", desc: "+5% de chance de réussite ; -5% de chance de casser le passe-partout par point" },
         { id: "desamorcage", nom: "Désamorçage de piège", stat: "IN", desc: "+5% de chance de désamorcer un piège par point" }
     ],
-    "Survie": [
-        { id: "purge_toxines", nom: "Purge de toxines", stat: "CN", desc: "+5% de chance de se remettre naturellement du poison par tour par point" }
-    ]
 };

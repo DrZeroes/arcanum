@@ -33,9 +33,9 @@ firebase.auth().onAuthStateChanged((user) => {
         if (typeof demarrerMoteurMulti === "function") demarrerMoteurMulti();
     } else {
         firebase.auth().signInAnonymously()
-            .catch((_) => {
+            .catch((err) => {
                 // On affiche un simple message au lieu d'une erreur bloquante
-                console.warn("⚠️ Mode Local détecté : Connexion Firebase anonyme impossible (Referer Null).");
+                console.warn("⚠️ Connexion Firebase anonyme impossible :", err.code, err.message);
                 
                 // --- SOLUTION DE SECOURS ---
                 // On génère un ID temporaire basé sur le nom du perso ou un random
@@ -138,6 +138,32 @@ function activerEcouteurMusiqueMJ() {
 }
 
 
+
+/** Écoute les bénédictions/malédictions attribuées par le MJ. */
+function activerEcouteurEffets() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs');
+    ref.off();
+    ref.on('value', (snap) => {
+        const effets = snap.val() || null;
+        const avant  = JSON.stringify(window.perso.effets_actifs || null);
+        window.perso.effets_actifs = effets;
+        if (JSON.stringify(effets) !== avant) {
+            // Notifier si un nouvel effet apparaît
+            if (effets) {
+                const noms = Object.values(effets).map(e => e.icone + ' ' + e.nom).join(', ');
+                if (typeof _toast === 'function') {
+                    const type = Object.values(effets).some(e => e.type === 'malediction') ? 'error' : 'success';
+                    _toast('Effets actifs : ' + noms, type);
+                }
+            }
+            if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+            if (typeof rafraichirFiche   === 'function') rafraichirFiche();
+            if (typeof autoSave          === 'function') autoSave();
+        }
+    });
+}
 
 function activerEcouteurCadeaux() {
 	
@@ -287,7 +313,7 @@ function tenterVolATire() {
             if (eq && itemsData[eq.id]?.stats?.bonusVol) bonusEquip += itemsData[eq.id].stats.bonusVol;
         }
     }
-    const chance = Math.min(95, dx * 5 + volPts * 4 + bonusEquip);
+    const chance = Math.min(95, dx * 3 + volPts * 4 + bonusEquip);
     const roll   = Math.floor(Math.random() * 100) + 1; // 1–100
     const succes = roll <= chance;
 
@@ -299,6 +325,16 @@ function tenterVolATire() {
     window._volATireConfig = null;
 
     if (succes) {
+        // Cas spécial : or
+        if (config.objetId === 'OR_PIECES') {
+            const qte = config.quantite || 10;
+            perso.argent = (perso.argent || 0) + qte;
+            if (typeof autoSave === 'function') autoSave();
+            if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+            if (typeof _toast === 'function') _toast(`🤏 Vol réussi ! (${roll}/${chance}%) Subtilisé : ${qte} pièces d'or !`, 'success');
+            return;
+        }
+
         let objetGagne = null;
 
         if (config.objetId && typeof itemsData !== 'undefined' && itemsData[config.objetId]) {
@@ -316,12 +352,13 @@ function tenterVolATire() {
         if (objetGagne && typeof itemsData !== 'undefined') {
             const data = itemsData[objetGagne];
             const inv  = perso.inventaire || (perso.inventaire = []);
+            const qte  = config.quantite || 1;
             // Stackable sans durabilité → empiler
             const exist = data.stackable
                 ? inv.findIndex(i => i.id === objetGagne && i.durabilite === undefined)
                 : -1;
-            if (exist !== -1) { inv[exist].quantite = (inv[exist].quantite || 1) + 1; inv[exist].qte = inv[exist].quantite; }
-            else               { inv.push({ id: objetGagne, quantite: 1, qte: 1 }); }
+            if (exist !== -1) { inv[exist].quantite = (inv[exist].quantite || 1) + qte; inv[exist].qte = inv[exist].quantite; }
+            else               { inv.push({ id: objetGagne, quantite: qte, qte: qte }); }
             if (typeof autoSave === 'function') autoSave();
             if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
             if (typeof _toast === 'function') _toast(`🤏 Vol réussi ! (${roll}/${chance}%) Subtilisé : ${data.nom} !`, 'success');
@@ -362,10 +399,10 @@ function activerEcouteurStats() {
        if (data.stat === 'PV') {
     let basePV = (window.perso.pvActuel !== undefined) ? window.perso.pvActuel : 0;
     let valeurEffective = data.valeur;
+    let esquive = false; // déclaré ici pour être accessible après le bloc damage
 
     if (data.valeur < 0) {
         let degats = -data.valeur;
-        let esquive = false;
 
         // 0. Esquive : 1% de chance par point de compétence (impossible si surchargé)
         const esquive_pts = window.perso.compInvesties?.esquive || 0;
@@ -444,13 +481,23 @@ function activerEcouteurStats() {
             if (typeof _toast === 'function') _toast(`⚡ -${data.degatsFT} FT (coup reçu)`, 'error');
         }
 
-    // Si le joueur tombe à 0 PV pendant un combat, le marquer KO dans l'ordre de jeu
+    // Mort en combat : marquer KO dans ordre_jeu
     if (window.perso.pvActuel <= 0 && window.combatActif) {
         const ordreKO = (window.combatActif.ordre_jeu || []).map(p => {
-            if (p.type === 'joueur' && p.joueurID === playerID) return Object.assign({}, p, { ko: true });
+            if (p.type === 'joueur' && p.id === playerID) return Object.assign({}, p, { ko: true, pvActuel: 0 });
             return p;
         });
         db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreKO);
+        if (typeof _toast === 'function') _toast('💀 Vous êtes mort !', 'error');
+    }
+    // Résurrection en combat : effacer le flag KO pour que le joueur puisse agir à nouveau
+    if (basePV <= 0 && window.perso.pvActuel > 0 && window.combatActif) {
+        const ordreRes = (window.combatActif.ordre_jeu || []).map(p => {
+            if (p.type === 'joueur' && p.id === playerID) return Object.assign({}, p, { ko: false, pvActuel: window.perso.pvActuel });
+            return p;
+        });
+        db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreRes);
+        if (typeof _toast === 'function') _toast('✨ Ressuscité !', 'success');
     }
 }
  else if (data.stat === 'FT') {
@@ -851,16 +898,30 @@ function activerEcouteurCompagnons() {
  * - Nœud supprimé → retour à l'accueil
  */
 function activerEcouteurCombat() {
+    console.log('🎮 [COMBAT] activerEcouteurCombat → session:', sessionActuelle);
     const ref = db.ref('parties/' + sessionActuelle + '/combat_actif');
     ref.off();
     ref.on('value', (snapshot) => {
         const data = snapshot.val();
+        console.log('🎮 [COMBAT] Firebase event → actif:', data?.actif, '| timestamp:', data?.timestamp);
         if (data && data.actif === true) {
-            const etaitEnCombat = !!window.combatActif;
+            const ancienTimestamp = window.combatActif?.timestamp || 0;
+            const nouveauCombat = !window.combatActif || (data.timestamp && data.timestamp !== ancienTimestamp);
             window.combatActif = data;
-            if (!etaitEnCombat) {
-                window._combatPremierCoupFait = false; // reset attaque sournoise
-                if (typeof ouvrirEcranCombat === 'function') ouvrirEcranCombat();
+
+            const ecranCombat = document.getElementById('ecran-combat');
+            const ecranVisible = ecranCombat && ecranCombat.style.display !== 'none';
+
+            console.log('🎮 [COMBAT] nouveauCombat:', nouveauCombat, '| ecranVisible:', ecranVisible, '| ouvrirEcranCombat défini:', typeof ouvrirEcranCombat === 'function');
+
+            if (nouveauCombat || !ecranVisible) {
+                window._combatPremierCoupFait = false;
+                window._actionsRapides = { tourKey: -1, max: 1, restantes: 0 };
+                if (typeof ouvrirEcranCombat === 'function') {
+                    ouvrirEcranCombat();
+                } else {
+                    console.error('🎮 [COMBAT] ❌ ouvrirEcranCombat introuvable !');
+                }
             } else {
                 if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
             }
@@ -1253,34 +1314,43 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
 // ==========================================
 
 function demarrerMoteurMulti() {
-    // 1. Sécurité : On ne lance rien si le perso n'est pas chargé
-    if (!window.perso || !window.perso.nom || window.perso.nom === "Nom du Personnage") {
-        console.warn("⚠️ Moteur Multi en attente : personnage non chargé.");
-        return;
-    }
+    // Attendre que Firebase auth soit résolu avant toute opération DB
+    if (!window.userUID) return;
 
     // Restaurer le statut MJ après rechargement de page
     if (sessionStorage.getItem('arcanum_estMJ') === '1') {
         window.estMJ = true;
     }
-    
+
+    // Écouteurs "globaux" : toujours enregistrés même sans perso chargé
+    // (combat, musique MJ, alertes — reçus par tous les joueurs connectés)
+    activerEcouteurCombat();
+    activerEcouteurCombatLog();
+    activerEcouteurMusiqueMJ();
+    activerEcouteurAlertesMJ();
+    activerEcouteurKick();
+
+    // Écouteurs qui nécessitent un personnage chargé
+    const persoPrep = window.perso && window.perso.nom && window.perso.nom !== "Nom du Personnage";
+    if (!persoPrep) {
+        console.warn("⚠️ Moteur Multi partiel : personnage non chargé (écouteurs combat/musique actifs).");
+        return;
+    }
+
     console.log("🌐 Initialisation du mode multijoueur complète...");
+    window._moteurMultiComplet = true; // flag pour autoSave — évite relance inutile
 
     // 2. REPLANTAGE DES ÉCOUTEURS (Les antennes)
     activerEcouteurCadeaux();
     activerEcouteurArgent();
     activerEcouteurStats();
+    activerEcouteurEffets();
     activerEcouteurDeplacementGroupe();
     activerEcouteurPartageLieux();
-    activerEcouteurAlertesMJ();
-    activerEcouteurMusiqueMJ();
     activerEcouteurCommandesMJ();
-    activerEcouteurKick();
     activerEcouteurCompagnons();
     _syncCompagnonsSummary();
     activerEcouteurVolATire();
-    activerEcouteurCombat();
-    activerEcouteurCombatLog();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT

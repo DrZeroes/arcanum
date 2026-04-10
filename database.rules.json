@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "parties": {
+      "$session": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+
+        "joueurs": {
+          "$playerID": {
+            ".validate": "newData.hasChildren(['nom'])"
+          }
+        },
+
+        "combat_actif": {
+          ".validate": "newData.val() === null || newData.hasChildren([])"
+        }
+      }
+    }
+  }
+}

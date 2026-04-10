@@ -261,13 +261,13 @@ function rafraichirListeJoueursMJ() {
 
     db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
         const joueurs = snapshot.val();
-        container.innerHTML = "";
 
-        if (!joueurs) return;
+        if (!joueurs) { container.innerHTML = ""; return; }
 
         db.ref('parties/' + sessionActuelle + '/compagnons').once('value', snapComps => {
             const tousCompagnons = snapComps.val() || {};
-            // (once suffit : on est déjà dans un on() joueurs — se re-déclenche à chaque maj joueur)
+            // Vider le container ICI (dans once) pour éviter les doublons si le on() se re-déclenche
+            container.innerHTML = "";
 
         for (let id in joueurs) {
             const j = joueurs[id];
@@ -323,6 +323,7 @@ function rafraichirListeJoueursMJ() {
                         <button onclick="mjDonnerCompagnon('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a2e1a; color:#4caf50; border:1px solid #4caf50; padding:4px; cursor:pointer; font-size:11px;">🤝 Donner Compagnon</button>
                         <button onclick="mjKickJoueur('${id}', '${j.nom}')" style="grid-column: span 2; background:#5a0000; color:#ff6b6b; border:1px solid #8b0000; padding:4px; cursor:pointer; font-size:11px;">🚫 Expulser de la session</button>
                         <button onclick="mjAutoriserVolATire('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1030; color:#b39ddb; border:1px solid #7c4dff; padding:4px; cursor:pointer; font-size:11px;">🤏 Autoriser Vol à la tire</button>
+                        <button onclick="mjGererEffets('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1008; color:#ffd700; border:1px solid #7a6000; padding:4px; cursor:pointer; font-size:11px;">✨ Bénédictions / Malédictions</button>
                     </div>
 
                     <div style="margin-top:6px; border-top:1px solid #333; padding-top:5px;">
@@ -846,6 +847,19 @@ function ajouterLigneCodexMJ(id, nom, actionFn, texteAction) {
  * Ouvre la modal de configuration du vol à la tire pour un joueur spécifique.
  * Le MJ choisit : rareté globale OU objet précis.
  */
+// Labels d'affichage par type d'item
+const _VOL_TYPE_LABELS = {
+    arme_melee:    '⚔️ Armes de mêlée',
+    arme_distance: '🏹 Armes à distance',
+    arme_feu:      '🔫 Armes à feu',
+    armure:        '🛡️ Armures',
+    consommable:   '🧪 Consommables',
+    munition:      '🔮 Munitions',
+    composant:     '🔩 Composants',
+    divers:        '📦 Divers',
+    objet_quete:   '⭐ Objets de quête',
+};
+
 function mjAutoriserVolATire(playerID, playerNom) {
     let modal = document.getElementById('modal-vol-tire');
     if (!modal) {
@@ -855,20 +869,11 @@ function mjAutoriserVolATire(playerID, playerNom) {
         document.body.appendChild(modal);
     }
 
-    // Liste des objets lootables triés par rareté
-    const itemsOptions = (typeof itemsData !== 'undefined')
-        ? Object.entries(itemsData)
-            .filter(([, d]) => d.lootable !== false)
-            .sort(([, a], [, b]) => parseInt(a.rarete) - parseInt(b.rarete))
-            .map(([id, d]) => `<option value="${id}">[R${d.rarete}] ${d.nom}</option>`)
-            .join('')
-        : '';
-
     const raretesOptions = [1,2,3,4,5,6,7,8,9,10]
         .map(r => `<option value="${r}">Rareté ${r}</option>`).join('');
 
     modal.innerHTML = `
-        <div style="background:#1a120a;border:2px solid #7c4dff;border-radius:8px;padding:24px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto;">
+        <div style="background:#1a120a;border:2px solid #7c4dff;border-radius:8px;padding:24px;max-width:460px;width:90%;max-height:85vh;overflow-y:auto;">
             <h3 style="color:#b39ddb;margin:0 0 16px;">🤏 Vol à la tire — ${playerNom}</h3>
 
             <div style="margin-bottom:14px;padding:10px;background:rgba(124,77,255,0.1);border:1px solid #5a3a9a;border-radius:6px;">
@@ -886,9 +891,24 @@ function mjAutoriserVolATire(playerID, playerNom) {
                     <input type="radio" name="vol-type" value="objet" style="accent-color:#7c4dff;">
                     <strong>Objet précis</strong>
                 </label>
-                <select id="vol-objet-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;">
-                    ${itemsOptions}
-                </select>
+                <input type="text" id="vol-objet-search" placeholder="🔍 Rechercher par nom…"
+                    oninput="_volFiltrerItems()"
+                    style="width:100%;box-sizing:border-box;background:#111;color:#eee;border:1px solid #555;padding:7px 10px;border-radius:4px;margin-bottom:8px;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="vol-cat-filtres"></div>
+                <div onclick="_volSelectionnerItem('OR_PIECES')" id="vol-or-row"
+                    style="padding:6px 10px;cursor:pointer;font-size:12px;border:1px solid #444;
+                           border-radius:4px;background:#0d0d0d;margin-bottom:6px;
+                           display:flex;align-items:center;justify-content:space-between;">
+                    <span style="color:#ffd700;font-weight:bold;">💰 Or (quantité libre)</span>
+                    <input type="number" id="vol-or-quantite" min="1" value="10"
+                        onclick="event.stopPropagation();_volSelectionnerItem('OR_PIECES')"
+                        style="width:70px;background:#111;color:#ffd700;border:1px solid #555;
+                               padding:3px 6px;border-radius:4px;text-align:right;">
+                </div>
+                <div id="vol-objet-liste"
+                    style="max-height:180px;overflow-y:auto;border:1px solid #444;border-radius:4px;background:#0d0d0d;"></div>
+                <div id="vol-objet-selectionne"
+                    style="margin-top:6px;font-size:12px;color:#b39ddb;min-height:16px;"></div>
             </div>
 
             <div style="display:flex;gap:8px;">
@@ -904,6 +924,131 @@ function mjAutoriserVolATire(playerID, playerNom) {
         </div>`;
 
     modal.style.display = 'flex';
+
+    // Init picker items
+    window._volObjetSelectionne = null;
+    window._volCatActive = null;
+    _volRenderCategories();
+    _volFiltrerItems();
+
+    // Sélectionner automatiquement le mode "objet" quand on clique sur la recherche
+    document.getElementById('vol-objet-search').addEventListener('focus', () => {
+        const radio = modal.querySelector('input[name="vol-type"][value="objet"]');
+        if (radio) radio.checked = true;
+    });
+}
+
+/** Construit les boutons de filtrage par catégorie. */
+function _volRenderCategories() {
+    const container = document.getElementById('vol-cat-filtres');
+    if (!container || typeof itemsData === 'undefined') return;
+
+    // Catégories présentes dans les items (tous sauf argent/or — géré séparément)
+    const cats = [...new Set(
+        Object.values(itemsData)
+            .filter(d => d.type !== 'argent')
+            .map(d => d.type)
+    )].sort();
+
+    container.innerHTML = cats.map(cat => {
+        const label = _VOL_TYPE_LABELS[cat] || cat;
+        return `<button onclick="_volToggleCat('${cat}')" data-cat="${cat}"
+            style="font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid #5a3a9a;
+                   background:#1a120a;color:#ccc;cursor:pointer;white-space:nowrap;">
+            ${label}
+        </button>`;
+    }).join('');
+}
+
+/** Active/désactive le filtre de catégorie. */
+function _volToggleCat(cat) {
+    window._volCatActive = (window._volCatActive === cat) ? null : cat;
+    // Mise à jour visuels boutons
+    document.querySelectorAll('#vol-cat-filtres button').forEach(btn => {
+        const actif = btn.dataset.cat === window._volCatActive;
+        btn.style.background  = actif ? '#7c4dff' : '#1a120a';
+        btn.style.color       = actif ? '#fff'    : '#ccc';
+        btn.style.borderColor = actif ? '#7c4dff' : '#5a3a9a';
+    });
+    _volFiltrerItems();
+}
+
+/** Filtre et affiche la liste d'items selon recherche + catégorie. */
+function _volFiltrerItems() {
+    const liste = document.getElementById('vol-objet-liste');
+    if (!liste || typeof itemsData === 'undefined') return;
+
+    const query = (document.getElementById('vol-objet-search')?.value || '').toLowerCase().trim();
+    const catFiltree = window._volCatActive || null;
+
+    // Grouper par type
+    const groupes = {};
+    Object.entries(itemsData).forEach(([id, d]) => {
+        if (d.type === 'argent') return; // or géré séparément
+        if (catFiltree && d.type !== catFiltree) return;
+        if (query && !d.nom.toLowerCase().includes(query)) return;
+        if (!groupes[d.type]) groupes[d.type] = [];
+        groupes[d.type].push({ id, d });
+    });
+
+    if (Object.keys(groupes).length === 0) {
+        liste.innerHTML = '<div style="color:#666;padding:8px;text-align:center;font-size:12px;">Aucun résultat</div>';
+        return;
+    }
+
+    const typeOrder = Object.keys(_VOL_TYPE_LABELS);
+    const html = Object.entries(groupes)
+        .sort(([a], [b]) => typeOrder.indexOf(a) - typeOrder.indexOf(b))
+        .map(([type, items]) => {
+            const label = _VOL_TYPE_LABELS[type] || type;
+            const lignes = items
+                .sort((a, b) => parseInt(a.d.rarete) - parseInt(b.d.rarete))
+                .map(({ id, d }) => {
+                    const selectionne = window._volObjetSelectionne === id;
+                    return `<div onclick="_volSelectionnerItem('${id}')"
+                        style="padding:5px 10px;cursor:pointer;font-size:12px;
+                               background:${selectionne ? 'rgba(124,77,255,0.3)' : 'transparent'};
+                               border-left:3px solid ${selectionne ? '#7c4dff' : 'transparent'};
+                               display:flex;justify-content:space-between;align-items:center;"
+                        onmouseover="this.style.background='rgba(124,77,255,0.15)'"
+                        onmouseout="this.style.background='${selectionne ? 'rgba(124,77,255,0.3)' : 'transparent'}'">
+                        <span style="color:#eee;">${d.nom}</span>
+                        <span style="color:#888;font-size:11px;">R${d.rarete} · ${d.prix}or</span>
+                    </div>`;
+                }).join('');
+            return `<div>
+                <div style="padding:4px 10px;font-size:11px;color:#7c4dff;background:#111;
+                            border-bottom:1px solid #333;font-weight:bold;position:sticky;top:0;">
+                    ${label}
+                </div>
+                ${lignes}
+            </div>`;
+        }).join('');
+
+    liste.innerHTML = html;
+}
+
+/** Sélectionne un item dans le picker. */
+function _volSelectionnerItem(id) {
+    window._volObjetSelectionne = id;
+    const info = document.getElementById('vol-objet-selectionne');
+    // Surbrillance ligne Or
+    const orRow = document.getElementById('vol-or-row');
+    if (orRow) orRow.style.borderColor = id === 'OR_PIECES' ? '#ffd700' : '#444';
+    if (info) {
+        if (id === 'OR_PIECES') {
+            const qte = parseInt(document.getElementById('vol-or-quantite')?.value) || 10;
+            info.textContent = `✔ Sélectionné : Or × ${qte}`;
+        } else {
+            const d = itemsData[id];
+            if (d) info.textContent = `✔ Sélectionné : ${d.nom} (R${d.rarete} · ${d.prix} or)`;
+        }
+    }
+    // Sélectionner le mode "objet"
+    const radio = document.querySelector('input[name="vol-type"][value="objet"]');
+    if (radio) radio.checked = true;
+    // Re-render pour mettre à jour la surbrillance
+    _volFiltrerItems();
 }
 
 function _mjConfirmerVolATire(playerID, playerNom) {
@@ -914,11 +1059,225 @@ function _mjConfirmerVolATire(playerID, playerNom) {
         const rarete = parseInt(document.getElementById('vol-rarete-select').value);
         config = { actif: true, rarete: rarete, objetId: null, timestamp: Date.now() };
     } else {
-        const objetId = document.getElementById('vol-objet-select').value;
-        config = { actif: true, rarete: null, objetId: objetId, timestamp: Date.now() };
+        const objetId = window._volObjetSelectionne;
+        if (!objetId) {
+            if (typeof _toast === 'function') _toast('⚠️ Sélectionne un objet dans la liste.', 'error');
+            return;
+        }
+        const quantite = objetId === 'OR_PIECES'
+            ? (parseInt(document.getElementById('vol-or-quantite')?.value) || 10)
+            : 1;
+        config = { actif: true, rarete: null, objetId: objetId, quantite: quantite, timestamp: Date.now() };
     }
 
     db.ref('parties/' + sessionActuelle + '/vol_a_la_tire/' + playerID).set(config);
     document.getElementById('modal-vol-tire').style.display = 'none';
+    window._volObjetSelectionne = null;
+    window._volCatActive = null;
     if (typeof _toast === 'function') _toast(`🤏 Vol à la tire autorisé pour ${playerNom}.`, 'success');
+}
+
+// ── Bénédictions / Malédictions ─────────────────────────────────────────────
+
+function mjGererEffets(playerID, playerNom) {
+    let modal = document.getElementById('modal-effets-mj');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-effets-mj';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
+
+    const renderModal = () => {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs').once('value', snap => {
+            const effets = snap.val() || {};
+            const listeHtml = Object.entries(effets).map(([key, e]) => {
+                const estBened = e.type === 'benediction';
+                const couleur  = estBened ? '#ffd700' : '#ce93d8';
+                const statsStr = [
+                    ...Object.entries(e.stats || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`),
+                    ...(e.pvBonus ? [`PV${e.pvBonus>0?'+'+e.pvBonus:e.pvBonus}`] : []),
+                    ...(e.ftBonus ? [`FT${e.ftBonus>0?'+'+e.ftBonus:e.ftBonus}`] : []),
+                    ...Object.entries(e.comps || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`)
+                ].join(' ');
+                return `<div style="display:flex;align-items:center;justify-content:space-between;
+                            padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:4px;margin-bottom:4px;">
+                    <span style="color:${couleur};">${e.icone || ''} <strong>${e.nom}</strong>
+                        ${statsStr ? `<span style="font-size:11px;color:#aaa;margin-left:6px;">${statsStr}</span>` : ''}
+                    </span>
+                    <button onclick="_mjSupprimerEffet('${playerID}','${key}')"
+                        style="background:#5a0000;color:#ff6b6b;border:1px solid #8b0000;
+                               padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">✕</button>
+                </div>`;
+            }).join('') || '<div style="color:#555;font-size:12px;text-align:center;padding:8px;">Aucun effet actif</div>';
+
+            const statsInputs = statsKeys.map(s =>
+                `<div style="text-align:center;">
+                    <div style="color:#aaa;font-size:11px;margin-bottom:2px;">${s}</div>
+                    <input type="number" id="effet-stat-${s}" value="0"
+                        style="width:48px;background:#111;color:#eee;border:1px solid #555;
+                               padding:4px;border-radius:4px;text-align:center;">
+                </div>`
+            ).join('');
+
+            modal.innerHTML = `
+                <div style="background:#1a120a;border:2px solid #7a6000;border-radius:10px;padding:20px;
+                             max-width:460px;width:92%;max-height:85vh;overflow-y:auto;">
+                    <h3 style="color:#ffd700;margin:0 0 14px;">✨ Effets — ${playerNom}</h3>
+
+                    <div style="margin-bottom:16px;">${listeHtml}</div>
+
+                    <div style="border-top:1px solid #333;padding-top:14px;">
+                        <div style="font-size:12px;color:#aaa;margin-bottom:8px;text-transform:uppercase;">Ajouter un effet</div>
+
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
+                            <input type="text" id="effet-icone" placeholder="🌟" maxlength="2"
+                                style="width:44px;background:#111;color:#eee;border:1px solid #555;
+                                       padding:6px;border-radius:4px;text-align:center;font-size:16px;">
+                            <input type="text" id="effet-nom" placeholder="Nom de l'effet"
+                                style="flex:1;background:#111;color:#eee;border:1px solid #555;
+                                       padding:6px;border-radius:4px;">
+                        </div>
+
+                        <div style="display:flex;gap:8px;margin-bottom:10px;">
+                            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+                                padding:7px;border-radius:4px;cursor:pointer;border:1px solid #7a6000;background:rgba(255,215,0,0.08);">
+                                <input type="radio" name="effet-type" value="benediction" checked style="accent-color:#ffd700;">
+                                <span style="color:#ffd700;font-size:13px;">✨ Bénédiction</span>
+                            </label>
+                            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+                                padding:7px;border-radius:4px;cursor:pointer;border:1px solid #6a1b8a;background:rgba(156,39,176,0.1);">
+                                <input type="radio" name="effet-type" value="malediction" style="accent-color:#ce93d8;">
+                                <span style="color:#ce93d8;font-size:13px;">💀 Malédiction</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom:8px;">
+                            <div style="color:#aaa;font-size:11px;margin-bottom:6px;text-transform:uppercase;">Stats</div>
+                            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+                                ${statsInputs}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:8px;">
+                            <div style="color:#aaa;font-size:11px;margin-bottom:6px;text-transform:uppercase;">Ressources</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                                <div style="text-align:center;">
+                                    <div style="color:#4caf50;font-size:11px;margin-bottom:2px;">❤ PV max</div>
+                                    <input type="number" id="effet-stat-pv" value="0"
+                                        style="width:100%;background:#111;color:#eee;border:1px solid #555;
+                                               padding:4px;border-radius:4px;text-align:center;">
+                                </div>
+                                <div style="text-align:center;">
+                                    <div style="color:#2196f3;font-size:11px;margin-bottom:2px;">⚡ FT max</div>
+                                    <input type="number" id="effet-stat-ft" value="0"
+                                        style="width:100%;background:#111;color:#eee;border:1px solid #555;
+                                               padding:4px;border-radius:4px;text-align:center;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <details style="margin-bottom:10px;">
+                            <summary style="color:#aaa;font-size:11px;text-transform:uppercase;cursor:pointer;padding:4px 0;">
+                                Compétences (cliquer pour déplier)
+                            </summary>
+                            <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;" id="effet-comps-grid">
+                                ${_mjEffetCompsInputs()}
+                            </div>
+                        </details>
+
+                        <div style="display:flex;gap:6px;margin-bottom:6px;">
+                            <button onclick="_mjConfirmerEffet('${playerID}', '${playerNom}', false)"
+                                style="flex:1;background:#7a6000;color:#ffd700;border:none;
+                                       padding:9px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                                ✅ Appliquer
+                            </button>
+                            <button onclick="_mjConfirmerEffet('${playerID}', '${playerNom}', true)"
+                                style="flex:1;background:#3a3000;color:#ffd700;border:1px solid #7a6000;
+                                       padding:9px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                                👥 Appliquer à tous
+                            </button>
+                        </div>
+                        <button onclick="document.getElementById('modal-effets-mj').style.display='none'"
+                            style="width:100%;background:#222;color:#888;border:1px solid #444;
+                                   padding:7px;border-radius:4px;cursor:pointer;">
+                            Fermer
+                        </button>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+        });
+    };
+
+    window._mjRenderEffetsModal = renderModal;
+    renderModal();
+}
+
+/** Génère les inputs compétences pour le modal d'effet. */
+function _mjEffetCompsInputs() {
+    if (typeof competencesData === 'undefined') return '';
+    return Object.values(competencesData).flat().map(c =>
+        `<div style="display:flex;align-items:center;justify-content:space-between;
+                     background:rgba(255,255,255,0.03);border-radius:3px;padding:3px 6px;">
+            <span style="color:#ccc;font-size:11px;">${c.nom}</span>
+            <input type="number" id="effet-comp-${c.id}" value="0"
+                style="width:44px;background:#111;color:#eee;border:1px solid #444;
+                       padding:2px 4px;border-radius:3px;text-align:center;font-size:11px;">
+        </div>`
+    ).join('');
+}
+
+function _mjConfirmerEffet(playerID, playerNom, tousLesJoueurs = false) {
+    const nom = document.getElementById('effet-nom')?.value.trim();
+    if (!nom) { if (typeof _toast === 'function') _toast('⚠️ Donne un nom à l\'effet.', 'error'); return; }
+
+    const icone = document.getElementById('effet-icone')?.value.trim() || '';
+    const type  = document.querySelector('input[name="effet-type"]:checked')?.value || 'benediction';
+
+    const stats = {};
+    ['FO','IN','CN','DX','CH'].forEach(s => {
+        const v = parseInt(document.getElementById('effet-stat-' + s)?.value) || 0;
+        if (v !== 0) stats[s] = v;
+    });
+
+    const pvBonus = parseInt(document.getElementById('effet-stat-pv')?.value) || 0;
+    const ftBonus = parseInt(document.getElementById('effet-stat-ft')?.value) || 0;
+
+    const comps = {};
+    if (typeof competencesData !== 'undefined') {
+        Object.values(competencesData).flat().forEach(c => {
+            const v = parseInt(document.getElementById('effet-comp-' + c.id)?.value) || 0;
+            if (v !== 0) comps[c.id] = v;
+        });
+    }
+
+    const effet = { nom, icone, type, stats, pvBonus, ftBonus, comps, timestamp: Date.now() };
+
+    if (tousLesJoueurs) {
+        db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
+            const joueurs = snap.val() || {};
+            const promises = Object.keys(joueurs)
+                .filter(id => !joueurs[id].estMJ)
+                .map(id => db.ref('parties/' + sessionActuelle + '/joueurs/' + id + '/effets_actifs').push(effet));
+            Promise.all(promises).then(() => {
+                if (typeof _toast === 'function') _toast(`✨ "${nom}" appliqué à tous les joueurs.`, 'success');
+                if (window._mjRenderEffetsModal) window._mjRenderEffetsModal();
+            });
+        });
+    } else {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs').push(effet)
+            .then(() => {
+                if (typeof _toast === 'function') _toast(`✨ Effet "${nom}" appliqué à ${playerNom}.`, 'success');
+                if (window._mjRenderEffetsModal) window._mjRenderEffetsModal();
+            });
+    }
+}
+
+function _mjSupprimerEffet(playerID, effectKey) {
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs/' + effectKey).remove()
+        .then(() => {
+            if (window._mjRenderEffetsModal) window._mjRenderEffetsModal();
+        });
 }

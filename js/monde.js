@@ -249,8 +249,8 @@ const personnagesNPC = {
     },
 
     "gar": {
-        nom: "Gar", race: "Demi-Ogre", sexe: "M", niveau: 4,
-        antecedent: "Demi-Ogre simple d'esprit, loyal comme un roc et fort comme un bœuf.",
+        nom: "Gar", race: "Humain", sexe: "M", niveau: 4,
+        antecedent: "Humain se faisant passer pour un Demi-Orque simple d'esprit, loyal comme un roc et fort comme un bœuf.",
         statsBase:    { FO:12, IN:4, CN:8, DX:8, CH:7 },
         statsInvesties:{ FO:4, IN:0, CN:2, DX:0, CH:0 },
         // Totaux : FO:16 IN:4 CN:10 DX:8 CH:7 — pvMax:36 ftMax:24

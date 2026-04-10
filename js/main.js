@@ -4,6 +4,24 @@
 window.perso = window.perso || {};
 
 /**
+ * Retourne la somme des bonus issus des effets actifs (bénédictions/malédictions).
+ * @param {object} perso
+ * @param {string} key  stat: 'FO'|'IN'|'CN'|'DX'|'CH'
+ *                      ressource: 'pv'|'ft'
+ *                      compétence: 'melee'|'arc'|... (id de compétence)
+ */
+function _bonusEffets(perso, key) {
+    const effets = perso?.effets_actifs;
+    if (!effets) return 0;
+    return Object.values(effets).reduce((sum, e) => {
+        if (key === 'pv') return sum + (e.pvBonus || 0);
+        if (key === 'ft') return sum + (e.ftBonus || 0);
+        if (e.stats?.[key] !== undefined) return sum + (e.stats[key] || 0);
+        return sum + (e.comps?.[key] || 0);
+    }, 0);
+}
+
+/**
  * Remplace alert() partout dans le jeu.
  * type: 'success' | 'error' | 'gold' | '' (défaut)
  */
@@ -573,6 +591,54 @@ function ouvrirAide() {
     if (ecranAide) ecranAide.style.display = 'block';
 }
 
+function ouvrirPatchNotes() {
+    const modal = document.getElementById('modal-patchnotes');
+    const contenu = document.getElementById('patchnotes-contenu');
+    if (!modal || !contenu) return;
+
+    contenu.innerHTML = `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#7c4dff;margin:0 0 10px;font-size:1em;">🔮 En développement</h3>
+            <ul style="margin:0;padding-left:18px;color:#ccc;">
+                <li><strong style="color:#b39ddb;">C — Système de Quêtes :</strong> journal joueur, validation MJ, distribution XP + or</li>
+                <li><strong style="color:#b39ddb;">D — Exploration de Donjon :</strong> déplacement sur carte, portes, pièges, coffres, rencontres</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.6 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Bénédictions, armes rapides, magie temporaire</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#ffd700;">✨ Bénédictions & Malédictions</strong> — le MJ attribue des effets (stats, PV/FT, compétences) à un ou tous les joueurs ; badges colorés sur l'accueil et la fiche</li>
+                <li><strong style="color:#f0b429;">⚡ Armes & sorts rapides</strong> — dague, couteau, rapière, revolver, fusil à répétition et le sort Blessure permettent d'attaquer deux fois par tour</li>
+                <li><strong style="color:#80cbc4;">✨ Magie temporaire</strong> — sorts de stat (Force de la Terre, Agilité du Feu, Vitalité de l'Air, Pureté de l'Eau, Main de fer) appliquent un buff 3 tours, rapides et XP +2</li>
+                <li>Vol à la tire : recherche, catégories, objets de quête, or libre ; formule DX×3 + comp×4</li>
+                <li>Sort bloqué : message précis (niveau requis / intelligence requise)</li>
+                <li>Fiche : stats capées à 0 pour les malédictions ; charge max = 5 + FO×2</li>
+                <li>Compétence "Purge de toxines" supprimée ; résistance poison = CN/2</li>
+                <li>Firebase sécurisé + correction auth race condition</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.5 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Poison, combat, multijoueur</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li>Poison : guérison avant dégâts, 15% PV max/tour</li>
+                <li>Mort en combat : résurrection requise ; défaite auto si tous KO</li>
+                <li>Correction affichage PV morts, soins MJ, doublons cartes, écran combat</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.4 — Mars 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Compagnons, combat phase 2</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li>Système compagnons : stats, sorts, combat</li>
+                <li>Ordre de jeu DX, sorts/consommables en combat, critiques, éléments</li>
+            </ul>
+        </div>`;
+
+    modal.style.display = 'flex';
+}
+
 function appliquerFondActuel() {
     if (!window.perso) return;
     if (window.perso.estMort) {
@@ -613,8 +679,9 @@ function _appliquerPoison() {
     const resPoison = window.perso.bonusInnes?.resPoison || 0;
 
     // 1. Tentative de guérison naturelle AVANT le tic de dégâts
-    const purgeSkill = (window.perso.compInvesties?.purge_toxines || 0);
-    const chanceBase = Math.max(5, purgeSkill); // min 5% même sans compétence
+    // Chance de base = CN / 2 (min 5%) — la stat Toxines dérivée reflète cette résistance
+    const cnPoison  = (window.perso.statsBase?.CN || 0) + (window.perso.statsInvesties?.CN || 0);
+    const chanceBase = Math.max(5, Math.floor(cnPoison / 2));
     const chanceActuelle = window.perso.poison.chanceGuerison || chanceBase;
     if (Math.floor(Math.random() * 100) < chanceActuelle) {
         window.perso.poison = null;
@@ -672,12 +739,11 @@ if (statsBox && window.perso) {
     statsBox.style.display = 'block';
     
     // 1. Calcul des maximums réels
-    const maxPV = (window.perso.statsBase.FO * 2) + (window.perso.statsBase.IN)
-        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
-        + (window.perso.boostPV || 0);
-    const maxFT = (window.perso.statsBase.CN * 2) + (window.perso.statsBase.IN)
-        + ((window.perso.statsInvesties?.CN || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
-        + (window.perso.boostFT || 0);
+    const foTotal = (window.perso.statsBase.FO || 0) + (window.perso.statsInvesties?.FO || 0) + _bonusEffets(window.perso, 'FO');
+    const inTotal = (window.perso.statsBase.IN || 0) + (window.perso.statsInvesties?.IN || 0) + _bonusEffets(window.perso, 'IN');
+    const cnTotal = (window.perso.statsBase.CN || 0) + (window.perso.statsInvesties?.CN || 0) + _bonusEffets(window.perso, 'CN');
+    const maxPV = (foTotal * 2) + inTotal + (window.perso.boostPV || 0) + _bonusEffets(window.perso, 'pv');
+    const maxFT = (cnTotal * 2) + inTotal + (window.perso.boostFT || 0) + _bonusEffets(window.perso, 'ft');
 
     // 2. Récupération des valeurs actuelles SANS valeur par défaut automatique
     const pvReels = window.perso.pvActuel;
@@ -706,9 +772,37 @@ if (statsBox && window.perso) {
             ${xpLedsHtml}
         `;
     }
+    _afficherEffetsAccueil();
 }
 
+// Affiche les badges bénédictions/malédictions sur l'écran d'accueil
+function _afficherEffetsAccueil() {
+    const zone = document.getElementById('zone-effets-actifs');
+    if (!zone || !window.perso) return;
+    const effets = window.perso.effets_actifs;
+    if (!effets || Object.keys(effets).length === 0) { zone.innerHTML = ''; return; }
 
+    const badges = Object.entries(effets).map(([, e]) => {
+        const estBenediction = e.type === 'benediction';
+        const couleur  = estBenediction ? '#ffd700' : '#9c27b0';
+        const bg       = estBenediction ? 'rgba(255,215,0,0.12)' : 'rgba(156,39,176,0.15)';
+        const bordure  = estBenediction ? '#7a6000' : '#6a1b8a';
+        const statsStr = [
+            ...Object.entries(e.stats || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`),
+            ...(e.pvBonus ? [`PV${e.pvBonus>0?'+'+e.pvBonus:e.pvBonus}`] : []),
+            ...(e.ftBonus ? [`FT${e.ftBonus>0?'+'+e.ftBonus:e.ftBonus}`] : []),
+            ...Object.entries(e.comps || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`)
+        ].join(' ');
+        return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};
+                    border:1px solid ${bordure};border-radius:12px;padding:3px 10px;
+                    font-size:12px;color:${couleur};"
+                    title="${e.nom}${statsStr ? ' (' + statsStr + ')' : ''}">
+            ${e.icone || (estBenediction ? '✨' : '💀')} ${e.nom}
+            ${statsStr ? `<span style="font-size:10px;opacity:0.8;">${statsStr}</span>` : ''}
+        </span>`;
+    }).join('');
+    zone.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">${badges}</div>`;
+}
 
         if (typeof synchroniserJoueur === "function") synchroniserJoueur();
         if (typeof activerRadarGroupeAccueil === "function") activerRadarGroupeAccueil();
@@ -977,6 +1071,11 @@ function autoSave() {
     _autoSaveTimer = setTimeout(() => {
         if (window.perso && window.perso.nom && window.perso.nom !== "Nom du Personnage") {
             localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
+            // Relancer le moteur multi complet si le perso vient juste d'être prêt
+            // (cas d'un nouveau joueur en navigation privée sans localStorage initial)
+            if (!window._moteurMultiComplet && typeof demarrerMoteurMulti === 'function') {
+                demarrerMoteurMulti();
+            }
         }
         if (typeof synchroniserJoueur === "function") synchroniserJoueur();
     }, 300);

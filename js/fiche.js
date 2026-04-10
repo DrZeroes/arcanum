@@ -122,12 +122,13 @@ photoContainer.innerHTML = `
     let finalStats = {};
     const statsKeys = ['FO', 'IN', 'CN', 'DX', 'CH'];
     statsKeys.forEach(s => {
-        let total = (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0);
-        finalStats[s] = total; 
+        const bonusE = (typeof _bonusEffets === 'function') ? _bonusEffets(perso, s) : 0;
+        let total = Math.max(0, (perso.statsBase[s] || 0) + (perso.statsInvesties[s] || 0) + bonusE);
+        finalStats[s] = total;
         let elVal = document.getElementById('fiche-val-' + s);
         if(elVal) {
             elVal.innerText = total;
-            elVal.style.color = (perso.statsInvesties[s] > 0) ? "#4caf50" : "#fff";
+            elVal.style.color = bonusE > 0 ? '#ffd700' : bonusE < 0 ? '#e040fb' : '#fff';
             let btnMoins = document.getElementById('btn-moins-' + s); 
             if (btnMoins) btnMoins.style.visibility = (investissementsTemporaires.stats[s] > 0) ? "visible" : "hidden";
         }
@@ -149,9 +150,9 @@ photoContainer.innerHTML = `
     }
 
     // 6. VITALITÉ (PV / FATIGUE)
-    let statFO = finalStats.FO || 8;
-    let statCN = finalStats.CN || 8;
-    let statIN = finalStats.IN || 8;
+    let statFO = finalStats.FO ?? 8;
+    let statCN = finalStats.CN ?? 8;
+    let statIN = finalStats.IN ?? 8;
 
     let pvTotal = (statFO * 2) + statIN + (perso.boostPV || 0);
     let ftTotal = (statCN * 2) + statIN + (perso.boostFT || 0) + bonusFT;
@@ -187,11 +188,11 @@ photoContainer.innerHTML = `
     setRes('res-elec', b.resElec, 0);
 
     // 8. CALCULS DÉRIVÉS
-    let statDX = finalStats.DX || 8;
-    let statCH = finalStats.CH || 8;
+    let statDX = finalStats.DX ?? 8;
+    let statCH = finalStats.CH ?? 8;
 
     let poidsActuel = (typeof updateInventaireUI === 'function') ? updateInventaireUI() : 0;
-    let chargeMax = (statFO * 2);
+    let chargeMax = 5 + (statFO * 2);
     let elCharge = document.getElementById('der-charge');
     if (elCharge) {
         elCharge.innerText = poidsActuel.toFixed(1) + " / " + chargeMax + " kg";
@@ -253,14 +254,14 @@ photoContainer.innerHTML = `
                     }
                 }
 
-                let totalFinal = investi + bonusEquip;
+                const bonusE    = (typeof _bonusEffets === 'function') ? _bonusEffets(perso, id) : 0;
+                let totalFinal  = investi + bonusEquip + bonusE;
                 // ----------------------------------------------
 
                 let el = document.getElementById('fiche-val-' + id);
                 if (el) {
                     el.innerText = totalFinal;
-                    // On met en vert si il y a un bonus d'équipement
-                    el.style.color = (bonusEquip > 0) ? "#4caf50" : "#fff";
+                    el.style.color = bonusE > 0 ? '#ffd700' : bonusE < 0 ? '#e040fb' : (bonusEquip > 0) ? "#4caf50" : "#fff";
                 }
                 
                 let btnMoins = document.getElementById('btn-moins-' + id);
@@ -614,9 +615,15 @@ function modMagie(e, v) {
         if (perso.pointsDispo <= 0 || act >= 5) return;
         let s = magieData[e].sorts[act];
         let intel = (perso.statsBase.IN || 8) + (perso.statsInvesties.IN || 0);
-        if (perso.niveau < s.niv || intel < s.int) { 
-            alert("Niveau ou Intelligence insuffisante pour ce sort !"); 
-            return; 
+        if (perso.niveau < s.niv || intel < s.int) {
+            const raison = perso.niveau < s.niv && intel < s.int
+                ? `Niveau insuffisant (requis : ${s.niv}) et Intelligence insuffisante (requise : ${s.int})`
+                : perso.niveau < s.niv
+                    ? `Niveau insuffisant — requis : ${s.niv} (actuel : ${perso.niveau})`
+                    : `Intelligence insuffisante — requise : ${s.int} (actuelle : ${intel})`;
+            if (typeof _toast === 'function') _toast('❌ ' + raison, 'error');
+            else alert(raison);
+            return;
         }
         perso.magieInvesties[e] = act + 1; 
         investissementsTemporaires.magie[e] += 1; // ON AJOUTE AU PANIER

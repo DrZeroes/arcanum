@@ -45,13 +45,3 @@
 - Le piège se déclenche à l'ouverture (avant le loot ou le passage)
 - Types disponibles : poison, élec, feu, normal
 
-### Bénédictions & Malédictions (MJ → Joueur)
-- Le MJ peut attribuer une bénédiction/malédiction à un joueur :
-  - Bonus/malus de stats (FO, DX, IN, CN, CH, AL)
-  - Bonus/malus de compétences
-  - Octroi temporaire de sorts
-  - Effets visuels distincts (bénédiction = doré, malédiction = violet/noir)
-- Interface MJ : créer, voir, supprimer les effets actifs sur chaque joueur
-- Interface Joueur : voir ses bénédictions/malédictions actives (icône + description)
-- Persistance Firebase : `parties/{session}/joueurs/{id}/effets_actifs`
-

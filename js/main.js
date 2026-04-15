@@ -592,27 +592,73 @@ function ouvrirAide() {
     if (ecranAide) ecranAide.style.display = 'block';
 }
 
-function ouvrirPatchNotes() {
+function ouvrirPatchNotes(onglet) {
     const modal = document.getElementById('modal-patchnotes');
     const contenu = document.getElementById('patchnotes-contenu');
     if (!modal || !contenu) return;
 
+    onglet = onglet || 'patch';
+
+    // Surligner l'onglet actif
+    ['patch', 'todo'].forEach(id => {
+        const btn = document.getElementById('pn-tab-' + id);
+        if (!btn) return;
+        btn.style.color = id === onglet ? '#d4af37' : '#666';
+        btn.style.borderBottomColor = id === onglet ? '#d4af37' : 'transparent';
+        btn.style.fontWeight = id === onglet ? 'bold' : 'normal';
+    });
+
+    if (onglet === 'todo') {
+        contenu.innerHTML = `
+            <div style="margin-bottom:16px;">
+                <h3 style="color:#4caf50;margin:0 0 8px;font-size:0.95em;">✅ Terminé</h3>
+                <ul style="margin:0;padding-left:18px;color:#666;font-size:0.88em;line-height:1.7;">
+                    <li>Magie temporaire (buffs 3 tours)</li>
+                    <li>Bénédictions & Malédictions (MJ → joueur)</li>
+                    <li>Système de Quêtes complet</li>
+                    <li>Exploration de Donjon (grille, brouillard, événements)</li>
+                    <li>Coffres : persistance multi-joueurs, clavier ZQSD/flèches</li>
+                    <li>Quêtes : journal 4 onglets, tri statut/date, couleurs complètes</li>
+                    <li>Poison : bypass armure, ne peut pas tuer (surplus → FT)</li>
+                    <li>Level up : soin complet PV + FT</li>
+                    <li>Don d'or via modal (même UI que don d'objet)</li>
+                </ul>
+            </div>
+            <div>
+                <h3 style="color:#f0b429;margin:0 0 8px;font-size:0.95em;">🔜 À faire</h3>
+                <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.88em;line-height:1.7;">
+                    <li>Pièges sur coffres/portes (déclencher à l'ouverture, types poison/élec/feu)</li>
+                    <li>Bénédictions étendues (nouvelles catégories d'effets)</li>
+                </ul>
+            </div>`;
+        modal.style.display = 'flex';
+        return;
+    }
+
     contenu.innerHTML = `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.7 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon (améliorations), quêtes, poison, level up, inventaire</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#4caf50;">📜 Journal</strong> — 4 onglets (Quêtes · Bénédictions · Antécédent · Stats) ; XP/or cachés joueur ; couleurs complètes (vert/rouge) ; tri par statut ou date ↑↓</li>
+                <li><strong style="color:#9c7fd4;">🗺 Donjon</strong> — clavier ZQSD + flèches ; coffres persistants (📭 uniquement si tout pris) ; bouton ré-interaction sur place ; crocheter/frapper coûte le tour ; items/sorts bloqués hors tour</li>
+                <li><strong style="color:#9c7fd4;">🗺 Donjon</strong> — rencontre met le jeu en pause (bandeau rouge joueur) jusqu'à l'action du MJ</li>
+                <li><strong style="color:#ff8080;">☠ Poison</strong> — bypass armure ; ne peut pas tuer (surplus sur FT) ; log de combat</li>
+                <li>Level up : soin complet PV + FT</li>
+                <li>Don d'or via modal joueur (sélection par bouton + champ montant)</li>
+                <li>Inventaire équipé : durabilité affichée une seule fois (plus de doublon)</li>
+            </ul>
+        </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.6 — Avril 2026</h3>
             <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon, quêtes, bénédictions, armes rapides, magie temporaire</p>
             <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#9c7fd4;">🗺 Système de Donjon</strong> — MJ crée la grille (sol/mur, événements) et la lance ; joueurs se déplacent tour par tour avec brouillard de guerre ; pièges, coffres, découvertes, rencontres ; journal temps réel</li>
+                <li><strong style="color:#9c7fd4;">🗺 Système de Donjon</strong> — MJ crée la grille et la lance ; joueurs se déplacent tour par tour avec brouillard de guerre ; pièges, coffres, découvertes, rencontres ; journal temps réel</li>
                 <li><strong style="color:#4caf50;">📜 Système de Quêtes</strong> — MJ : créer/valider/échouer depuis le Codex ; joueur : journal avec statuts colorés ; récompenses XP + or distribuées automatiquement</li>
-                <li><strong style="color:#ffd700;">✨ Bénédictions & Malédictions</strong> — le MJ attribue des effets (stats, PV/FT, compétences) à un ou tous les joueurs ; badges colorés sur l'accueil et la fiche</li>
-                <li><strong style="color:#f0b429;">⚡ Armes & sorts rapides</strong> — dague, couteau, rapière, revolver, fusil à répétition et le sort Blessure permettent d'attaquer deux fois par tour</li>
-                <li><strong style="color:#80cbc4;">✨ Magie temporaire</strong> — sorts de stat (Force de la Terre, Agilité du Feu, Vitalité de l'Air, Pureté de l'Eau, Main de fer) appliquent un buff 3 tours, rapides et XP +2</li>
-                <li>Fiche magie : sorts sans effet mécanique marqués <em>*</em> dans la liste d'apprentissage</li>
-                <li>Quêtes : protection contre le doublon (impossible de donner deux fois la même quête en cours)</li>
-                <li>Vol à la tire : recherche, catégories, objets de quête, or libre ; formule DX×3 + comp×4</li>
-                <li>Sort bloqué : message précis (niveau requis / intelligence requise)</li>
-                <li>Fiche : stats capées à 0 pour les malédictions ; charge max = 5 + FO×2</li>
-                <li>Compétence "Purge de toxines" supprimée ; résistance poison = CN/2</li>
+                <li><strong style="color:#ffd700;">✨ Bénédictions & Malédictions</strong> — le MJ attribue des effets (stats, PV/FT, compétences) ; badges colorés sur l'accueil et la fiche</li>
+                <li><strong style="color:#f0b429;">⚡ Armes & sorts rapides</strong> — dague, couteau, rapière, revolver, fusil, sort Blessure : attaque deux fois par tour</li>
+                <li><strong style="color:#80cbc4;">✨ Magie temporaire</strong> — sorts de stat, buff 3 tours, rapides, XP +2</li>
+                <li>Vol à la tire : recherche, catégories, or libre ; formule DX×3 + comp×4</li>
                 <li>Firebase sécurisé + correction auth race condition</li>
             </ul>
         </div>
@@ -622,7 +668,7 @@ function ouvrirPatchNotes() {
             <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
                 <li>Poison : guérison avant dégâts, 15% PV max/tour</li>
                 <li>Mort en combat : résurrection requise ; défaite auto si tous KO</li>
-                <li>Correction affichage PV morts, soins MJ, doublons cartes, écran combat</li>
+                <li>Corrections multijoueur (PV morts, soins MJ, doublons cartes)</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;">
@@ -885,8 +931,26 @@ function _appliquerPoison() {
     // 2. Dégâts de poison : 15% des PV max, réduits par résistance
     const degatsBase = Math.ceil(maxPV * 0.15);
     const degats = Math.max(1, Math.round(degatsBase * (1 - resPoison / 100)));
-    window.perso.pvActuel = Math.max(0, (window.perso.pvActuel || 0) - degats);
-    if (typeof _toast === 'function') _toast(`☠ Poison : −${degats} PV (chance guérison : ${Math.min(100, chanceActuelle + chanceBase)}%)`, 'error');
+
+    const pvAvant = window.perso.pvActuel || 0;
+    let msgPoison;
+
+    if (pvAvant - degats <= 0) {
+        // Le poison ne peut pas tuer : on vide les PV au minimum 1, le surplus passe en FT
+        const pvAbsorbables = pvAvant - 1; // PV qu'on peut enlever sans tuer
+        const surplus = degats - pvAbsorbables;
+        window.perso.pvActuel = 1;
+        window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - surplus);
+        msgPoison = `☠ Poison : −${pvAbsorbables} PV, −${surplus} FT (trop faible pour mourir du poison !)`;
+        if (typeof _toast === 'function') _toast(msgPoison, 'error');
+    } else {
+        window.perso.pvActuel = pvAvant - degats;
+        msgPoison = `☠ Poison : −${degats} PV (chance guérison : ${Math.min(100, chanceActuelle + chanceBase)}%)`;
+        if (typeof _toast === 'function') _toast(msgPoison, 'error');
+    }
+
+    // Log dans le combat si actif
+    if (typeof _logCombat === 'function') _logCombat(`☠ ${window.perso.nom} : ${msgPoison}`);
 
     if (typeof autoSave === 'function') autoSave();
     rafraichirAccueil();

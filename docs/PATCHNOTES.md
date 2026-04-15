@@ -2,6 +2,35 @@
 
 ---
 
+## v0.7 — Avril 2026
+
+### Système de Quêtes (améliorations)
+- Journal de quêtes transformé en **Journal à 4 onglets** : Quêtes · Bénédictions · Antécédent · Statistiques
+- Onglet Quêtes : XP et or des récompenses masqués côté joueur
+- Affichage couleur complet selon statut : texte entièrement vert (validée) ou rouge barré (échouée)
+- Tri par statut (en cours → validée → échouée) ou par date de réception, ascendant/descendant (▲/▼)
+- Onglet Statistiques : ennemis tués, PV perdus, or cumulé, sorts lancés, potions utilisées, morts, cases parcourues
+
+### Système de Donjon (améliorations)
+- **Clavier ZQSD + flèches directionnelles** pour se déplacer dans le donjon
+- **Coffres persistants** : ouvrir et quitter sans prendre ne fait plus disparaître le coffre pour les autres joueurs ; icône 📭 uniquement si tous les slots ET l'or sont pris
+- **Bouton "Ouvrir le coffre / Interagir avec la porte"** disponible quand on est déjà sur la case, pour retenter sans se déplacer
+- Crocheter ou frapper un coffre/porte consomme maintenant le tour
+- Utiliser un item ou un sort hors combat est bloqué si ce n'est pas son tour
+- **Rencontre ennemie** : met automatiquement le donjon en **pause** dès le déclenchement, bandeau rouge affiché côté joueur, la pause est levée quand le MJ lance le combat ou ignore la rencontre
+- **Poison donjon** : bypass de l'armure physique (c'est un poison interne), respect de la résistance `resPoison` uniquement
+- **Le poison ne peut pas tuer** : si les dégâts amèneraient à ≤ 0 PV, le joueur reste à 1 PV et le surplus est déduit de la FT
+- Log de donjon affiche les dégâts de poison avec détail PV/FT
+- Log de combat mis à jour lors d'un tick de poison en combat
+
+### Level Up
+- Soin complet des PV et FT au passage de niveau
+
+### Inventaire / Or
+- Don d'or via le même modal que le don d'objet (sélection du joueur par bouton + champ montant) — plus de `prompt()`
+
+---
+
 ## v0.6 — Avril 2026
 
 ### Système de Donjon (nouveau)

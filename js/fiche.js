@@ -26,6 +26,17 @@ function levelUp() {
     // +2 PV max et +2 FT max à chaque niveau
     perso.boostPV = (perso.boostPV || 0) + 2;
     perso.boostFT = (perso.boostFT || 0) + 2;
+
+    // Soin complet au level up
+    const pvMax = (perso.statsBase.FO * 2) + (perso.statsBase.IN)
+        + ((perso.statsInvesties?.FO || 0) * 2) + (perso.statsInvesties?.IN || 0)
+        + (perso.boostPV || 0);
+    const ftMax = (perso.statsBase.CN * 2) + (perso.statsBase.IN)
+        + ((perso.statsInvesties?.CN || 0) * 2) + (perso.statsInvesties?.IN || 0)
+        + (perso.boostFT || 0);
+    perso.pvActuel = pvMax;
+    perso.ftActuel = ftMax;
+
     updateFicheUI();
 }
 

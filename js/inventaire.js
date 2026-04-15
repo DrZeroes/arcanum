@@ -310,7 +310,6 @@ function updateInventaireUI() {
         let h = `<div style="margin-top:5px; font-size:0.85em;">`;
         if (data.degats && data.degats !== "0") h += `<span style="color:#ff5252; margin-right: 10px;">⚔️ Dégâts: ${data.degats}</span>`;
         if (data.armure && data.armure > 0) h += `<span style="color:#4caf50; margin-right: 10px;">🛡️ Armure: ${data.armure}</span>`;
-        if (item.durabilite) h += `<span style="color:#aaa;">🔧 État: ${item.durabilite}/${item.durabiliteMax}</span>`;
         h += `</div>`;
         return h;
     };

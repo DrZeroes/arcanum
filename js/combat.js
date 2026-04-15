@@ -69,6 +69,11 @@ function _afficherResultatCombat(resultat) {
     const panel  = document.getElementById('combat-actions-panel');
     const isVic  = resultat === 'victoire';
     if (bar)    bar.innerHTML = '';
+    // Cacher les boutons MJ (tour suivant / terminer)
+    const btnTour = document.getElementById('combat-btn-tour-suivant');
+    const btnFin  = document.getElementById('combat-btn-terminer');
+    if (btnTour) btnTour.style.display = 'none';
+    if (btnFin)  btnFin.style.display  = 'none';
     if (statut) {
         statut.textContent = isVic ? '⚔ Victoire !' : '💀 Défaite…';
         statut.style.color    = isVic ? '#ffd700' : '#ff4444';

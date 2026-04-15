@@ -112,10 +112,45 @@ function ouvrirEcranDonjon() {
     if (typeof cacherTout === 'function') cacherTout();
     const ecran = document.getElementById('ecran-donjon');
     if (ecran) ecran.style.display = 'flex';
+    _activerClavierDonjon();
     afficherEtatDonjon();
 }
 
+/** Active le listener clavier pour déplacer le joueur dans le donjon. */
+function _activerClavierDonjon() {
+    if (window._clavierDonjonActif) return; // déjà branché
+    window._clavierDonjonActif = true;
+    document.addEventListener('keydown', _handleClavierDonjon);
+}
+
+function _desactiverClavierDonjon() {
+    window._clavierDonjonActif = false;
+    document.removeEventListener('keydown', _handleClavierDonjon);
+}
+
+function _handleClavierDonjon(e) {
+    // Ignorer si un champ de saisie est actif
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    // Ignorer si l'écran donjon n'est pas visible
+    const ecran = document.getElementById('ecran-donjon');
+    if (!ecran || ecran.style.display === 'none') return;
+
+    const map = {
+        'ArrowUp': [0, -1], 'z': [0, -1], 'Z': [0, -1],
+        'ArrowDown': [0, 1], 's': [0, 1], 'S': [0, 1],
+        'ArrowLeft': [-1, 0], 'q': [-1, 0], 'Q': [-1, 0],
+        'ArrowRight': [1, 0], 'd': [1, 0], 'D': [1, 0],
+    };
+    const dir = map[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    deplacerJoueur(dir[0], dir[1]);
+}
+
 function fermerEcranDonjon() {
+    _desactiverClavierDonjon();
     window.donjonActif = null;
     if (typeof allerAccueil === 'function') allerAccueil();
 }
@@ -131,6 +166,27 @@ function afficherEtatDonjon() {
     _afficherPanneauDonjon(data);
     _afficherActionsHorsCombatDonjon();
     _afficherLogDonjon(data);
+    _afficherBandeauRencontre(data);
+}
+
+/** Affiche (ou cache) le bandeau "rencontre en attente du MJ" pour les joueurs. */
+function _afficherBandeauRencontre(data) {
+    if (window.estMJ) return;
+    let el = document.getElementById('donjon-bandeau-rencontre');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'donjon-bandeau-rencontre';
+        el.style.cssText = 'display:none;position:absolute;top:0;left:0;right:0;background:rgba(100,0,0,0.92);color:#ff8080;text-align:center;padding:10px;font-weight:bold;z-index:500;font-size:0.9em;border-bottom:2px solid #8b0000;';
+        const ecran = document.getElementById('ecran-donjon');
+        if (ecran) ecran.style.position = 'relative', ecran.appendChild(el);
+    }
+    if (data.rencontre_en_attente) {
+        const desc = data.rencontre_en_attente.description || 'Des ennemis !';
+        el.innerHTML = `👹 <strong>${desc}</strong> — En attente du MJ…`;
+        el.style.display = 'block';
+    } else {
+        el.style.display = 'none';
+    }
 }
 
 // ── Barre d'ordre d'actions ──────────────────────────────────
@@ -199,6 +255,17 @@ function _afficherStatsDonjon() {
 
 // ── Soins & Consommables (hors combat) ───────────────────────
 
+/** Retourne true si c'est le tour du joueur actuel dans le donjon. */
+function _estMonTourDonjon() {
+    const data = window.donjonActif;
+    if (!data) return false;
+    const ordre = data.ordre_joueurs || [];
+    if (ordre.length === 0) return true; // pas de système de tour actif
+    const myID   = (window.perso?.nom || '').replace(/\s+/g, '_');
+    const tourIdx = (data.tour_actuel || 0) % ordre.length;
+    return ordre[tourIdx] === myID;
+}
+
 function _afficherActionsHorsCombatDonjon() {
     const el = document.getElementById('donjon-actions-hc');
     if (!el || !window.perso) return;
@@ -258,6 +325,10 @@ function _ouvrirInventaireDonjon() {
 
 /** Utilise un consommable sur soi-même. */
 function _utiliserItemDonjon(itemId) {
+    if (!_estMonTourDonjon()) {
+        if (typeof _toast === 'function') _toast("⏳ Ce n'est pas votre tour !", 'error');
+        return;
+    }
     const p   = window.perso;
     if (!p || typeof itemsData === 'undefined') return;
     const def = itemsData[itemId];
@@ -286,11 +357,16 @@ function _utiliserItemDonjon(itemId) {
     if (p.inventaire[idx].quantite <= 0) p.inventaire.splice(idx, 1);
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    _avancerTourDonjon(window.donjonActif);
     afficherEtatDonjon();
 }
 
 /** Ouvre la sélection de cible pour un sort de soin. */
 function _choisirCibleSoinDonjon(nomSort) {
+    if (!_estMonTourDonjon()) {
+        if (typeof _toast === 'function') _toast("⏳ Ce n'est pas votre tour !", 'error');
+        return;
+    }
     const data = window.donjonActif;
     if (!data) return;
     const joueurs = Object.keys(data.positions || {}).filter(id => !id.startsWith('cmp_'));
@@ -353,6 +429,7 @@ function _lancerSoinDonjon(nomSort, cibleId) {
 
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    _avancerTourDonjon(window.donjonActif);
     afficherEtatDonjon();
 }
 
@@ -415,12 +492,17 @@ function _afficherGrilleDonjon(data) {
                         }
                     } else if (cell.event.type === 'coffre') {
                         const etatCoffre = data.etats_coffres?.[key];
-                        if (!cell.event.declenche && !etatCoffre) {
-                            div.innerHTML = '📦'; // coffre intact non ouvert
-                        } else if (etatCoffre?.statut === 'casse') {
+                        if (!etatCoffre) {
+                            div.innerHTML = '📦'; // coffre intact, jamais ouvert
+                        } else if (etatCoffre.statut === 'casse') {
                             div.innerHTML = '💥';
-                        } else if (etatCoffre?.statut === 'ouvert') {
-                            div.innerHTML = '📭';
+                        } else if (etatCoffre.statut === 'ouvert' || etatCoffre.statut === 'verrouille') {
+                            // 📭 seulement si tous les slots pris ET l'or pris
+                            const slots = Object.values(etatCoffre.loot?.slots || {});
+                            const toutSlotsPris = slots.length === 0 || slots.every(s => !!s.pris_par);
+                            const orVal = etatCoffre.loot?.or || 0;
+                            const orPris = orVal === 0 || Object.keys(etatCoffre.or_pris || {}).length > 0;
+                            div.innerHTML = (toutSlotsPris && orPris) ? '📭' : '📦';
                         } else {
                             div.innerHTML = '📦';
                         }
@@ -463,16 +545,37 @@ function _appliquerEffetsDebutTour(myID) {
     const p = window.perso;
     if (!p) return;
 
-    // Poison : lire depuis Firebase, appliquer dégâts, décrémenter duree
+    // Poison : lire depuis Firebase, appliquer dégâts directement (bypass armure — c'est du poison interne)
     db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/effets/poison').once('value', snap => {
         const poison = snap.val();
         if (!poison) return;
         const { degats, duree } = poison;
-        if (typeof _toast === 'function') _toast(`☠️ Poison : −${degats} PV (${duree} tour(s) restant(s))`, 'error');
-        _logDonjon(`☠️ ${p.nom} subit ${degats} PV de poison (${duree} tour(s) restant(s)).`);
-        db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/modif_stat').set({
-            stat: 'PV', valeur: -degats, timestamp: Date.now()
-        });
+
+        // Résistance au poison (bonusInnes) — pas d'armure physique
+        let dmg = degats;
+        const resP = p.bonusInnes?.resPoison || 0;
+        if (resP !== 0) dmg = Math.max(0, Math.round(dmg * (1 - resP / 100)));
+
+        if (dmg > 0) {
+            const pvAvant = p.pvActuel || 0;
+            let msg;
+            if (pvAvant - dmg <= 0) {
+                // Le poison ne peut pas tuer : surplus sur la FT
+                const pvAbsorbables = pvAvant - 1;
+                const surplus = dmg - pvAbsorbables;
+                p.pvActuel = 1;
+                p.ftActuel = Math.max(0, (p.ftActuel || 0) - surplus);
+                msg = `☠️ Poison : −${pvAbsorbables} PV, −${surplus} FT (${duree} tour(s) restant(s))`;
+            } else {
+                p.pvActuel = pvAvant - dmg;
+                msg = `☠️ Poison : −${dmg} PV (${duree} tour(s) restant(s))`;
+            }
+            if (typeof _toast === 'function') _toast(msg, 'error');
+            _logDonjon(`${msg} — ${p.nom}`);
+            if (typeof autoSave === 'function') autoSave();
+            if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+        }
+
         if (duree <= 1) {
             snap.ref.remove();
             if (typeof _toast === 'function') _toast('✅ L\'effet de poison est dissipé.', 'info');
@@ -541,6 +644,18 @@ function _afficherPanneauDonjon(data) {
         </div>
         <button onclick="passerTourDonjon()" style="background:#222;color:#666;border:1px solid #444;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">⏭ Passer le tour</button>
     `;
+
+    // Bouton "Interagir" si la case actuelle a un coffre ou une porte
+    const maPos   = data.positions?.[myID];
+    if (maPos) {
+        const ck   = `${maPos.x}_${maPos.y}`;
+        const cell = data.grille?.[ck];
+        if (cell?.event?.type === 'coffre') {
+            panel.innerHTML += `<button onclick="_initCoffreDonjon('${ck}', ${JSON.stringify(cell.event).replace(/"/g, '&quot;')})" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">📦 Ouvrir le coffre</button>`;
+        } else if (cell?.event?.type === 'porte' && !cell.event.declenche) {
+            panel.innerHTML += `<button onclick="_interagirPorteDonjon('${ck}', {x:${maPos.x},y:${maPos.y}}, ${JSON.stringify(cell.event).replace(/"/g, '&quot;')}, '${myID}', window.donjonActif)" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">🚪 Interagir avec la porte</button>`;
+        }
+    }
 }
 
 function _styleBtnDonjon() {
@@ -604,8 +719,13 @@ function deplacerJoueur(dx, dy) {
     // Déplacement normal + déclenchement des autres événements
     db.ref('parties/' + sessionActuelle + '/donjon_actif/positions/' + myID).set({ x: nx, y: ny });
     if (typeof _incStatPartie === 'function') _incStatPartie('cases_parcourues', 1);
-    if (cell.event && !cell.event.declenche) {
-        _declencherEvenementDonjon(cellKey, cell.event, myID);
+    if (cell.event) {
+        if (cell.event.type === 'coffre') {
+            // Le coffre est toujours interactable — _initCoffreDonjon gère l'état async
+            _initCoffreDonjon(cellKey, cell.event);
+        } else if (!cell.event.declenche) {
+            _declencherEvenementDonjon(cellKey, cell.event, myID);
+        }
     }
     _avancerTourDonjon(data);
     // Vérifier détection de pièges dans la zone visible après déplacement
@@ -1081,8 +1201,10 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
         const desc = event.data?.description || 'Des ennemis apparaissent !';
         if (typeof _toast === 'function') _toast(`👹 ${desc}`, 'error');
         _logDonjon(`👹 ${nom} déclenche une rencontre : ${desc}`);
-        // Notifier le MJ via Firebase
-        db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').set({
+        // Mettre le jeu en pause et notifier le MJ via Firebase
+        const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+        refDonjon.child('pause').set(true);
+        refDonjon.child('rencontre_en_attente').set({
             cellKey,
             ennemisKeys: event.data?.ennemisKeys || [],
             description: desc,
@@ -1126,7 +1248,6 @@ function _initCoffreDonjon(cellKey, eventData) {
 
         ref.set(etat).then(() => {
             if (!verrouille) {
-                db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
                 _logDonjon(`📦 ${window.perso?.nom} ouvre un coffre.`);
                 if (typeof _toast === 'function') _toast('📦 Coffre ouvert !', 'success');
             } else {

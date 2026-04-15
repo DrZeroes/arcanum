@@ -2043,8 +2043,10 @@ function mjLancerCombatRencontre() {
         if (!r) { if (typeof _toast === 'function') _toast('Aucune rencontre active.', 'error'); return; }
         // Stocker le contexte pour l'onglet combat
         window._rencontreDonjonContexte = r.description || 'Rencontre !';
-        // Effacer la rencontre en attente
-        db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').remove();
+        // Effacer la rencontre en attente ET lever la pause
+        const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+        refDonjon.child('rencontre_en_attente').remove();
+        refDonjon.child('pause').set(false);
         // Basculer sur l'onglet combat
         if (typeof switchOngletMJ === 'function') switchOngletMJ('combat');
     });
@@ -2052,9 +2054,10 @@ function mjLancerCombatRencontre() {
 
 /** Ignore une rencontre en attente. */
 function mjIgnorerRencontre() {
-    db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').remove().then(() => {
-        mjGererDonjon();
-    });
+    const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+    refDonjon.child('rencontre_en_attente').remove();
+    refDonjon.child('pause').set(false);
+    refDonjon.once('value', () => mjGererDonjon());
 }
 
 /** Déplace un compagnon (MJ) dans le donjon. */

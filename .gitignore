@@ -1,0 +1,5 @@
+# Mémoire et config Claude Code
+.claude/
+
+# Fiches personnages (données privées joueurs)
+docs/*.json

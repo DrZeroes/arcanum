@@ -34,15 +34,20 @@ firebase.auth().onAuthStateChanged((user) => {
     } else {
         firebase.auth().signInAnonymously()
             .catch((err) => {
-                // On affiche un simple message au lieu d'une erreur bloquante
-                console.warn("⚠️ Connexion Firebase anonyme impossible :", err.code, err.message);
-                
-                // --- SOLUTION DE SECOURS ---
-                // On génère un ID temporaire basé sur le nom du perso ou un random
+                console.error("🔴 AUTH FIREBASE ÉCHOUÉE :", err.code, err.message);
+                // err.code === 'auth/operation-not-allowed' → activer l'auth anonyme dans la console Firebase
+                // err.code === 'auth/network-request-failed' → problème réseau
+
+                // Avertissement visible dans l'UI
+                const msg = err.code === 'auth/operation-not-allowed'
+                    ? '🔴 Auth Firebase non activée — active l\'authentification anonyme dans la console Firebase.'
+                    : `🔴 Connexion Firebase impossible (${err.code}) — mode hors-ligne.`;
+                if (typeof _toast === 'function') _toast(msg, 'error');
+                else console.warn(msg);
+
+                // ID de secours local (les écritures Firebase seront rejetées par les règles de sécurité)
                 window.userUID = "Guest_" + Math.floor(Math.random() * 1000);
-                console.log("🛠️ Utilisation d'un ID de secours :", window.userUID);
-                
-                // On force le démarrage du moteur malgré l'échec d'auth
+                window._firebaseAuthEchec = true;
                 if (typeof demarrerMoteurMulti === "function") demarrerMoteurMulti();
             });
     }
@@ -236,7 +241,9 @@ function activerEcouteurArgent() {
         const data = snapshot.val();
         if (!data) return;
         argentRef.remove();
-        window.perso.argent = (window.perso.argent || 0) + (data.valeur || 0);
+        const gain = data.valeur || 0;
+        window.perso.argent = (window.perso.argent || 0) + gain;
+        if (gain > 0 && typeof _incStatPartie === 'function') _incStatPartie('or_cumule', gain);
         if (typeof autoSave === 'function') autoSave();
         if (typeof updateInventaireUI === 'function') updateInventaireUI();
         if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
@@ -252,6 +259,101 @@ function activerEcouteurArgent() {
  * Écoute le nœud Firebase vol_a_la_tire/{playerID}.
  * Quand le MJ autorise une tentative, affiche le bouton "Voler" sur l'accueil.
  */
+/** Écoute les quêtes de la session et met à jour le journal joueur en temps réel. */
+function activerEcouteurQuetes() {
+    const ref = db.ref('parties/' + sessionActuelle + '/quetes');
+    ref.off();
+    ref.on('value', (snap) => {
+        const quetes = snap.val() || {};
+        const avant  = JSON.stringify(window._quetesActives || {});
+        window._quetesActives = quetes;
+
+        if (!window.perso) return;
+        const myID = (window.perso.nom || '').replace(/\s+/g, '_');
+        const apres = JSON.stringify(quetes);
+        if (avant === apres) return;
+
+        // Toast si nouvelle quête attribuée à ce joueur
+        const prevQuetes = JSON.parse(avant);
+        Object.values(quetes).forEach(q => {
+            if (q.statut !== 'en_cours') return;
+            if (!(q.joueurs || []).includes(myID) && (q.joueurs || []).length > 0) return;
+            const etaitPresentAvant = Object.values(prevQuetes).some(
+                pq => pq.nom === q.nom && pq.statut === 'en_cours'
+            );
+            if (!etaitPresentAvant) {
+                if (typeof _toast === 'function') _toast(`📜 Nouvelle quête : "${q.nom}"`, 'success');
+            }
+        });
+
+        // Toast si quête validée/échouée
+        Object.values(quetes).forEach(q => {
+            if (!(q.joueurs || []).includes(myID) && (q.joueurs || []).length > 0) return;
+            const prev = Object.values(prevQuetes).find(pq => pq.nom === q.nom);
+            if (prev && prev.statut === 'en_cours' && q.statut === 'validee') {
+                if (typeof _toast === 'function') _toast(`✅ Quête terminée : "${q.nom}"`, 'success');
+            }
+            if (prev && prev.statut === 'en_cours' && q.statut === 'echouee') {
+                if (typeof _toast === 'function') _toast(`❌ Quête échouée : "${q.nom}"`, 'error');
+            }
+        });
+
+        // Rafraîchir le journal si l'onglet quêtes est ouvert
+        const modal = document.getElementById('modal-journal');
+        if (modal && modal.style.display === 'flex') {
+            if (typeof ouvrirJournal === 'function') ouvrirJournal('quetes');
+        }
+    });
+}
+
+function activerEcouteurDonjon() {
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+    ref.off();
+    ref.on('value', (snap) => {
+        const data = snap.val();
+        if (!data) {
+            // Donjon terminé
+            if (window.donjonActif) {
+                window.donjonActif = null;
+                if (typeof _toast === 'function') _toast('🗺 Le donjon est terminé.', 'info');
+                if (typeof allerAccueil === 'function') allerAccueil();
+            }
+            return;
+        }
+
+        window.donjonActif = data;
+
+        // ── Côté MJ : notification + refresh si onglet donjon ouvert ──
+        if (window.estMJ) {
+            const secDonjon = document.getElementById('mj-section-donjon');
+            const estVisible = secDonjon && secDonjon.style.display !== 'none';
+            if (estVisible && typeof mjGererDonjon === 'function') mjGererDonjon();
+            // Toast si nouvelle rencontre en attente
+            if (data.rencontre_en_attente) {
+                const ts = data.rencontre_en_attente.timestamp;
+                if (ts !== window._dernierTimestampRencontre) {
+                    window._dernierTimestampRencontre = ts;
+                    if (typeof _toast === 'function') _toast('👹 Rencontre déclenchée ! Allez sur l\'onglet Donjon.', 'error');
+                }
+            }
+            return;
+        }
+
+        // ── Côté joueur ──
+        // Ouvrir l'écran donjon si pas déjà affiché
+        const ecran = document.getElementById('ecran-donjon');
+        if (ecran && ecran.style.display !== 'flex') {
+            if (typeof ouvrirEcranDonjon === 'function') ouvrirEcranDonjon();
+            else ecran.style.display = 'flex';
+        }
+
+        // Rafraîchir l'affichage si l'écran est actif
+        if (ecran && ecran.style.display === 'flex') {
+            if (typeof afficherEtatDonjon === 'function') afficherEtatDonjon();
+        }
+    });
+}
+
 function activerEcouteurVolATire() {
     if (!window.perso || !window.perso.nom) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
@@ -527,15 +629,38 @@ function activerEcouteurStats() {
             }
         }
 
+        // XP de quête
+        if (data.stat === 'XP') {
+            if (typeof _gagnerXP === 'function') {
+                _gagnerXP(data.valeur);
+            } else {
+                window.perso.xp = (window.perso.xp || 0) + data.valeur;
+                if (typeof autoSave === 'function') autoSave();
+            }
+            if (typeof _toast === 'function') _toast(`⭐ +${data.valeur} XP (Quête) !`, 'success');
+            return; // pas de toast générique
+        }
+
         // Cure poison reçue d'un autre joueur ou d'un item/sort
         if (data.stat === 'curePoison') {
             window.perso.poison = null;
             if (typeof _toast === 'function') _toast('✅ Poison neutralisé !', 'success');
         }
 
+        // --- STATS DE PARTIE ---
+        if (typeof _incStatPartie === 'function') {
+            if (data.stat === 'PV' && data.valeur < 0) {
+                // PV vraiment perdus (après armure/esquive — valeurEffective est négatif si dégâts)
+                const perdu = Math.abs(Math.min(0, valeurEffective ?? data.valeur));
+                if (perdu > 0) _incStatPartie('pv_perdus', perdu);
+            }
+        }
+
         // --- TRAITEMENT ET UI ---
         if (typeof verifierMort === 'function') verifierMort();
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(window.perso));
+        // Sync Firebase (retiré de rafraichirAccueil pour éviter les boucles de listeners)
+        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 
         if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
         if (typeof updateFicheUI === 'function') updateFicheUI();
@@ -548,6 +673,38 @@ function activerEcouteurStats() {
     });
 }
 
+
+/**
+ * Écoute directement pvActuel et ftActuel depuis Firebase.
+ * Mis à jour par synchroniserJoueur() sur n'importe quel appareil.
+ * Sert de filet de sécurité pour afficher les vrais chiffres en direct sur l'accueil,
+ * sans dépendre uniquement du canal modif_stat.
+ */
+function activerEcouteurStatsPropres() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID);
+
+    ref.child('pvActuel').off();
+    ref.child('pvActuel').on('value', snap => {
+        const pv = snap.val();
+        if (pv === null || pv === undefined) return;
+        if (pv === window.perso.pvActuel) return; // pas de changement, évite la boucle
+        window.perso.pvActuel = pv;
+        if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+        if (typeof updateFicheUI === 'function') updateFicheUI();
+    });
+
+    ref.child('ftActuel').off();
+    ref.child('ftActuel').on('value', snap => {
+        const ft = snap.val();
+        if (ft === null || ft === undefined) return;
+        if (ft === window.perso.ftActuel) return;
+        window.perso.ftActuel = ft;
+        if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+        if (typeof updateFicheUI === 'function') updateFicheUI();
+    });
+}
 
 function activerEcouteurAlertesMJ() {
     db.ref('parties/' + sessionActuelle + '/alerte_mj').on('value', (snapshot) => {
@@ -563,6 +720,8 @@ function activerEcouteurAlertesMJ() {
 function activerRadarGroupeAccueil() {
     if (!db || !sessionActuelle) return;
 
+    // Nettoyage avant re-registration pour éviter l'accumulation de listeners
+    db.ref('parties/' + sessionActuelle + '/joueurs').off();
     db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
         const joueurs = snapshot.val();
         const container = document.getElementById('liste-membres-accueil');
@@ -1195,10 +1354,14 @@ function switchOngletMJ(ongletId) {
     const secJoueurs = document.getElementById('mj-section-joueurs');
     const secCodex   = document.getElementById('mj-section-codex');
     const secCombat  = document.getElementById('mj-section-combat');
+    const secQuetes  = document.getElementById('mj-section-quetes');
+    const secDonjon  = document.getElementById('mj-section-donjon');
 
     if(secJoueurs) secJoueurs.style.display = 'none';
     if(secCodex)   secCodex.style.display   = 'none';
     if(secCombat)  secCombat.style.display  = 'none';
+    if(secQuetes)  secQuetes.style.display  = 'none';
+    if(secDonjon)  secDonjon.style.display  = 'none';
 
     // 2. ROUTAGE VERS LES BONS CONTENUS
     if (ongletId === 'joueurs') {
@@ -1232,6 +1395,14 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-musique') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
+    }
+    else if (ongletId === 'quetes') {
+        if (secQuetes) secQuetes.style.display = 'block';
+        if (typeof mjGererQuetes === 'function') mjGererQuetes();
+    }
+    else if (ongletId === 'donjon') {
+        if (secDonjon) secDonjon.style.display = 'block';
+        if (typeof mjGererDonjon === 'function') mjGererDonjon();
     }
     else if (ongletId === 'combat') {
         const secCombat = document.getElementById('mj-section-combat');
@@ -1345,12 +1516,15 @@ function demarrerMoteurMulti() {
     activerEcouteurArgent();
     activerEcouteurStats();
     activerEcouteurEffets();
+    activerEcouteurStatsPropres();
     activerEcouteurDeplacementGroupe();
     activerEcouteurPartageLieux();
     activerEcouteurCommandesMJ();
     activerEcouteurCompagnons();
     _syncCompagnonsSummary();
     activerEcouteurVolATire();
+    activerEcouteurQuetes();
+    activerEcouteurDonjon();
     activerRadarGroupeAccueil();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT

@@ -69,6 +69,10 @@ function allerInventaire() {
 
 function fermerInventaire() {
     cacherTout();
+    if (window._retourDonjon) {
+        window._retourDonjon = false;
+        if (typeof ouvrirEcranDonjon === 'function') { ouvrirEcranDonjon(); return; }
+    }
     document.getElementById('ecran-fiche').style.display = 'block';
     updateFicheUI(); // Met à jour la fiche avec les bonus de l'équipement !
 }
@@ -594,44 +598,70 @@ function ouvrirDonnerOr() {
     const actuel = window.perso?.argent || 0;
     if (!db || !sessionActuelle) { alert('Pas connecté.'); return; }
 
+    const modal = document.getElementById('modal-transfert');
+    const liste = document.getElementById('liste-destinataires');
+    if (!modal || !liste) return;
+
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
         const joueurs = snap.val() || {};
         const moiID = window.perso.nom.replace(/\s+/g, '_');
         const autres = Object.entries(joueurs).filter(([id]) => id !== moiID);
 
+        liste.innerHTML = '';
+
+        // Champ montant en haut du modal
+        const zoneInput = document.createElement('div');
+        zoneInput.style = 'margin-bottom:12px;';
+        zoneInput.innerHTML = `
+            <label style="color:#d4af37;font-size:0.85em;display:block;margin-bottom:4px;">
+                Montant (vous avez : <strong>${actuel}</strong> or)
+            </label>
+            <input id="input-montant-or" type="number" min="1" max="${actuel}" value="1"
+                style="width:100%;box-sizing:border-box;padding:8px;background:#111;color:#d4af37;
+                border:1px solid #d4af37;border-radius:4px;font-size:1em;text-align:center;">`;
+        liste.appendChild(zoneInput);
+
         if (autres.length === 0) {
-            if (typeof _toast === 'function') _toast('Aucun autre joueur dans la session.', 'error');
-            return;
+            const p = document.createElement('p');
+            p.style = 'color:#aaa;font-style:italic;';
+            p.textContent = 'Personne d\'autre en ligne...';
+            liste.appendChild(p);
+        } else {
+            autres.forEach(([destinID, destinJoueur]) => {
+                const btn = document.createElement('button');
+                btn.innerText = '👤 ' + destinJoueur.nom;
+                btn.style = 'background:#444;color:#d4af37;border:1px solid #d4af37;padding:10px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;text-align:left;transition:0.2s;';
+                btn.onmouseover = () => { btn.style.background = '#555'; };
+                btn.onmouseout  = () => { btn.style.background = '#444'; };
+                btn.onclick = () => {
+                    const montant = parseInt(document.getElementById('input-montant-or')?.value) || 0;
+                    if (montant <= 0) { if (typeof _toast === 'function') _toast('Montant invalide.', 'error'); return; }
+                    if (montant > (window.perso?.argent || 0)) { if (typeof _toast === 'function') _toast(`Pas assez d'or !`, 'error'); return; }
+
+                    modal.style.display = 'none';
+
+                    window.perso.argent -= montant;
+                    if (typeof autoSave === 'function') autoSave();
+                    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + destinID + '/modif_argent').set({
+                        valeur: montant,
+                        de: window.perso.nom,
+                        timestamp: Date.now()
+                    });
+
+                    if (typeof updateInventaireUI === 'function') updateInventaireUI();
+                    if (typeof _toast === 'function') _toast(`💰 ${montant} or envoyé à ${destinJoueur.nom} !`, 'success');
+                };
+                liste.appendChild(btn);
+            });
         }
 
-        // Construire une liste simple avec prompt (pas de modal dédié)
-        const choix = autres.map(([id, j], i) => `${i + 1}. ${j.nom}`).join('\n');
-        const rep = prompt(`À qui donner de l'or ?\n${choix}\n\n(entrez le numéro)`, '1');
-        if (!rep) return;
-        const idx = parseInt(rep) - 1;
-        if (isNaN(idx) || idx < 0 || idx >= autres.length) { if (typeof _toast === 'function') _toast('Choix invalide.', 'error'); return; }
+        // Titre du modal
+        const titre = modal.querySelector('h3');
+        if (titre) titre.textContent = '💰 Donner de l\'or';
 
-        const [destinID, destinJoueur] = autres[idx];
-        const montantStr = prompt(`Combien d'or donner à ${destinJoueur.nom} ? (Vous avez : ${actuel} or)`, '');
-        if (!montantStr) return;
-        const montant = parseInt(montantStr);
-        if (isNaN(montant) || montant <= 0) { if (typeof _toast === 'function') _toast('Montant invalide.', 'error'); return; }
-        if (montant > actuel) { if (typeof _toast === 'function') _toast(`Pas assez d'or !`, 'error'); return; }
-
-        // Déduire du joueur local
-        window.perso.argent -= montant;
-        if (typeof autoSave === 'function') autoSave();
-        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
-
-        // Envoyer au destinataire via Firebase
-        db.ref('parties/' + sessionActuelle + '/joueurs/' + destinID + '/modif_argent').set({
-            valeur: montant,
-            de: window.perso.nom,
-            timestamp: Date.now()
-        });
-
-        if (typeof updateInventaireUI === 'function') updateInventaireUI();
-        if (typeof _toast === 'function') _toast(`💰 ${montant} or envoyé à ${destinJoueur.nom} !`, 'success');
+        modal.style.display = 'block';
     });
 }
 

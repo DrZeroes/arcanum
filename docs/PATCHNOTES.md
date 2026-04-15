@@ -4,6 +4,18 @@
 
 ## v0.6 — Avril 2026
 
+### Système de Donjon (nouveau)
+- Nouvel onglet "🗺 Donjon" dans le Codex MJ : éditeur de grille configurable (5–20 × 5–20 cases)
+- MJ peint les cases sol/mur au clic et place des événements : coffre, piège, porte, découverte, rencontre
+- Point de départ configurable ; lancement distribue les positions et l'ordre de jeu (basé sur DX) à tous les joueurs
+- Côté joueur : écran dédié avec grille et brouillard de guerre (flood-fill — seules les cases accessibles depuis la position du joueur sont visibles)
+- Déplacement tour par tour (1 case/tour, même rotation que le combat)
+- Événements automatiques au pas sur une case : piège (−PV), coffre (loot aléatoire + or), découverte (message), porte (crochetage DX si verrouillée), rencontre (notifie le MJ)
+- MJ voit la grille complète sans brouillard avec positions de tous les joueurs
+- Rencontre ennemie : alerte dans le panel MJ avec bouton "⚔ Lancer le combat"
+- Journal de donjon en temps réel (Firebase) visible côté joueur et MJ
+- Bouton "🏁 Terminer le donjon" (MJ) renvoie automatiquement tous les joueurs à l'accueil
+
 ### Bénédictions & Malédictions (nouveau système)
 - Le MJ peut attribuer des effets à un joueur depuis le Codex (bouton ✨ par carte joueur)
 - Paramètres disponibles : stats (FO/IN/CN/DX/CH), PV max, FT max, 16 compétences de base
@@ -13,6 +25,18 @@
 - Côté joueur : badges colorés sur l'écran d'accueil (avec détail au survol)
 - Stats et compétences colorées sur la fiche (doré = buff, violet = malus)
 - maxPV et maxFT recalculés en tenant compte des bonus d'effets actifs
+
+### Divers
+- Sorts sans effet mécanique marqués `*` dans la liste d'apprentissage (fiche personnage)
+- Quêtes : impossible d'attribuer deux fois la même quête `en_cours` au même joueur
+
+### Système de Quêtes
+- Nouvel onglet "📜 Quêtes" dans le Codex MJ : créer une quête (prédéfinie ou personnalisée), sélectionner les joueurs participants, définir récompenses XP + or
+- 10 quêtes prédéfinies dans `quetes.js` (nom, donneur, résumé, récompenses)
+- Boutons "✅ Valider" (distribue XP + or à chaque participant) et "❌ Échouer" sur chaque quête active
+- Côté joueur : bouton "📜 Journal de Quêtes" sur l'accueil — affichage coloré par statut (en cours, ✅ validée en vert, ❌ échouée en rouge barré)
+- Toast en temps réel : notification à l'attribution d'une nouvelle quête et à sa résolution
+- Persistance Firebase : `parties/{session}/quetes/`
 
 ### Magie temporaire (buffs de stats)
 - Sorts de stat (Force de la Terre, Agilité du Feu, Vitalité de l'Air, Pureté de l'Eau, Main de fer) appliquent un effet temporaire au lanceur ou un allié

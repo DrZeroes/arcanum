@@ -74,11 +74,19 @@ rafraichirApercuAvatar(); // <--- AJOUTE CETTE LIGNE ICI
 }
 
 function validerCreation() {
+    // 0. S'assurer que sessionActuelle est bien synchronisée avec le champ
+    const inputSession = document.getElementById('input-session');
+    const valSession   = (inputSession?.value || '').trim();
+    if (valSession && typeof sessionActuelle !== 'undefined') {
+        sessionActuelle = valSession.replace(/[^a-zA-Z0-9_]/g, '_');
+        localStorage.setItem('arcanum_session_name', sessionActuelle);
+    }
+
     // 1. Récupération et vérification du nom
     const nom = document.getElementById('charName').value.trim();
-    if (nom === "") { 
-        alert("Veuillez entrer un nom pour votre personnage !"); 
-        return; 
+    if (nom === "") {
+        alert("Veuillez entrer un nom pour votre personnage !");
+        return;
     }
 
     // 2. Récupération des données de base (Race et Background)
@@ -215,15 +223,41 @@ function validerCreation() {
     cacherTout();
     document.getElementById('ecran-fiche').style.display = 'block';
     
-    // On synchronise avec Firebase immédiatement
-    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    // Démarrer le moteur multi complet (listeners cadeaux, stats, effets…)
+    // et synchroniser le joueur dans Firebase.
+    // Si l'auth Firebase n'est pas encore résolue (navigation privée),
+    // on réessaie toutes les 200 ms jusqu'à ce que userUID soit disponible.
+    function _lancerMoteurApresCreation() {
+        if (window.userUID) {
+            if (typeof demarrerMoteurMulti === 'function') demarrerMoteurMulti();
+            if (typeof synchroniserJoueur  === 'function') synchroniserJoueur();
+        } else {
+            setTimeout(_lancerMoteurApresCreation, 200);
+        }
+    }
+    _lancerMoteurApresCreation();
 
     updateFicheUI();
     if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
     appliquerFondActuel();
 }
 function nouveauPersonnage() {
-	
+    // Vérifier que la session est remplie avant de démarrer la création
+    const inputSession = document.getElementById('input-session');
+    const valSession   = (inputSession?.value || '').trim();
+    if (!valSession) {
+        inputSession?.focus();
+        inputSession?.style && (inputSession.style.border = '2px solid #ff4444');
+        if (typeof _toast === 'function') _toast('⚠ Remplis le nom de la session avant de créer un personnage !', 'error');
+        else alert('Remplis le nom du groupe de jeu (session) avant de créer un personnage !');
+        return;
+    }
+    // Forcer la mise à jour de sessionActuelle avec la valeur saisie
+    if (typeof sessionActuelle !== 'undefined') {
+        sessionActuelle = valSession.replace(/[^a-zA-Z0-9_]/g, '_');
+        localStorage.setItem('arcanum_session_name', sessionActuelle);
+    }
+
 // --- FORCE L'ACCÈS À LA VARIABLE GLOBALE ---
     if (typeof perso === 'undefined') {
         if (window.perso) {

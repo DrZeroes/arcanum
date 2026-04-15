@@ -48,10 +48,11 @@ function actualiserVisuelFouille() {
 
 function ramasserItem(id, qteAjoutee) {
     if (id === "OR_PIECES") {
-        if (perso.argent === undefined) perso.argent = 400; 
+        if (perso.argent === undefined) perso.argent = 400;
         perso.argent += qteAjoutee;
-        updateFicheUI(); 
-        return; 
+        if (typeof _incStatPartie === 'function') _incStatPartie('or_cumule', qteAjoutee);
+        updateFicheUI();
+        return;
     }
 
     if (!perso.inventaire) perso.inventaire = [];
@@ -244,6 +245,7 @@ function vendreItem(idx, prixUnitaire) {
     }
 
     perso.argent += prixTotal;
+    if (typeof _incStatPartie === 'function') _incStatPartie('or_cumule', prixTotal);
     marchandActuel.argent -= prixTotal;
     item.quantite -= qteAVendre;
     item.qte = item.quantite; 

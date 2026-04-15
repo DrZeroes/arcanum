@@ -512,6 +512,10 @@ function mjAfficherInterfaceCombat() {
     if (!section || typeof ennemisData === 'undefined') return;
     _combatSelection = {};
 
+    // Contexte rencontre donjon (si vient d'une rencontre)
+    const rencontreCtx = window._rencontreDonjonContexte || null;
+    window._rencontreDonjonContexte = null;
+
     // Vérifie si un combat est déjà en cours
     db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
         const enCours = snap.val();
@@ -580,7 +584,12 @@ function mjAfficherInterfaceCombat() {
             });
         }
 
+        const banniereRencontre = rencontreCtx
+            ? `<div style="background:#2a1000;border:1px solid #ff6b6b;border-radius:6px;padding:8px 12px;margin-bottom:10px;color:#ff9966;font-size:0.88em;">👹 <strong>Rencontre :</strong> ${rencontreCtx}</div>`
+            : '';
+
         section.innerHTML = `
+            ${banniereRencontre}
             <div style="margin-bottom:12px; color:#ff6b6b; font-size:0.8em; text-align:center; text-transform:uppercase; letter-spacing:0.08em;">
                 Définissez les quantités puis lancez le combat
             </div>
@@ -1280,4 +1289,817 @@ function _mjSupprimerEffet(playerID, effectKey) {
         .then(() => {
             if (window._mjRenderEffetsModal) window._mjRenderEffetsModal();
         });
+}
+
+// ── Système de Quêtes MJ ─────────────────────────────────────────────────────
+
+function mjGererQuetes() {
+    const sec = document.getElementById('mj-section-quetes');
+    if (!sec) return;
+
+    // Lire les joueurs connectés + les quêtes actives en parallèle
+    Promise.all([
+        db.ref('parties/' + sessionActuelle + '/joueurs').once('value'),
+        db.ref('parties/' + sessionActuelle + '/quetes').once('value')
+    ]).then(([snapJ, snapQ]) => {
+        const joueurs = snapJ.val() || {};
+        const quetesActives = snapQ.val() || {};
+
+        // ── Liste des joueurs (checkboxes) ──────────────────────
+        const joueursNonMJ = Object.entries(joueurs).filter(([, j]) => !j.estMJ);
+        const checkboxesHtml = joueursNonMJ.length > 0
+            ? joueursNonMJ.map(([id, j]) =>
+                `<label style="display:flex;align-items:center;gap:6px;color:#ccc;font-size:0.9em;cursor:pointer;">
+                    <input type="checkbox" class="mj-quete-joueur-cb" value="${id}" style="accent-color:#4caf50;"> ${j.nom || id}
+                </label>`).join('')
+            : '<span style="color:#666;font-size:0.85em;">Aucun joueur connecté</span>';
+
+        // ── Formulaire création quête ───────────────────────────
+        const optionsQuetes = Object.entries(quetesData || {}).map(([k, q]) =>
+            `<option value="${k}">${q.nom} — ${q.donneur}</option>`).join('');
+
+        const formHtml = `
+        <div style="background:#0d1a0d;border:1px solid #4caf50;border-radius:8px;padding:14px;margin-bottom:18px;">
+            <h3 style="color:#4caf50;margin:0 0 12px;font-size:0.95em;">➕ Nouvelle quête</h3>
+            <div style="margin-bottom:10px;">
+                <label style="color:#aaa;font-size:0.82em;display:block;margin-bottom:4px;">Quête prédéfinie</label>
+                <select id="mj-quete-select" onchange="mjPreRemplirQuete(this.value)"
+                    style="width:100%;background:#111;color:#fff;border:1px solid #4caf50;padding:6px;border-radius:4px;">
+                    <option value="">— Quête personnalisée —</option>
+                    ${optionsQuetes}
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div>
+                    <label style="color:#aaa;font-size:0.82em;">Nom</label>
+                    <input id="mj-quete-nom" type="text" placeholder="Nom de la quête"
+                        style="width:100%;background:#111;color:#fff;border:1px solid #555;padding:5px;border-radius:4px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="color:#aaa;font-size:0.82em;">Donneur</label>
+                    <input id="mj-quete-donneur" type="text" placeholder="NPC donneur"
+                        style="width:100%;background:#111;color:#fff;border:1px solid #555;padding:5px;border-radius:4px;box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="color:#aaa;font-size:0.82em;">Résumé</label>
+                <textarea id="mj-quete-resume" rows="2" placeholder="Résumé court affiché dans le journal joueur"
+                    style="width:100%;background:#111;color:#fff;border:1px solid #555;padding:5px;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div>
+                    <label style="color:#aaa;font-size:0.82em;">⭐ XP récompense</label>
+                    <input id="mj-quete-xp" type="number" value="50" min="0"
+                        style="width:100%;background:#111;color:#fff;border:1px solid #555;padding:5px;border-radius:4px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="color:#aaa;font-size:0.82em;">💰 Or récompense</label>
+                    <input id="mj-quete-or" type="number" value="100" min="0"
+                        style="width:100%;background:#111;color:#fff;border:1px solid #555;padding:5px;border-radius:4px;box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="color:#aaa;font-size:0.82em;display:block;margin-bottom:6px;">👥 Joueurs participants</label>
+                <div style="display:flex;flex-direction:column;gap:4px;">${checkboxesHtml}</div>
+            </div>
+            <button onclick="mjActiverQuete()"
+                style="width:100%;background:#2e7d32;color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:bold;">
+                📜 Lancer la quête
+            </button>
+        </div>`;
+
+        // ── Quêtes actives ──────────────────────────────────────
+        const enCours = Object.entries(quetesActives).filter(([, q]) => q.statut === 'en_cours');
+        const terminees = Object.entries(quetesActives).filter(([, q]) => q.statut === 'validee' || q.statut === 'echouee');
+
+        const rendreCarte = ([fbKey, q]) => {
+            const estValide = q.statut === 'validee';
+            const estEchoue = q.statut === 'echouee';
+            const couleur   = estValide ? '#4caf50' : estEchoue ? '#8b0000' : '#d4af37';
+            const badge     = estValide ? '✅' : estEchoue ? '❌' : '🔵';
+            const joueursList = (q.joueurs || []).join(', ') || '—';
+            const btns = (!estValide && !estEchoue) ? `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+                    <button onclick="mjValiderQuete('${fbKey}')"
+                        style="background:#1a3a1a;color:#4caf50;border:1px solid #4caf50;padding:5px;border-radius:4px;cursor:pointer;font-size:0.85em;">✅ Valider</button>
+                    <button onclick="mjEchouerQuete('${fbKey}')"
+                        style="background:#3a0000;color:#ff6b6b;border:1px solid #8b0000;padding:5px;border-radius:4px;cursor:pointer;font-size:0.85em;">❌ Échouer</button>
+                </div>` : '';
+            return `<div style="border:1px solid ${couleur};border-radius:6px;padding:10px;margin-bottom:8px;background:#0a0a0a;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong style="color:${couleur};">${badge} ${q.nom}</strong>
+                    <button onclick="mjSupprimerQuete('${fbKey}')" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:12px;">🗑</button>
+                </div>
+                <div style="font-size:0.8em;color:#888;margin-top:2px;">Donné par : ${q.donneur || '—'} · Participants : ${joueursList}</div>
+                <div style="font-size:0.82em;color:#aaa;margin-top:4px;">${q.resume || ''}</div>
+                <div style="font-size:0.8em;color:#666;margin-top:3px;">Récompense : ⭐ ${q.recompenses?.xp || 0} XP · 💰 ${q.recompenses?.or || 0} or</div>
+                ${btns}
+            </div>`;
+        };
+
+        const enCoursHtml = enCours.length > 0
+            ? enCours.map(rendreCarte).join('')
+            : '<p style="color:#666;font-size:0.85em;">Aucune quête en cours.</p>';
+
+        const termineesHtml = terminees.length > 0
+            ? `<details style="margin-top:10px;"><summary style="color:#666;cursor:pointer;font-size:0.85em;">Historique (${terminees.length})</summary><div style="margin-top:8px;">${terminees.map(rendreCarte).join('')}</div></details>`
+            : '';
+
+        sec.innerHTML = formHtml
+            + `<h3 style="color:#d4af37;font-size:0.9em;margin:0 0 8px;">📋 Quêtes en cours</h3>`
+            + enCoursHtml + termineesHtml;
+    });
+}
+
+/** Pré-remplit le formulaire avec les données d'une quête prédéfinie. */
+function mjPreRemplirQuete(key) {
+    const q = (typeof quetesData !== 'undefined') ? quetesData[key] : null;
+    if (!q) return;
+    const f = id => document.getElementById(id);
+    if (f('mj-quete-nom'))    f('mj-quete-nom').value    = q.nom    || '';
+    if (f('mj-quete-donneur'))f('mj-quete-donneur').value = q.donneur || '';
+    if (f('mj-quete-resume')) f('mj-quete-resume').value  = q.resume  || '';
+    if (f('mj-quete-xp'))     f('mj-quete-xp').value      = q.recompenses?.xp  ?? 50;
+    if (f('mj-quete-or'))     f('mj-quete-or').value      = q.recompenses?.or  ?? 100;
+}
+
+/** Lance une quête et la publie dans Firebase pour les joueurs sélectionnés. */
+function mjActiverQuete() {
+    const nom     = (document.getElementById('mj-quete-nom')?.value     || '').trim();
+    const donneur = (document.getElementById('mj-quete-donneur')?.value || '').trim();
+    const resume  = (document.getElementById('mj-quete-resume')?.value  || '').trim();
+    const xp      = parseInt(document.getElementById('mj-quete-xp')?.value)  || 0;
+    const or      = parseInt(document.getElementById('mj-quete-or')?.value)  || 0;
+
+    if (!nom) { if (typeof _toast === 'function') _toast('❌ Nom de quête requis.', 'error'); return; }
+
+    const joueursCB = Array.from(document.querySelectorAll('.mj-quete-joueur-cb:checked')).map(cb => cb.value);
+
+    const queteData = {
+        nom, donneur, resume,
+        recompenses: { xp, or },
+        statut: 'en_cours',
+        joueurs: joueursCB,
+        timestamp: Date.now()
+    };
+
+    // ── Vérification doublon : un joueur ne peut pas avoir deux fois la même quête en cours ──
+    db.ref('parties/' + sessionActuelle + '/quetes').once('value', snap => {
+        const existantes = snap.val() || {};
+        const enDoublon = joueursCB.filter(playerID =>
+            Object.values(existantes).some(q =>
+                q.nom === nom &&
+                q.statut === 'en_cours' &&
+                (q.joueurs || []).includes(playerID)
+            )
+        );
+        if (enDoublon.length > 0) {
+            if (typeof _toast === 'function') _toast(`⚠ Certains joueurs ont déjà "${nom}" en cours.`, 'error');
+            return;
+        }
+        db.ref('parties/' + sessionActuelle + '/quetes').push(queteData).then(() => {
+            if (typeof _toast === 'function') _toast(`📜 Quête "${nom}" lancée !`, 'success');
+            mjGererQuetes();
+        });
+    });
+}
+
+/** Valide une quête : distribue XP + or aux participants et met le statut à 'validee'. */
+function mjValiderQuete(fbKey) {
+    db.ref('parties/' + sessionActuelle + '/quetes/' + fbKey).once('value', snap => {
+        const q = snap.val();
+        if (!q) return;
+
+        const xp = q.recompenses?.xp || 0;
+        const or = q.recompenses?.or || 0;
+        const joueurs = q.joueurs || [];
+
+        joueurs.forEach(playerID => {
+            if (xp > 0) {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_stat').set({
+                    stat: 'XP', valeur: xp, timestamp: Date.now()
+                });
+            }
+            if (or > 0) {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_argent').set({
+                    valeur: or, timestamp: Date.now()
+                });
+            }
+        });
+
+        db.ref('parties/' + sessionActuelle + '/quetes/' + fbKey + '/statut').set('validee').then(() => {
+            if (typeof _toast === 'function') {
+                const recap = [xp ? `⭐ ${xp} XP` : '', or ? `💰 ${or} or` : ''].filter(Boolean).join(' + ');
+                _toast(`✅ Quête "${q.nom}" validée !${recap ? ' Récompenses : ' + recap : ''}`, 'success');
+            }
+            mjGererQuetes();
+        });
+    });
+}
+
+/** Marque une quête comme échouée (pas de récompenses). */
+function mjEchouerQuete(fbKey) {
+    db.ref('parties/' + sessionActuelle + '/quetes/' + fbKey + '/statut').set('echouee').then(() => {
+        if (typeof _toast === 'function') _toast('❌ Quête marquée comme échouée.', 'error');
+        mjGererQuetes();
+    });
+}
+
+/** Supprime définitivement une quête de Firebase. */
+function mjSupprimerQuete(fbKey) {
+    db.ref('parties/' + sessionActuelle + '/quetes/' + fbKey).remove().then(() => {
+        mjGererQuetes();
+    });
+}
+
+// ============================================================
+// SYSTÈME DONJON — Interface MJ
+// ============================================================
+
+// Brouillon du donjon en cours d'édition
+window._donjonBrouillon = null;
+window._donjonModeEdit  = 'sol';    // 'sol' | 'mur' | 'coffre' | 'piege' | 'decouverte' | 'rencontre' | 'porte' | 'depart'
+
+/** Génère le HTML du panneau "Donner une clef" pour la vue active MJ. */
+function _mjBuilderDonnerClefHtml(data) {
+    // Recenser toutes les clefs définies dans les événements de portes
+    const clesConnues = [];
+    Object.values(data.grille || {}).forEach(cell => {
+        const c = cell.event?.data?.cleRequise;
+        if (c && !clesConnues.includes(c)) clesConnues.push(c);
+    });
+    if (clesConnues.length === 0) return ''; // Aucune porte à clef
+
+    // Liste des joueurs
+    const joueurs = data.ordre_joueurs || [];
+    if (joueurs.length === 0) return '';
+
+    const selCles = clesConnues.map(c =>
+        `<option value="${c}">${c}</option>`
+    ).join('');
+    const cbJoueurs = joueurs.map(j =>
+        `<label style="display:flex;align-items:center;gap:6px;color:#ccc;font-size:0.85em;"><input type="checkbox" class="mj-cle-joueur-cb" value="${j}"> ${j}</label>`
+    ).join('');
+
+    return `
+        <div style="background:#1a1408;border:1px solid #8b6914;border-radius:6px;padding:10px;margin-bottom:10px;">
+            <strong style="color:#d4af37;font-size:0.9em;">🗝 Donner une clef</strong>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                <select id="mj-cle-select" style="background:#111;color:#d4af37;border:1px solid #8b6914;padding:4px 8px;border-radius:4px;font-size:0.85em;">${selCles}</select>
+                <span style="color:#666;font-size:0.8em;">→ Joueurs :</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">${cbJoueurs}</div>
+                <button onclick="mjDonnerClef()" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.85em;">Donner</button>
+            </div>
+        </div>`;
+}
+
+/** Écrit les clefs sélectionnées dans Firebase pour les joueurs cochés. */
+function mjDonnerClef() {
+    const cleId   = document.getElementById('mj-cle-select')?.value;
+    if (!cleId) return;
+    const cbs     = document.querySelectorAll('.mj-cle-joueur-cb:checked');
+    const joueurs = Array.from(cbs).map(cb => cb.value);
+    if (joueurs.length === 0) {
+        if (typeof _toast === 'function') _toast('Sélectionne au moins un joueur.', 'error');
+        return;
+    }
+    const promises = joueurs.map(j =>
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/cles_joueurs/' + j + '/' + cleId).set(true)
+    );
+    Promise.all(promises).then(() => {
+        if (typeof _toast === 'function') _toast(`🗝 Clef "${cleId}" donnée à : ${joueurs.join(', ')}`, 'success');
+    });
+}
+
+/** Point d'entrée de l'onglet MJ Donjon */
+function mjGererDonjon() {
+    const sec = document.getElementById('mj-section-donjon');
+    if (!sec) return;
+
+    // Vérifier si un donjon est actif en Firebase
+    db.ref('parties/' + sessionActuelle + '/donjon_actif').once('value', snap => {
+        const actif = snap.val();
+        if (actif) {
+            _mjAfficherDonjonActif(sec, actif);
+        } else {
+            _mjAfficherBuilderDonjon(sec);
+        }
+    });
+}
+
+// ── VUE ACTIVE (MJ voit tout) ────────────────────────────────
+
+function _mjAfficherDonjonActif(sec, data) {
+    const grille  = data.grille  || {};
+    const largeur = data.largeur || 10;
+    const hauteur = data.hauteur || 8;
+    const cellPx  = Math.max(20, Math.min(32, Math.floor(460 / largeur)));
+
+    // Rencontre en attente ?
+    const rencontreHtml = data.rencontre_en_attente
+        ? `<div style="background:#3a0000;border:1px solid #ff6b6b;padding:8px;border-radius:6px;margin-bottom:10px;">
+            <strong style="color:#ff6b6b;">👹 Rencontre déclenchée !</strong>
+            <div style="color:#ccc;font-size:0.85em;margin:4px 0;">${data.rencontre_en_attente.description} — par ${data.rencontre_en_attente.declenchePar}</div>
+            <button onclick="mjLancerCombatRencontre()" style="background:#8b0000;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;margin-top:4px;">⚔ Lancer le combat</button>
+            <button onclick="mjIgnorerRencontre()" style="background:#222;color:#aaa;border:1px solid #555;padding:6px 14px;border-radius:4px;cursor:pointer;margin-top:4px;margin-left:6px;">Ignorer</button>
+           </div>`
+        : '';
+
+    // Grille complète (sans brouillard)
+    let grilleHtml = `<div style="display:grid;grid-template-columns:repeat(${largeur},${cellPx}px);gap:1px;background:#111;padding:4px;border:1px solid #333;border-radius:4px;width:fit-content;margin:0 auto 10px;">`;
+    for (let y = 0; y < hauteur; y++) {
+        for (let x = 0; x < largeur; x++) {
+            const key  = `${x}_${y}`;
+            const cell = grille[key] || { type: 'mur' };
+            const isMur = cell.type === 'mur';
+            let bg = isMur ? '#2a2a2a' : '#3a2e20';
+            let content = '';
+            if (!isMur && cell.event) {
+                const etatCoffre = cell.event.type === 'coffre' ? (data.etats_coffres?.[key] || null) : null;
+                let icone;
+                if (etatCoffre) {
+                    icone = etatCoffre.statut === 'casse' ? '💥' : etatCoffre.statut === 'ouvert' ? '📭' : '🔒';
+                } else {
+                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎' };
+                    icone = icones[cell.event.type] || '';
+                }
+                content = cell.event.declenche && !etatCoffre
+                    ? '<span style="opacity:0.4">' + icone + '</span>'
+                    : icone;
+            }
+            // Positions joueurs et compagnons
+            Object.entries(data.positions || {}).forEach(([id, pos]) => {
+                if (pos.x === x && pos.y === y) {
+                    content += id.startsWith('cmp_') ? '🐾' : '👤';
+                    bg = '#1a3a1a';
+                }
+            });
+            grilleHtml += `<div style="width:${cellPx}px;height:${cellPx}px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${Math.max(9,cellPx-10)}px;border:1px solid #1a1a1a;">${content}</div>`;
+        }
+    }
+    grilleHtml += '</div>';
+
+    // Log récent
+    const logEntries = Object.values(data.log || {})
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, 8)
+        .map(e => `<div style="color:#aaa;font-size:0.8em;padding:2px 0;">${e.texte}</div>`)
+        .join('') || '<span style="color:#555;font-size:0.8em;">Aucune action.</span>';
+
+    // Ordre de jeu
+    const ordre = data.ordre_joueurs || [];
+    const tourIdx = Math.max(0, (data.tour_actuel || 0) % Math.max(1, ordre.length));
+    const nomTour = ordre[tourIdx] || '?';
+    const estTourCompagnon = nomTour.startsWith('cmp_');
+    const ordreHtml = ordre.length > 0
+        ? `<div style="margin-bottom:6px;font-size:0.85em;color:#888;">Ordre : ${ordre.map((n,i) => {
+            const label = n.startsWith('cmp_') ? '🐾' + n.slice(4) : n;
+            return `<span style="color:${i===tourIdx?'#4caf50':'#666'}">${label}</span>`;
+          }).join(' → ')}</div>`
+        : '';
+
+    // Contrôles compagnon si c'est son tour
+    const cmpId = estTourCompagnon ? nomTour.slice(4) : null;
+    const cmpControlesHtml = estTourCompagnon ? `
+        <div style="background:#1a1a0a;border:1px solid #8b6914;border-radius:6px;padding:10px;margin-bottom:10px;">
+            <div style="color:#d4af37;font-size:0.85em;margin-bottom:6px;">🐾 Tour du compagnon de <strong>${cmpId}</strong></div>
+            <div style="display:grid;grid-template-columns:repeat(3,42px);gap:4px;justify-content:center;">
+                <div></div>
+                <button onclick="mjDeplacerCompagnon('${cmpId}',0,-1)" style="width:42px;height:42px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;border-radius:6px;cursor:pointer;font-size:1.2em;">↑</button>
+                <div></div>
+                <button onclick="mjDeplacerCompagnon('${cmpId}',-1,0)" style="width:42px;height:42px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;border-radius:6px;cursor:pointer;font-size:1.2em;">←</button>
+                <div style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;color:#d4af37;font-size:1.3em;">🐾</div>
+                <button onclick="mjDeplacerCompagnon('${cmpId}',1,0)"  style="width:42px;height:42px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;border-radius:6px;cursor:pointer;font-size:1.2em;">→</button>
+                <div></div>
+                <button onclick="mjDeplacerCompagnon('${cmpId}',0,1)"  style="width:42px;height:42px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;border-radius:6px;cursor:pointer;font-size:1.2em;">↓</button>
+                <div></div>
+            </div>
+            <button onclick="mjPasserTourCompagnon()" style="background:#222;color:#666;border:1px solid #444;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:8px;display:block;margin-left:auto;margin-right:auto;">⏭ Passer le tour</button>
+        </div>` : '';
+
+    sec.innerHTML = `
+        <div style="color:#9c7fd4;font-size:1.1em;font-weight:bold;margin-bottom:10px;">🗺 Donjon actif</div>
+        ${rencontreHtml}
+        ${ordreHtml}
+        ${cmpControlesHtml}
+        ${grilleHtml}
+        <div style="border-top:1px solid #2a2010;padding-top:6px;margin-bottom:10px;">
+            <div style="color:#666;font-size:0.75em;margin-bottom:4px;">Journal</div>
+            <div style="max-height:120px;overflow-y:auto;">${logEntries}</div>
+        </div>
+        ${_mjBuilderDonnerClefHtml(data)}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button onclick="mjGererDonjon()" style="background:#1a1a2a;color:#9c7fd4;border:1px solid #5c3a9d;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">🔄 Rafraîchir</button>
+            <button onclick="mjTogglePauseDonjon()" style="background:${data.pause ? '#2a1a00' : '#1a1a00'};color:${data.pause ? '#f0b429' : '#888'};border:1px solid ${data.pause ? '#8b6914' : '#444'};padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">${data.pause ? '▶ Reprendre' : '⏸ Pause'}</button>
+            <button onclick="mjTerminerDonjon()" style="background:#3a0000;color:#ff6b6b;border:1px solid #8b0000;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">🏁 Terminer le donjon</button>
+        </div>
+    `;
+}
+
+// ── BUILDER ──────────────────────────────────────────────────
+
+function _mjAfficherBuilderDonjon(sec) {
+    // Init brouillon si nécessaire
+    if (!window._donjonBrouillon) {
+        window._donjonBrouillon = _creerGrilleDonjon(10, 8);
+    }
+    // Mode par défaut : sol (sinon le clic sur une cellule sans mode sélectionné crée un event invalide)
+    if (!window._donjonModeEdit) window._donjonModeEdit = 'sol';
+
+    sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+function _creerGrilleDonjon(larg, haut) {
+    const grille = {};
+    for (let y = 0; y < haut; y++) {
+        for (let x = 0; x < larg; x++) {
+            // Bordure = mur, intérieur = mur par défaut (MJ peint en sol)
+            grille[`${x}_${y}`] = { type: 'mur' };
+        }
+    }
+    return { largeur: larg, hauteur: haut, grille, depart: { x: 1, y: 1 } };
+}
+
+function _mjBuilderDonjonHtml() {
+    const b = window._donjonBrouillon;
+    const modes = [
+        { id: 'sol',        label: '🟫 Sol',        color: '#3a2e20' },
+        { id: 'mur',        label: '🧱 Mur',        color: '#2a2a2a' },
+        { id: 'porte',      label: '🚪 Porte',      color: '#5c3a00' },
+        { id: 'coffre',     label: '📦 Coffre',     color: '#0d2a0d' },
+        { id: 'piege',      label: '🪤 Piège',      color: '#2a0d0d' },
+        { id: 'decouverte', label: '🔎 Découverte', color: '#0d1a2a' },
+        { id: 'rencontre',  label: '👹 Rencontre',  color: '#2a0d0d' },
+        { id: 'depart',     label: '📍 Départ',     color: '#1a3a1a' },
+    ];
+    const modeBtns = modes.map(m => {
+        const actif = window._donjonModeEdit === m.id;
+        return `<button onclick="mjSetModeDonjon('${m.id}')" style="background:${actif ? m.color : '#111'};color:${actif ? '#fff' : '#888'};border:1px solid ${actif ? '#9c7fd4' : '#333'};padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.78em;">${m.label}</button>`;
+    }).join('');
+
+    // Boutons présets
+    const presetBtns = typeof DONJON_PRESETS !== 'undefined'
+        ? Object.entries(DONJON_PRESETS).map(([id, p]) =>
+            `<button onclick="mjChargerPreset('${id}')" style="background:#111;color:#9c7fd4;border:1px solid #5c3a9d;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:0.78em;">${p.nom}</button>`
+          ).join('')
+        : '';
+
+    return `
+        <div style="color:#9c7fd4;font-size:1.1em;font-weight:bold;margin-bottom:10px;">🗺 Éditeur de Donjon</div>
+
+        <!-- Cartes préenregistrées -->
+        ${presetBtns ? `<div style="margin-bottom:10px;"><div style="color:#666;font-size:0.75em;margin-bottom:4px;">Cartes préenregistrées :</div><div style="display:flex;gap:5px;flex-wrap:wrap;">${presetBtns}</div></div>` : ''}
+
+        <!-- Taille -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+            <label style="color:#aaa;font-size:0.85em;">Largeur</label>
+            <input id="donjon-larg" type="number" min="5" max="20" value="${b.largeur}" style="width:50px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:3px;">
+            <label style="color:#aaa;font-size:0.85em;">Hauteur</label>
+            <input id="donjon-haut" type="number" min="5" max="20" value="${b.hauteur}" style="width:50px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:3px;">
+            <button onclick="mjRedimensionnerDonjon()" style="background:#222;color:#9c7fd4;border:1px solid #5c3a9d;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.82em;">Créer</button>
+            <button onclick="mjResetDonjon()" style="background:#222;color:#666;border:1px solid #444;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.82em;">🗑 Reset</button>
+        </div>
+
+        <!-- Modes de peinture -->
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">${modeBtns}</div>
+        <div id="donjon-event-form" style="margin-bottom:8px;"></div>
+
+        <!-- Grille éditable -->
+        <div id="donjon-builder-grille" style="margin:0 auto 10px;cursor:crosshair;"></div>
+
+        <!-- Lancer -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+            <button onclick="mjLancerDonjon()" style="background:#1a0d2a;color:#9c7fd4;border:1px solid #5c3a9d;padding:7px 18px;border-radius:4px;cursor:pointer;font-size:0.9em;">🚀 Lancer le donjon</button>
+        </div>
+    `;
+}
+
+function mjSetModeDonjon(mode) {
+    window._donjonModeEdit = mode;
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+    // Formulaire événement si besoin
+    if (['piege','decouverte','rencontre','porte','coffre'].includes(mode)) {
+        _mjAfficherFormulaireEvent(mode);
+    }
+}
+
+function _mjAfficherFormulaireEvent(mode) {
+    const form = document.getElementById('donjon-event-form');
+    if (!form) return;
+    const styles = 'background:#111;color:#fff;border:1px solid #444;padding:3px 8px;border-radius:3px;font-size:0.82em;';
+    let html = `<div style="background:#1a1a2a;border:1px solid #5c3a9d;padding:8px;border-radius:6px;font-size:0.82em;color:#aaa;">`;
+    if (mode === 'piege') {
+        html += `<strong style="color:#ff6b6b;">Piège</strong><br>
+            <div style="margin-bottom:4px;">
+                Description : <input id="ev-desc" type="text" placeholder="Dalle piégée…" style="${styles}width:160px;">
+            </div>
+            <div style="margin-bottom:4px;">
+                Dégâts PV : <input id="ev-degats" type="number" value="8" min="1" max="99" style="${styles}width:50px;">
+                &nbsp; Difficulté : <input id="ev-difficulte" type="number" value="50" min="1" max="100" style="${styles}width:50px;">
+                <span style="color:#555;font-size:0.85em;">(1=facile, 100=très dur)</span>
+            </div>
+            <div>
+                Type de dégât :
+                <select id="ev-type-degat" style="${styles}">
+                    <option value="normal">🪤 Normal</option>
+                    <option value="poison">☠️ Poison</option>
+                    <option value="feu">🔥 Feu</option>
+                    <option value="elec">⚡ Électrique</option>
+                </select>
+                <span style="color:#555;font-size:0.85em;margin-left:4px;">Poison = effet/tour × 3, Élec = étourdi 1 tour, Feu = brûlure bonus</span>
+            </div>`;
+    } else if (mode === 'decouverte') {
+        html += `<strong style="color:#2196f3;">Découverte</strong><br>
+            Texte : <input id="ev-desc" type="text" placeholder="Une inscription sur le mur…" style="${styles}width:250px;">`;
+    } else if (mode === 'rencontre') {
+        html += `<strong style="color:#ff9800;">Rencontre</strong><br>
+            Description : <input id="ev-desc" type="text" placeholder="Des gobelins surgissent !" style="${styles}width:220px;">`;
+    } else if (mode === 'porte') {
+        html += `<strong style="color:#d4af37;">Porte</strong><br>
+            <div style="margin-top:4px;">
+                Clef requise : <input id="ev-cle-requise" type="text" placeholder="cle_tour_nord (vide = aucune)" style="${styles}width:200px;">
+                <span style="color:#555;font-size:0.85em;display:block;margin-top:2px;">Si rempli → porte toujours verrouillée, ouvrable uniquement avec cette clef (ou de force)</span>
+            </div>
+            <div style="margin-top:6px;">
+                Prob. verrouillée <em style="color:#555;">(sans clef)</em> : <input id="ev-prob-verrou-porte" type="number" min="0" max="100" value="30" style="${styles}width:55px;"> %
+                &nbsp; Durabilité : <input id="ev-durabilite-porte" type="number" min="10" max="100" value="30" style="${styles}width:50px;">
+            </div>`;
+    } else if (mode === 'coffre') {
+        html += `<strong style="color:#4caf50;">Coffre</strong><br>
+            Probabilité verrouillé : <input id="ev-prob-verrou" type="number" min="0" max="100" value="30" style="${styles}width:55px;"> %
+            &nbsp; Durabilité : <input id="ev-durabilite" type="number" min="10" max="100" value="20" style="${styles}width:50px;">
+            <span style="color:#555;font-size:0.9em;margin-left:6px;">(si verrouillé)</span>`;
+    }
+    html += '</div>';
+    form.innerHTML = html;
+}
+
+function _mjRendreGrilleBuilder() {
+    const container = document.getElementById('donjon-builder-grille');
+    if (!container || !window._donjonBrouillon) return;
+    const b = window._donjonBrouillon;
+    const cellPx = Math.max(18, Math.min(30, Math.floor(460 / b.largeur)));
+
+    container.style.cssText = `display:grid;grid-template-columns:repeat(${b.largeur},${cellPx}px);gap:1px;background:#111;padding:4px;border:1px solid #333;border-radius:4px;width:fit-content;`;
+    container.innerHTML = '';
+
+    for (let y = 0; y < b.hauteur; y++) {
+        for (let x = 0; x < b.largeur; x++) {
+            const key  = `${x}_${y}`;
+            const cell = b.grille[key] || { type: 'mur' };
+            const isMur = cell.type === 'mur';
+            const isDepart = b.depart?.x === x && b.depart?.y === y;
+
+            const div = document.createElement('div');
+            div.style.cssText = `width:${cellPx}px;height:${cellPx}px;display:flex;align-items:center;justify-content:center;font-size:${Math.max(8,cellPx-12)}px;box-sizing:border-box;`;
+
+            if (isDepart) {
+                div.style.background = '#1a3a1a';
+                div.textContent = '📍';
+            } else if (isMur) {
+                div.style.background = '#2a2a2a';
+                div.style.border = '1px solid #1a1a1a';
+            } else {
+                div.style.background = '#3a2e20';
+                div.style.border = '1px solid #4a3a28';
+                if (cell.event) {
+                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎' };
+                    div.textContent = icones[cell.event.type] || '';
+                }
+            }
+
+            div.addEventListener('click', () => _mjCelluleCliquee(x, y));
+            container.appendChild(div);
+        }
+    }
+}
+
+function _mjCelluleCliquee(x, y) {
+    const b   = window._donjonBrouillon;
+    if (!b) return;
+    const key  = `${x}_${y}`;
+    const mode = window._donjonModeEdit;
+    if (!mode) return; // Aucun mode sélectionné
+
+    if (mode === 'sol') {
+        b.grille[key] = { type: 'sol' };
+    } else if (mode === 'mur') {
+        b.grille[key] = { type: 'mur' };
+    } else if (mode === 'depart') {
+        // Mettre la case en sol et définir le départ
+        b.grille[key] = { type: 'sol' };
+        b.depart = { x, y };
+    } else {
+        // Event : la case devient sol + event
+        b.grille[key] = { type: 'sol', event: _mjLireFormulaireEvent(mode) };
+    }
+
+    _mjRendreGrilleBuilder();
+}
+
+function _mjLireFormulaireEvent(mode) {
+    const event = { type: mode, declenche: false, data: {} };
+    const desc       = document.getElementById('ev-desc');
+    const degats     = document.getElementById('ev-degats');
+    const verrou     = document.getElementById('ev-verrou');
+    const probVerrou = document.getElementById('ev-prob-verrou');
+    const durabilite = document.getElementById('ev-durabilite');
+    if (desc)       event.data.description = desc.value || '';
+    if (desc && mode === 'decouverte') event.data.texte = desc.value || '';
+    if (degats)     event.data.degats      = parseInt(degats.value) || 8;
+    if (verrou)     event.data.verrouille  = verrou.checked; // legacy (non-porte)
+    const typeDegat  = document.getElementById('ev-type-degat');
+    const difficulte = document.getElementById('ev-difficulte');
+    if (typeDegat)  event.data.type_degat  = typeDegat.value || 'normal';
+    if (difficulte) event.data.difficulte  = Math.min(100, Math.max(1, parseInt(difficulte.value) || 50));
+    const cleRequise      = document.getElementById('ev-cle-requise');
+    const probVerrouPorte = document.getElementById('ev-prob-verrou-porte');
+    const durabilitePorte = document.getElementById('ev-durabilite-porte');
+    if (cleRequise)      event.data.cleRequise  = cleRequise.value.trim() || null;
+    if (probVerrouPorte) event.data.probVerrou  = Math.min(100, Math.max(0, parseInt(probVerrouPorte.value) || 30));
+    if (durabilitePorte) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilitePorte.value) || 30));
+    if (probVerrou) event.data.probVerrou  = Math.min(100, Math.max(0, parseInt(probVerrou.value) || 30));
+    if (durabilite) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilite.value) || 20));
+    return event;
+}
+
+function mjRedimensionnerDonjon() {
+    const larg = Math.min(20, Math.max(5, parseInt(document.getElementById('donjon-larg')?.value) || 10));
+    const haut = Math.min(20, Math.max(5, parseInt(document.getElementById('donjon-haut')?.value) || 8));
+    window._donjonBrouillon = _creerGrilleDonjon(larg, haut);
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+function mjResetDonjon() {
+    window._donjonBrouillon = null;
+    window._donjonModeEdit = 'sol';
+    mjGererDonjon();
+}
+
+/** Charge une carte pré-enregistrée dans le brouillon. */
+function mjChargerPreset(nom) {
+    if (typeof DONJON_PRESETS === 'undefined' || !DONJON_PRESETS[nom]) return;
+    if (!confirm(`Charger la carte "${DONJON_PRESETS[nom].nom}" ? Le brouillon actuel sera remplacé.`)) return;
+    window._donjonBrouillon = _parseDonjonPreset(DONJON_PRESETS[nom]);
+    window._donjonModeEdit = 'sol';
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+/** Lance le donjon : écrit dans Firebase et initialise les positions des joueurs. */
+function mjLancerDonjon() {
+    const b = window._donjonBrouillon;
+    if (!b) return;
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
+        const joueurs = snap.val() || {};
+        const ids = Object.keys(joueurs);
+        if (ids.length === 0) {
+            if (typeof _toast === 'function') _toast('Aucun joueur connecté.', 'error');
+            return;
+        }
+
+        // Filtrer le MJ (pas de perso jouable dans le donjon)
+        const joueurIds = ids.filter(id => !joueurs[id]?.estMJ);
+
+        // Positions initiales : tous au point de départ (joueurs + compagnons)
+        const positions = {};
+        const depart = { x: b.depart?.x || 1, y: b.depart?.y || 1 };
+        joueurIds.forEach(id => { positions[id] = { ...depart }; });
+        joueurIds.forEach(id => {
+            if (joueurs[id]?.compagnon?.nom) {
+                positions[`cmp_${id}`] = { ...depart };
+            }
+        });
+
+        // Ordre de jeu : joueurs + compagnons, tri par DX décroissant
+        const getDX = (id) => {
+            const j = joueurs[id];
+            return (j?.statsBase?.DX || 8) + (j?.statsInvesties?.DX || 0);
+        };
+        const getDXCmp = (id) => {
+            const cmp = joueurs[id]?.compagnon;
+            return cmp?.DX || 8;
+        };
+
+        const entrees = [];
+        joueurIds.forEach(id => {
+            entrees.push({ id, dx: getDX(id) });
+            if (joueurs[id]?.compagnon?.nom) {
+                entrees.push({ id: `cmp_${id}`, dx: getDXCmp(id) });
+            }
+        });
+        entrees.sort((a, b2) => b2.dx - a.dx);
+        const ordre = entrees.map(e => e.id);
+
+        const payload = {
+            largeur:       b.largeur,
+            hauteur:       b.hauteur,
+            grille:        b.grille,
+            positions,
+            ordre_joueurs: ordre,
+            tour_actuel:   0,
+            log:           {}
+        };
+
+        db.ref('parties/' + sessionActuelle + '/donjon_actif').set(payload).then(() => {
+            if (typeof _toast === 'function') _toast('🗺 Donjon lancé !', 'success');
+            mjGererDonjon();
+        });
+    });
+}
+
+/** Bascule la pause du donjon. */
+function mjTogglePauseDonjon() {
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/pause').once('value', snap => {
+        const enPause = !!snap.val();
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/pause').set(!enPause).then(() => {
+            if (typeof _toast === 'function') _toast(enPause ? '▶ Jeu repris.' : '⏸ Jeu en pause.', 'info');
+            mjGererDonjon();
+        });
+    });
+}
+
+/** Termine le donjon : supprime la clé Firebase. */
+function mjTerminerDonjon() {
+    if (!confirm('Terminer le donjon ? Les joueurs seront renvoyés à l\'accueil.')) return;
+    db.ref('parties/' + sessionActuelle + '/donjon_actif').remove().then(() => {
+        window._donjonBrouillon = null;
+        if (typeof _toast === 'function') _toast('🏁 Donjon terminé.', 'info');
+        mjGererDonjon();
+    });
+}
+
+/** Lance un combat depuis une rencontre en attente dans le donjon. */
+function mjLancerCombatRencontre() {
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').once('value', snap => {
+        const r = snap.val();
+        if (!r) { if (typeof _toast === 'function') _toast('Aucune rencontre active.', 'error'); return; }
+        // Stocker le contexte pour l'onglet combat
+        window._rencontreDonjonContexte = r.description || 'Rencontre !';
+        // Effacer la rencontre en attente
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').remove();
+        // Basculer sur l'onglet combat
+        if (typeof switchOngletMJ === 'function') switchOngletMJ('combat');
+    });
+}
+
+/** Ignore une rencontre en attente. */
+function mjIgnorerRencontre() {
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/rencontre_en_attente').remove().then(() => {
+        mjGererDonjon();
+    });
+}
+
+/** Déplace un compagnon (MJ) dans le donjon. */
+function mjDeplacerCompagnon(joueurId, dx, dy) {
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+    ref.once('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        const cmpKey = `cmp_${joueurId}`;
+        const pos = data.positions?.[cmpKey] || { x: 1, y: 1 };
+        const nx = pos.x + dx;
+        const ny = pos.y + dy;
+
+        if (nx < 0 || nx >= (data.largeur || 10) || ny < 0 || ny >= (data.hauteur || 8)) return;
+
+        const cellKey = `${nx}_${ny}`;
+        const cell = data.grille?.[cellKey];
+        if (!cell || cell.type === 'mur') {
+            if (typeof _toast === 'function') _toast('🧱 Passage bloqué.', 'error');
+            return;
+        }
+
+        const ordre = data.ordre_joueurs || [];
+        const tourIdx = Math.max(0, (data.tour_actuel || 0) % Math.max(1, ordre.length));
+        const nextTour = (tourIdx + 1) % Math.max(1, ordre.length);
+
+        const logKey = 'log_' + Date.now();
+        const updates = {};
+        updates[`positions/${cmpKey}`] = { x: nx, y: ny };
+        updates['tour_actuel'] = nextTour;
+        updates[`log/${logKey}`] = { texte: `🐾 Compagnon de ${joueurId} se déplace en (${nx},${ny}).`, timestamp: Date.now() };
+
+        ref.update(updates).then(() => mjGererDonjon());
+    });
+}
+
+/** Passe le tour du compagnon actuel (MJ). */
+function mjPasserTourCompagnon() {
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+    ref.once('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        const ordre = data.ordre_joueurs || [];
+        const tourIdx = Math.max(0, (data.tour_actuel || 0) % Math.max(1, ordre.length));
+        const nextTour = (tourIdx + 1) % Math.max(1, ordre.length);
+        ref.update({ tour_actuel: nextTour }).then(() => mjGererDonjon());
+    });
 }

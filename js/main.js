@@ -133,7 +133,7 @@ function cacherTout() {
             'ecran-accueil', 'ecran-creation', 'ecran-fiche',
             'ecran-inventaire', 'ecran-fouille', 'ecran-marchand',
             'ecran-craft', 'ecran-aide', 'ecran-codex', 'ecran-mj',
-            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil', 'ecran-compagnons', 'ecran-combat'
+            'ecran-carte', 'ecran-groupe', 'ecran-magie-accueil', 'ecran-compagnons', 'ecran-combat', 'ecran-donjon'
         ].map(id => document.getElementById(id)).filter(Boolean);
     }
     _ecransCache.forEach(el => el.style.display = 'none');
@@ -145,6 +145,7 @@ function allerAccueil() {
     const ecran = document.getElementById('ecran-accueil');
     if (ecran) ecran.style.display = 'block';
     rafraichirAccueil();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 }
 
 function lancerD20Accueil() {
@@ -598,19 +599,16 @@ function ouvrirPatchNotes() {
 
     contenu.innerHTML = `
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
-            <h3 style="color:#7c4dff;margin:0 0 10px;font-size:1em;">🔮 En développement</h3>
-            <ul style="margin:0;padding-left:18px;color:#ccc;">
-                <li><strong style="color:#b39ddb;">C — Système de Quêtes :</strong> journal joueur, validation MJ, distribution XP + or</li>
-                <li><strong style="color:#b39ddb;">D — Exploration de Donjon :</strong> déplacement sur carte, portes, pièges, coffres, rencontres</li>
-            </ul>
-        </div>
-        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.6 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Bénédictions, armes rapides, magie temporaire</p>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon, quêtes, bénédictions, armes rapides, magie temporaire</p>
             <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#9c7fd4;">🗺 Système de Donjon</strong> — MJ crée la grille (sol/mur, événements) et la lance ; joueurs se déplacent tour par tour avec brouillard de guerre ; pièges, coffres, découvertes, rencontres ; journal temps réel</li>
+                <li><strong style="color:#4caf50;">📜 Système de Quêtes</strong> — MJ : créer/valider/échouer depuis le Codex ; joueur : journal avec statuts colorés ; récompenses XP + or distribuées automatiquement</li>
                 <li><strong style="color:#ffd700;">✨ Bénédictions & Malédictions</strong> — le MJ attribue des effets (stats, PV/FT, compétences) à un ou tous les joueurs ; badges colorés sur l'accueil et la fiche</li>
                 <li><strong style="color:#f0b429;">⚡ Armes & sorts rapides</strong> — dague, couteau, rapière, revolver, fusil à répétition et le sort Blessure permettent d'attaquer deux fois par tour</li>
                 <li><strong style="color:#80cbc4;">✨ Magie temporaire</strong> — sorts de stat (Force de la Terre, Agilité du Feu, Vitalité de l'Air, Pureté de l'Eau, Main de fer) appliquent un buff 3 tours, rapides et XP +2</li>
+                <li>Fiche magie : sorts sans effet mécanique marqués <em>*</em> dans la liste d'apprentissage</li>
+                <li>Quêtes : protection contre le doublon (impossible de donner deux fois la même quête en cours)</li>
                 <li>Vol à la tire : recherche, catégories, objets de quête, or libre ; formule DX×3 + comp×4</li>
                 <li>Sort bloqué : message précis (niveau requis / intelligence requise)</li>
                 <li>Fiche : stats capées à 0 pour les malédictions ; charge max = 5 + FO×2</li>
@@ -635,6 +633,197 @@ function ouvrirPatchNotes() {
                 <li>Ordre de jeu DX, sorts/consommables en combat, critiques, éléments</li>
             </ul>
         </div>`;
+
+    modal.style.display = 'flex';
+}
+
+/** Rétro-compatibilité : anciens appels vers ouvrirJournalQuetes() */
+function ouvrirJournalQuetes() { ouvrirJournal('quetes'); }
+
+/**
+ * Ouvre le journal à l'onglet demandé.
+ * @param {'quetes'|'effets'|'antecedent'|'stats'} onglet
+ */
+function ouvrirJournal(onglet) {
+    const modal   = document.getElementById('modal-journal');
+    const contenu = document.getElementById('journal-contenu');
+    if (!modal || !contenu) return;
+
+    // Surligner l'onglet actif
+    ['quetes', 'effets', 'antecedent', 'stats'].forEach(id => {
+        const btn = document.getElementById('jt-' + id);
+        if (!btn) return;
+        const actif = id === onglet;
+        btn.style.color           = actif ? '#b39ddb' : '#666';
+        btn.style.borderBottomColor = actif ? '#7c4dff' : 'transparent';
+        btn.style.fontWeight      = actif ? 'bold' : 'normal';
+    });
+
+    if (onglet === 'quetes') {
+        const myID = (window.perso?.nom || '').replace(/\s+/g, '_');
+        const quetes = window._quetesActives || {};
+        const mesMissions = Object.entries(quetes).filter(([, q]) => {
+            if (q.statut === 'cachee') return false;
+            const liste = q.joueurs || [];
+            return liste.length === 0 || liste.includes(myID);
+        });
+
+        // Tri courant : 'statut_asc' (défaut), 'statut_desc', 'date_asc', 'date_desc'
+        if (!window._journalSortMode) window._journalSortMode = 'statut_asc';
+        const sortMode = window._journalSortMode;
+        const [sortCle, sortDir] = sortMode.split('_'); // 'statut'/'date' + 'asc'/'desc'
+
+        if (sortCle === 'date') {
+            mesMissions.sort(([, a], [, b]) =>
+                sortDir === 'asc'
+                    ? (a.timestamp || 0) - (b.timestamp || 0)
+                    : (b.timestamp || 0) - (a.timestamp || 0)
+            );
+        } else {
+            const ordre = { en_cours: 0, validee: 1, echouee: 2 };
+            mesMissions.sort(([, a], [, b]) =>
+                sortDir === 'asc'
+                    ? (ordre[a.statut] || 0) - (ordre[b.statut] || 0)
+                    : (ordre[b.statut] || 0) - (ordre[a.statut] || 0)
+            );
+        }
+
+        // Cliquer sur le bouton actif inverse la direction ; sinon bascule sur ce critère en asc
+        const _mkSortClick = (cle) => {
+            if (sortCle === cle) return `${cle}_${sortDir === 'asc' ? 'desc' : 'asc'}`;
+            return `${cle}_asc`;
+        };
+        const _arrow = (cle) => sortCle === cle ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+        const _actif = (cle) => sortCle === cle;
+
+        const btnStatut = `<button onclick="window._journalSortMode='${_mkSortClick('statut')}';ouvrirJournal('quetes')"
+            style="padding:4px 12px;border:none;border-radius:4px;cursor:pointer;
+            background:${_actif('statut')?'#7c4dff':'#333'};
+            color:${_actif('statut')?'#fff':'#aaa'};font-size:0.8em;">Statut${_arrow('statut')}</button>`;
+        const btnDate = `<button onclick="window._journalSortMode='${_mkSortClick('date')}';ouvrirJournal('quetes')"
+            style="padding:4px 12px;border:none;border-radius:4px;cursor:pointer;
+            background:${_actif('date')?'#7c4dff':'#333'};
+            color:${_actif('date')?'#fff':'#aaa'};font-size:0.8em;">Date${_arrow('date')}</button>`;
+        const sortBar = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#666;font-size:0.8em;">
+            Trier par : ${btnStatut}${btnDate}
+        </div>`;
+
+        if (mesMissions.length === 0) {
+            contenu.innerHTML = sortBar + `<p style="color:#555;text-align:center;padding:20px;">Aucune quête en cours.</p>`;
+        } else {
+            const cartes = mesMissions.map(([, q]) => {
+                const valide = q.statut === 'validee';
+                const echoue = q.statut === 'echouee';
+                const badge  = valide ? '✅' : echoue ? '❌' : '🔵';
+
+                if (valide) {
+                    return `<div style="border:1px solid #2e7d32;border-radius:8px;padding:12px;margin-bottom:10px;background:rgba(46,125,50,0.12);">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span>${badge}</span>
+                            <strong style="color:#4caf50;">${q.nom}</strong>
+                        </div>
+                        <div style="font-size:0.8em;color:#388e3c;margin-bottom:4px;">Donné par : <em>${q.donneur || '—'}</em></div>
+                        <div style="color:#66bb6a;font-size:0.85em;">${q.resume || ''}</div>
+                    </div>`;
+                } else if (echoue) {
+                    return `<div style="border:1px solid #7f1010;border-radius:8px;padding:12px;margin-bottom:10px;background:rgba(100,0,0,0.15);">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span>${badge}</span>
+                            <strong style="color:#e53935;text-decoration:line-through;">${q.nom}</strong>
+                        </div>
+                        <div style="font-size:0.8em;color:#c62828;margin-bottom:4px;text-decoration:line-through;">Donné par : <em>${q.donneur || '—'}</em></div>
+                        <div style="color:#ef9a9a;font-size:0.85em;text-decoration:line-through;">${q.resume || ''}</div>
+                    </div>`;
+                } else {
+                    return `<div style="border:1px solid #d4af37;border-radius:8px;padding:12px;margin-bottom:10px;background:#0a0f0a;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span>${badge}</span>
+                            <strong style="color:#d4af37;">${q.nom}</strong>
+                        </div>
+                        <div style="font-size:0.8em;color:#666;margin-bottom:4px;">Donné par : <em>${q.donneur || '—'}</em></div>
+                        <div style="color:#aaa;font-size:0.85em;">${q.resume || ''}</div>
+                    </div>`;
+                }
+            }).join('');
+            contenu.innerHTML = sortBar + cartes;
+        }
+
+    } else if (onglet === 'effets') {
+        const effets = window.perso?.effets_actifs;
+        if (!effets || Object.keys(effets).length === 0) {
+            contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Aucun effet actif.</p>`;
+        } else {
+            contenu.innerHTML = Object.entries(effets).map(([, e]) => {
+                const estBen   = e.type === 'benediction';
+                const couleur  = estBen ? '#ffd700' : '#ce93d8';
+                const bg       = estBen ? 'rgba(255,215,0,0.07)' : 'rgba(156,39,176,0.1)';
+                const bord     = estBen ? '#7a6000' : '#6a1b8a';
+                const statsStr = [
+                    ...Object.entries(e.stats || {}).filter(([, v]) => v !== 0).map(([k, v]) => `${k} ${v > 0 ? '+' + v : v}`),
+                    ...(e.pvBonus ? [`PV ${e.pvBonus > 0 ? '+' + e.pvBonus : e.pvBonus}`] : []),
+                    ...(e.ftBonus ? [`FT ${e.ftBonus > 0 ? '+' + e.ftBonus : e.ftBonus}`] : []),
+                    ...Object.entries(e.comps || {}).filter(([, v]) => v !== 0).map(([k, v]) => `${k} ${v > 0 ? '+' + v : v}`)
+                ].join(' · ');
+                return `<div style="border:1px solid ${bord};border-radius:8px;padding:12px;margin-bottom:10px;background:${bg};">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                        <span style="font-size:1.2em;">${e.icone || (estBen ? '✨' : '💀')}</span>
+                        <strong style="color:${couleur};">${e.nom}</strong>
+                        <span style="font-size:0.75em;color:#666;">${estBen ? 'Bénédiction' : 'Malédiction'}</span>
+                    </div>
+                    ${statsStr ? `<div style="color:#aaa;font-size:0.82em;">${statsStr}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+    } else if (onglet === 'antecedent') {
+        const p  = window.perso;
+        if (!p) { contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Aucun personnage chargé.</p>`; }
+        else {
+            const bgData = (typeof backgrounds !== 'undefined') ? backgrounds.find(b => b.nom === p.antecedent) : null;
+            const desc   = bgData?.desc || '—';
+            contenu.innerHTML = `
+                <div style="border:1px solid #5c3a9d;border-radius:8px;padding:14px;background:#0d0a18;">
+                    <div style="font-size:1em;font-weight:bold;color:#b39ddb;margin-bottom:8px;">
+                        ${p.antecedent || 'Inconnu'}
+                    </div>
+                    <div style="color:#ccc;font-size:0.88em;line-height:1.7;">${desc}</div>
+                </div>
+                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82em;">
+                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
+                        <span style="color:#888;">Race</span><br><span style="color:#d4af37;">${p.race || '—'}</span>
+                    </div>
+                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
+                        <span style="color:#888;">Niveau</span><br><span style="color:#d4af37;">${p.niveau || 1}</span>
+                    </div>
+                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
+                        <span style="color:#888;">Alignement</span><br><span style="color:${(p.bonusInnes?.align || 0) >= 0 ? '#4caf50' : '#ff6b6b'};">${(p.bonusInnes?.align || 0) >= 0 ? '⚪ Bien' : '⚫ Mal'} (${p.bonusInnes?.align || 0})</span>
+                    </div>
+                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
+                        <span style="color:#888;">XP total</span><br><span style="color:#d4af37;">${p.xp || 0}</span>
+                    </div>
+                </div>`;
+        }
+
+    } else if (onglet === 'stats') {
+        const p  = window.perso;
+        const sp = p?.stats_partie || {};
+        const ligne = (icone, label, valeur, couleur) =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #1a1a2a;">
+                <span style="color:#888;">${icone} ${label}</span>
+                <span style="color:${couleur || '#d4af37'};font-weight:bold;">${valeur}</span>
+            </div>`;
+        contenu.innerHTML = `
+            <div style="border:1px solid #2a1a4a;border-radius:8px;overflow:hidden;background:#0a0a14;font-size:0.88em;">
+                ${ligne('⚔️', 'Ennemis vaincus',       sp.ennemis_tues   || 0, '#ff6b6b')}
+                ${ligne('❤️', 'Points de vie perdus',   sp.pv_perdus      || 0, '#e57373')}
+                ${ligne('💰', 'Or total accumulé',      sp.or_cumule      || 0, '#ffd700')}
+                ${ligne('🔮', 'Sorts lancés',           sp.sorts_lances   || 0, '#ce93d8')}
+                ${ligne('🗡️', 'Attaques portées',       sp.attaques       || 0, '#ff9800')}
+                ${ligne('🧪', 'Potions utilisées',      sp.potions        || 0, '#4caf50')}
+                ${ligne('🚶', 'Cases parcourues',       sp.cases_parcourues || 0, '#80cbc4')}
+                ${ligne('💀', 'Fois mort(e)',           sp.morts          || 0, '#888')}
+            </div>`;
+    }
 
     modal.style.display = 'flex';
 }
@@ -772,41 +961,9 @@ if (statsBox && window.perso) {
             ${xpLedsHtml}
         `;
     }
-    _afficherEffetsAccueil();
 }
 
-// Affiche les badges bénédictions/malédictions sur l'écran d'accueil
-function _afficherEffetsAccueil() {
-    const zone = document.getElementById('zone-effets-actifs');
-    if (!zone || !window.perso) return;
-    const effets = window.perso.effets_actifs;
-    if (!effets || Object.keys(effets).length === 0) { zone.innerHTML = ''; return; }
-
-    const badges = Object.entries(effets).map(([, e]) => {
-        const estBenediction = e.type === 'benediction';
-        const couleur  = estBenediction ? '#ffd700' : '#9c27b0';
-        const bg       = estBenediction ? 'rgba(255,215,0,0.12)' : 'rgba(156,39,176,0.15)';
-        const bordure  = estBenediction ? '#7a6000' : '#6a1b8a';
-        const statsStr = [
-            ...Object.entries(e.stats || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`),
-            ...(e.pvBonus ? [`PV${e.pvBonus>0?'+'+e.pvBonus:e.pvBonus}`] : []),
-            ...(e.ftBonus ? [`FT${e.ftBonus>0?'+'+e.ftBonus:e.ftBonus}`] : []),
-            ...Object.entries(e.comps || {}).filter(([,v]) => v !== 0).map(([k,v]) => `${k}${v>0?'+'+v:v}`)
-        ].join(' ');
-        return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};
-                    border:1px solid ${bordure};border-radius:12px;padding:3px 10px;
-                    font-size:12px;color:${couleur};"
-                    title="${e.nom}${statsStr ? ' (' + statsStr + ')' : ''}">
-            ${e.icone || (estBenediction ? '✨' : '💀')} ${e.nom}
-            ${statsStr ? `<span style="font-size:10px;opacity:0.8;">${statsStr}</span>` : ''}
-        </span>`;
-    }).join('');
-    zone.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">${badges}</div>`;
-}
-
-        if (typeof synchroniserJoueur === "function") synchroniserJoueur();
-        if (typeof activerRadarGroupeAccueil === "function") activerRadarGroupeAccueil();
-        if (typeof verifierBoutonCraft === "function") verifierBoutonCraft(); 
+        if (typeof verifierBoutonCraft === "function") verifierBoutonCraft();
 
         const btnMagie = document.getElementById('btn-menu-magie');
         if (btnMagie) {
@@ -848,6 +1005,7 @@ function verifierMort() {
     
     if (window.perso.pvActuel <= 0) {
         window.perso.pvActuel = 0;
+        if (!window.perso.estMort) _incStatPartie('morts', 1); // ne compter qu'au moment où ça passe à mort
         window.perso.estMort = true;
         window.perso.poison = null; // La mort efface l'empoisonnement
         document.body.style.filter = "grayscale(100%)";
@@ -1065,6 +1223,18 @@ function reprendrePartie() {
 // ==========================================
 // 5. SAUVEGARDE ET IMPORT/EXPORT
 // ==========================================
+/**
+ * Incrémente un compteur dans window.perso.stats_partie.
+ * Crée le sous-objet si absent.
+ * @param {string} cle   Clé à incrémenter (ex: 'ennemis_tues')
+ * @param {number} delta Valeur à ajouter (défaut 1)
+ */
+function _incStatPartie(cle, delta = 1) {
+    if (!window.perso) return;
+    if (!window.perso.stats_partie) window.perso.stats_partie = {};
+    window.perso.stats_partie[cle] = (window.perso.stats_partie[cle] || 0) + delta;
+}
+
 let _autoSaveTimer = null;
 function autoSave() {
     if (_autoSaveTimer) clearTimeout(_autoSaveTimer);

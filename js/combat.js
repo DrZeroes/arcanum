@@ -34,7 +34,17 @@ function ouvrirEcranCombat() {
 
 function quitterEcranCombat() {
     window.combatActif = null;
-    if (typeof allerAccueil === 'function') allerAccueil();
+    if (window.estMJ) {
+        if (typeof cacherTout === 'function') cacherTout();
+        const ecranMJ = document.getElementById('ecran-mj');
+        if (ecranMJ) ecranMJ.style.display = 'block';
+        if (window.donjonActif && typeof switchOngletMJ === 'function') switchOngletMJ('donjon');
+        else if (typeof switchOngletMJ === 'function') switchOngletMJ('joueurs');
+    } else if (window.donjonActif && typeof ouvrirEcranDonjon === 'function') {
+        ouvrirEcranDonjon();
+    } else if (typeof allerAccueil === 'function') {
+        allerAccueil();
+    }
     if (typeof activerEcouteurMusiqueMJ === 'function') activerEcouteurMusiqueMJ();
 }
 
@@ -591,6 +601,7 @@ function utiliserObjetCombat(cibleId) {
     if (inv[idx].quantite > 1) { inv[idx].quantite--; }
     else { inv.splice(idx, 1); }
     window.perso.inventaire = inv;
+    if (typeof _incStatPartie === 'function' && itemDef.consommable) _incStatPartie('potions', 1);
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 
@@ -821,6 +832,7 @@ function finaliserSortCombat(cibleId, typeCible) {
     }
 
     window.perso.ftActuel -= cout;
+    if (typeof _incStatPartie === 'function') _incStatPartie('sorts_lances', 1);
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 
@@ -1999,7 +2011,12 @@ function lancerAttaqueMelee(instanceId) {
     const degatsFinaux = Math.max(0, degatsBase - armEnnemi);
 
     ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degatsFinaux);
-    _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
+    const _ennemiTue = ennemisMAJ[idx].pvActuel <= 0;
+    _gagnerXP(_ennemiTue ? 6 : 1);
+    if (typeof _incStatPartie === 'function') {
+        _incStatPartie('attaques', 1);
+        if (_ennemiTue) _incStatPartie('ennemis_tues', 1);
+    }
     const armInfo  = armEnnemi > 0 ? ` [armure -${armEnnemi}]` : '';
     const foInfo   = foMod !== 0 ? ` FO(${foMod > 0 ? '+' : ''}${foMod})` : '';
     const critCourt = critLabel.includes('ÉCHEC') ? ' ⚠ ÉCHEC CRITIQUE' : critLabel.includes('CRITIQUE') ? critLabel : '';

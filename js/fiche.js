@@ -562,8 +562,10 @@ function initMagieUI() {
             <button class="btn-stat btn-plus edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
             <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
         magieData[ecole].sorts.forEach((s, i) => {
+            const _implemente = s.degats || s.soin || s.resurrection || s.curePoison || s.buffStat;
+            const _badge = _implemente ? '' : ' <span style="color:#666;font-size:0.75em;font-style:normal;" title="Effet non implémenté dans le jeu">*</span>';
             pane.querySelector(`#spells-${ecole.replace(/\s+/g, '')}`).innerHTML += `<div id="spell-${ecole.replace(/\s+/g, '')}-${i}" class="spell-item">
-                <strong>${s.nom}</strong> (Fatigue: ${s.cout})<br><em>${s.desc}</em></div>`;
+                <strong>${s.nom}</strong>${_badge} (Fatigue: ${s.cout})<br><em>${s.desc}</em></div>`;
         });
         tab.querySelector('.magic-contents').appendChild(pane);
         isFirst = false;

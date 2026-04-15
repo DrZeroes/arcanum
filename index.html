@@ -11,6 +11,27 @@
 <button onclick="toggleMute()" id="btn-audio" style="position:fixed; top:10px; right:10px; z-index:1000;">🔊</button>
 <button onclick="ouvrirPatchNotes()" style="position:fixed;top:10px;left:10px;z-index:1000;background:rgba(30,20,10,0.85);color:#d4af37;border:1px solid #d4af37;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;" title="Notes de mise à jour">ℹ</button>
 
+<!-- Modal Journal (4 onglets) -->
+<div id="modal-journal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#0d0d14;border:2px solid #5c3a9d;border-radius:10px;padding:0;max-width:540px;width:94%;max-height:88vh;overflow:hidden;position:relative;display:flex;flex-direction:column;">
+        <!-- En-tête -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;border-bottom:1px solid #2a1a4a;">
+            <h2 style="color:#b39ddb;margin:0;font-size:1.1em;">📖 Journal</h2>
+            <button onclick="document.getElementById('modal-journal').style.display='none'"
+                style="background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+        </div>
+        <!-- Onglets -->
+        <div id="journal-onglets" style="display:flex;gap:0;border-bottom:1px solid #2a1a4a;">
+            <button onclick="ouvrirJournal('quetes')"   id="jt-quetes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Quêtes</button>
+            <button onclick="ouvrirJournal('effets')"   id="jt-effets"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">✨ Bénédictions</button>
+            <button onclick="ouvrirJournal('antecedent')" id="jt-antecedent" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Antécédent</button>
+            <button onclick="ouvrirJournal('stats')"    id="jt-stats"     style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📊 Statistiques</button>
+        </div>
+        <!-- Contenu -->
+        <div id="journal-contenu" style="overflow-y:auto;padding:16px;color:#ccc;font-size:0.88em;line-height:1.6;flex:1;"></div>
+    </div>
+</div>
+
 <!-- Modal Patch Notes -->
 <div id="modal-patchnotes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#1a120a;border:2px solid #d4af37;border-radius:10px;padding:24px;max-width:520px;width:92%;max-height:80vh;overflow-y:auto;position:relative;">
@@ -24,10 +45,10 @@
 <div id="ecran-accueil" class="app-card" style="text-align: center;">
     <h1 style="color: #d4af37; font-size: 2.5em; margin-bottom: 30px;">ArcanumRP</h1>
 
-    <div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;">
+    <div id="zone-session" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ff9800;">
         <label style="color: #ff9800; display: block; margin-bottom: 5px;">🔑 Groupe de Jeu (Session) :</label>
-        <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" style="width: 100%; background: #222; color: white; border: 1px solid #444; padding: 8px; text-align: center;">
-        <p style="font-size: 0.7em; color: #888; margin-top: 5px;">Entrez le même nom que vos amis pour jouer ensemble.</p>
+        <input type="text" id="input-session" placeholder="Ex: Les_Loups_de_Tarente" style="width: 100%; background: #222; color: white; border: 2px solid #ff9800; padding: 8px; text-align: center; font-size: 1.05em;">
+        <p style="font-size: 0.75em; color: #ff9800; margin-top: 5px; font-weight: bold;">⚠ Obligatoire — entrez le même nom que votre MJ pour rejoindre la partie.</p>
     </div>
 
     <div id="accueil-nouveau-jeu">
@@ -76,9 +97,12 @@
             <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px;">🤝 Compagnons</button>
         </div>
 
+        <div style="margin-top:10px; width:90%; margin-left:auto; margin-right:auto;">
+            <button id="btn-menu-journal" onclick="ouvrirJournal('quetes')" style="background:#1a1428; color:#b39ddb; border:1px solid #5c3a9d; padding:8px 0; border-radius:6px; cursor:pointer; font-size:0.9em; width:100%;">📖 Journal</button>
+        </div>
+
         <!-- Zone vol à la tire : affichée uniquement si le MJ l'autorise -->
         <div id="zone-vol-a-la-tire" style="display:none; width:90%; margin: 10px auto 0;"></div>
-        <div id="zone-effets-actifs" style="width:90%; margin: 8px auto 0;"></div>
 
         <div style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
             <input type="file" id="file-import-alt" accept=".json" style="display:none;" onchange="importerFichier(event)">
@@ -402,7 +426,7 @@
 
 
 <div id="ecran-inventaire" class="app-card" style="display: none; width: 950px; background: #2b1d14; border: 4px solid #111; padding: 20px;">
-        <button onclick="allerAccueil()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour à la fiche</button>
+        <button onclick="fermerInventaire()" style="background: transparent; color: #aaa; border: none; cursor: pointer; margin-bottom: 15px;">← Retour</button>
         
         <h2 style="color: #d4af37; border-bottom: 2px solid #444; padding-bottom: 5px; margin-bottom: 20px;">🎒 Inventaire & Équipement</h2>
         
@@ -538,12 +562,18 @@
         <button onclick="switchOngletMJ('codex-npc')" class="mj-tab-btn">🧙 PNJ</button>
         <button onclick="switchOngletMJ('codex-ennemis')" class="mj-tab-btn">🗡 Ennemis</button>
         <button onclick="switchOngletMJ('codex-musique')" class="mj-tab-btn">🎵 Musiques</button>
+        <button onclick="switchOngletMJ('quetes')" class="mj-tab-btn" style="background:#0d1a0d; color:#4caf50; border-color:#4caf50;">📜 Quêtes</button>
+        <button onclick="switchOngletMJ('donjon')" class="mj-tab-btn" style="background:#0d0d1a; color:#9c7fd4; border-color:#5c3a9d;">🗺 Donjon</button>
         <button onclick="switchOngletMJ('combat')" class="mj-tab-btn" style="background:#5a0000; color:#ff6b6b; border-color:#8b0000;">⚔ Combat</button>
     </div>
 
     <div id="mj-section-joueurs" class="mj-section">
         <div id="mj-liste-joueurs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;"></div>
     </div>
+
+    <div id="mj-section-quetes" class="mj-section" style="display:none;"></div>
+
+    <div id="mj-section-donjon" class="mj-section" style="display:none;"></div>
 
     <div id="mj-section-combat" class="mj-section" style="display:none;"></div>
 
@@ -599,6 +629,40 @@
     <button onclick="document.getElementById('modal-transfert').style.display='none'" style="background:#444; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:5px; width:100%;">❌ Annuler</button>
 </div>
 
+
+<!-- ══════════════════ ÉCRAN DONJON ══════════════════ -->
+<div id="ecran-donjon" class="ecran" style="display:none; flex-direction:column; background:#0d0a06; color:#e0cfa0; padding:10px; max-width:600px;">
+
+    <!-- En-tête -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <h2 style="margin:0; color:#d4af37; font-size:1.1em;">🗺 Donjon</h2>
+        <button onclick="fermerEcranDonjon()" style="background:#3a0000;color:#ff6b6b;border:1px solid #8b0000;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.85em;">✕ Quitter</button>
+    </div>
+
+    <!-- Ordre d'actions -->
+    <div id="donjon-ordre-bar" style="display:flex; overflow-x:auto; gap:4px; padding:4px 0 6px; min-height:28px; scrollbar-width:thin;"></div>
+
+    <!-- Statut du tour -->
+    <div id="donjon-statut" style="text-align:center; font-size:0.88em; margin-bottom:4px; color:#4caf50; font-weight:bold;"></div>
+
+    <!-- Stats HP/FT -->
+    <div id="donjon-stats" style="margin-bottom:6px;"></div>
+
+    <!-- Grille -->
+    <div id="donjon-grille" style="margin:0 auto 6px;"></div>
+
+    <!-- Actions de déplacement (seulement mon tour) -->
+    <div id="donjon-actions" style="text-align:center; min-height:108px;"></div>
+
+    <!-- Soins & Consommables (toujours visibles) -->
+    <div id="donjon-actions-hc"></div>
+
+    <!-- Log -->
+    <div style="margin-top:6px; border-top:1px solid #2a2010; padding-top:6px;">
+        <div style="color:#666; font-size:0.75em; margin-bottom:3px;">Journal</div>
+        <div id="donjon-log" style="max-height:80px; overflow-y:auto;"></div>
+    </div>
+</div>
 
 <div id="ecran-combat" class="ecran" style="display:none; flex-direction:column;">
 
@@ -680,6 +744,7 @@
 <script src="js/racesData.js"></script>
 <script src="js/items.js"></script>
 <script src="js/magie.js"></script>
+<script src="js/quetes.js"></script>
 <script src="js/technologie.js"></script>
 <script src="js/skills.js"></script>
 <script src="js/backgrounds.js"></script>
@@ -691,6 +756,7 @@
 <script src="js/marchand_fouille.js"></script>
 <script src="js/crafting.js"></script>
 <script src="js/carte.js"></script>
+<script src="js/donjon.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/main.js"></script>
 <script src="js/combat.js"></script>

@@ -2,7 +2,7 @@ const magieData = {
     "Déplacement": {
         desc: "Les arcanes du Déplacement regroupent les sortilèges liés aux mouvements et aux déplacements d'",
         sorts: [
-            { nom: "Désarmement", niv: 1, int: 6, cout: 2, desc: " Force la cible à lâcher son arme si elle échoue à résister." },
+            { nom: "Désarmement", niv: 1, int: 6, cout: 2, implemente: true, desc: " Force la cible à lâcher son arme si elle échoue à résister." },
             { nom: "Déverrouillage", niv: 1, int: 9, cout: 5, deverrouillage: true, desc: "Ouvre magiquement les portes et coffres verrouillés (IN×5% de chance, donjon uniquement)." },
             { nom: "Choc", niv: 5, int: 12, cout: 10, degats: 2, desc: "Repousse violemment une cible en arrière." },
             { nom: "Distorsion spatiale", niv: 10, int: 15, cout: 10, buffPersistant: true, desc: "Téléporte un allié : il jouera en PREMIER ou en DERNIER au prochain round (choix)." },
@@ -15,7 +15,7 @@ const magieData = {
             { nom: "Détection de l'alignement", niv: 1, int: 6, cout: 2, desc: "Révèle l’alignement d’une créature." },
             { nom: "Perception du contenu", niv: 1, int: 9, cout: 2, desc: "Permet de voir l’inventaire de la cible." },
             { nom: "Perception de l'aura", niv: 5, int: 12, cout: 5, desc: "Révèle certains attributs cachés de la cible." },
-            { nom: "Détection de l'invisible", niv: 10, int: 15, cout: 10, desc: "Permet de voir créatures et objets invisibles." },
+            { nom: "Détection de l'invisible", niv: 10, int: 15, cout: 10, implemente: true, desc: "Permet de voir créatures et objets invisibles." },
             { nom: "Identification", niv: 15, int: 18, cout: 15, desc: "Identifie toutes les propriétés magiques d’un objet." }
         ]
     },
@@ -72,20 +72,20 @@ const magieData = {
     "Mental": { 
         desc: "Contrôler l'esprit d'une cible faible.", 
         sorts: [
-            { nom: "Charme", niv: 1, int: 6, cout: 5, desc: "Améliore la réaction de la cible envers le lanceur." }, 
-            { nom: "Étourdissement", niv: 1, int: 9, cout: 5, desc: "Étourdit la cible et l’empêche d’agir pendant quelques secondes." }, 
-            { nom: "Absorption de la volonté", niv: 5, int: 12, cout: 10, desc: "Réduit fortement la volonté de la cible pendant la durée du sort." }, 
-            { nom: "Cauchemar", niv: 10, int: 15, cout: 15, desc: "Terrifie les créatures proches qui tentent de fuir." }, 
-            { nom: "Domination", niv: 15, int: 18, cout: 20, desc: "Permet de contrôler totalement l’esprit de la cible." }
+            { nom: "Charme", niv: 1, int: 6, cout: 5, implemente: true, desc: "Améliore la réaction de la cible envers le lanceur." },
+            { nom: "Étourdissement", niv: 1, int: 9, cout: 5, implemente: true, desc: "Étourdit la cible et l’empêche d’agir pendant quelques secondes." },
+            { nom: "Absorption de la volonté", niv: 5, int: 12, cout: 10, implemente: true, desc: "Réduit fortement la volonté de la cible pendant la durée du sort." },
+            { nom: "Cauchemar", niv: 10, int: 15, cout: 15, implemente: true, desc: "Terrifie les créatures proches qui tentent de fuir." },
+            { nom: "Domination", niv: 15, int: 18, cout: 20, implemente: true, desc: "Permet de contrôler totalement l’esprit de la cible." }
         ] 
     },
     "Méta": { 
         desc: "Sortilèges qui ont la primauté sur les autres sortilèges.", 
         sorts: [
             { nom: "Résistance aux sortilèges", niv: 1, int: 6, cout: 5, buffPersistant: true, desc: "+25 RM pendant 3 tours." },
-            { nom: "Dissipation des sortilèges", niv: 1, int: 9, cout:5, desc: "Supprime les sorts actifs sur une cible." }, 
+            { nom: "Dissipation des sortilèges", niv: 1, int: 9, cout: 5, implemente: true, desc: "Supprime les sorts actifs sur une cible." },
             { nom: "Bouclier mystique", niv: 5, int: 12, cout: 10, buffGroupe: true, cout_par_tour: 2, desc: "Réduit de 20% les dégâts magiques reçus par le groupe." },
-            { nom: "Entrave aux sortilèges", niv: 10, int: 15, cout: 15, desc: "Empêche la cible de lancer des sorts." }, 
+            { nom: "Entrave aux sortilèges", niv: 10, int: 15, cout: 15, implemente: true, desc: "Empêche la cible de lancer des sorts." },
             { nom: "Bouclier de réflexion", niv: 15, int: 18, cout: 20, buffPersistant: true, desc: "Réfléchit la prochaine attaque magique reçue vers son lanceur (se brise après usage)." }
         ] 
     },
@@ -93,18 +93,18 @@ const magieData = {
         desc: "Modifier la structure matérielle d'une cible.", 
         sorts: [
             { nom: "Main de fer", niv: 1, int: 6, cout: 5, desc: "Augmente fortement la force de la cible pendant 3 tours.", buffStat: "FO", buffVal: 5, buffDuree: 3, rapide: true },
-            { nom: "Faiblesse", niv: 1, int: 9, cout: 5, desc: "Diminue les caractéristiques physiques de la cible." }, 
-            { nom: "Rétrécissement", niv: 5, int: 12, cout: 10, desc: "Réduit la taille de la cible." }, 
-            { nom: "Pétrification", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en pierre." }, 
+            { nom: "Faiblesse", niv: 1, int: 9, cout: 5, implemente: true, desc: "Diminue les caractéristiques physiques de la cible." },
+            { nom: "Rétrécissement", niv: 5, int: 12, cout: 10, implemente: true, desc: "Réduit la taille de la cible." },
+            { nom: "Pétrification", niv: 10, int: 15, cout: 15, implemente: true, desc: "Transforme la cible en pierre." },
             { nom: "Polymorphie", niv: 15, int: 18, cout: 20, desc: "Transforme la cible en une autre créature." }
         ] 
     },
     "Nature": { 
         desc: "Manipuler les plantes, animaux et forces naturelles.", 
         sorts: [
-            { nom: "Charmer les animaux", niv: 1, int: 6, cout: 5, desc: "Rend les animaux amicaux envers le lanceur." }, 
-            { nom: "Enchevêtrement", niv: 1, int: 9, cout: 5, desc: "Immobilise la cible avec des plantes." }, 
-            { nom: "Contrôler les animaux", niv: 5, int: 12, cout: 10, desc: "Permet de contrôler les animaux proches." }, 
+            { nom: "Charmer les animaux", niv: 1, int: 6, cout: 5, implemente: true, desc: "Rend les animaux amicaux envers le lanceur." },
+            { nom: "Enchevêtrement", niv: 1, int: 9, cout: 5, implemente: true, desc: "Immobilise la cible avec des plantes." },
+            { nom: "Contrôler les animaux", niv: 5, int: 12, cout: 10, implemente: true, desc: "Permet de contrôler les animaux proches." },
             { nom: "Appeler les animaux", niv: 10, int: 15, cout: 15, invocation: true, invocationId: "animal_align", desc: "Invoque un animal allie (stats selon votre alignement magique)." },
             { nom: "Régénération", niv: 15, int: 18, cout: 20, buffGroupe: true, cout_par_tour: 3, desc: "+3 PV à tous les alliés au début de chacun de leur tour." }
         ] 
@@ -133,9 +133,9 @@ const magieData = {
         desc: "Contrôler la lumière et les illusions.", 
         sorts: [
             { nom: "Illumination", niv: 1, int: 6, cout: 5, desc: "Augmente la luminosité autour de la cible." }, 
-            { nom: "Flash", niv: 1, int: 9, cout: 5, desc: "Aveugle temporairement la cible." }, 
+            { nom: "Flash", niv: 1, int: 9, cout: 5, implemente: true, desc: "Aveugle temporairement la cible." },
             { nom: "Occultation", niv: 5, int: 12, cout: 10, buffPersistant: true, desc: "-10% dégâts reçus et +10 esquive pendant 3 tours." },
-            { nom: "Monstre illusoire", niv: 10, int: 15, cout: 15, desc: "Crée un monstre fictif que la cible croit réel." }, 
+            { nom: "Monstre illusoire", niv: 10, int: 15, cout: 15, implemente: true, desc: "Crée un monstre fictif que la cible croit réel." },
             { nom: "Invisibilité", niv: 15, int: 18, cout: 20, buffPersistant: true, desc: "Cible invisible (−4 FT/tour). Disparaît de la liste des cibles ennemies." }
         ] 
     },
@@ -155,7 +155,7 @@ const magieData = {
             { nom: "Verrou magique", niv: 1, int: 6, cout: 2, desc: "Verouille une porte ou un coffre" }, 
             { nom: "Altération temporelle", niv: 1, int: 9, cout: 5, aoeEnnemi: true, cout_par_tour: 1, desc: "ROLL zone : ennemis ratant le jet ont leur vitesse réduite de 50%. Coût FT/tour, annulable." }, 
             { nom: "Hâte", niv: 5, int: 12, cout: 10, buffPersistant: true, desc: "Vitesse ×2 pendant 3 tours." },
-            { nom: "Stase", niv: 10, int: 15, cout: 15, desc: "Immobilise totalement une cible." }, 
+            { nom: "Stase", niv: 10, int: 15, cout: 15, implemente: true, desc: "Immobilise totalement une cible." },
             { nom: "Tempus Fugit", niv: 15, int: 18, cout: 20, aoeEnnemi: true, cout_par_tour: 4, desc: "Alliés ×3 vitesse. ROLL zone sur ennemis : vitesse /2 si raté. Coût FT/tour, annulable." }
         ] 
     }

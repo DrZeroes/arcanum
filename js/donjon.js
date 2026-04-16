@@ -656,6 +656,14 @@ function _afficherPanneauDonjon(data) {
             panel.innerHTML += `<button onclick="_interagirPorteDonjon('${ck}', {x:${maPos.x},y:${maPos.y}}, ${JSON.stringify(cell.event).replace(/"/g, '&quot;')}, '${myID}', window.donjonActif)" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">🚪 Interagir avec la porte</button>`;
         }
     }
+
+    // Bouton Détection de l'invisible si le joueur a Divination >= 4 (sort niv 10)
+    const _divInv = (window.perso?.magieInvesties?.Divination || 0);
+    if (_divInv >= 4) {
+        const _ftDetect = window.perso?.ftActuel || 0;
+        const _disabledDetect = _ftDetect < 10 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
+        panel.innerHTML += `<button onclick="_detectionInvisibleDonjon()" ${_disabledDetect} style="background:#0d1a2a;color:#90caf9;border:1px solid #42a5f5;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">👁 Détection (FT 10)</button>`;
+    }
 }
 
 function _styleBtnDonjon() {
@@ -935,6 +943,58 @@ function _deverrouillageCofreDonjon(cellKey) {
         if (typeof _toast === 'function') _toast(`❌ Déverrouillage échoué (${roll}/${chance}%).`, 'error');
         _logDonjon(`❌ ${nom} échoue à déverrouiller le coffre (${roll}/${chance}%).`);
         if (ctx) _avancerTourDonjon(ctx.data);
+    }
+}
+
+function _detectionInvisibleDonjon() {
+    const data  = window.donjonActif;
+    const perso = window.perso;
+    if (!data || !perso) return;
+    const myID  = (perso.nom || '').replace(/\s+/g, '_');
+    const maPos = data.positions?.[myID];
+    if (!maPos) return;
+
+    const coutFT = 10;
+    if ((perso.ftActuel || 0) < coutFT) {
+        if (typeof _toast === 'function') _toast('💥 Trop fatigué pour lancer ce sort !', 'error');
+        return;
+    }
+
+    const grille = data.grille || {};
+    const rayon  = 3;
+    const updates = {};
+    let nbTrouves = 0;
+
+    for (let dx = -rayon; dx <= rayon; dx++) {
+        for (let dy = -rayon; dy <= rayon; dy++) {
+            const cx = maPos.x + dx;
+            const cy = maPos.y + dy;
+            const key = cx + '_' + cy;
+            const cell = grille[key];
+            if (!cell || cell.type !== 'sol') continue;
+            if (cell.event?.type === 'piege' && !cell.event.declenche) {
+                if (!data.pieges_detectes?.[key]?.[myID]) {
+                    updates['pieges_detectes/' + key + '/' + myID] = true;
+                    nbTrouves++;
+                }
+            }
+        }
+    }
+
+    perso.ftActuel -= coutFT;
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+
+    if (nbTrouves > 0) {
+        db.ref('parties/' + sessionActuelle + '/donjon_actif').update(updates, function() {
+            if (typeof _toast === 'function') _toast('👁 ' + nbTrouves + ' piège(s) détecté(s) dans un rayon de ' + rayon + ' cases !', 'success');
+            _logDonjon('👁 ' + perso.nom + ' détecte ' + nbTrouves + ' piège(s) (Détection de l\'invisible).');
+            _avancerTourDonjon(data);
+        });
+    } else {
+        if (typeof _toast === 'function') _toast('👁 Aucun piège détecté dans un rayon de ' + rayon + ' cases.', 'info');
+        _logDonjon('👁 ' + perso.nom + ' utilise Détection de l\'invisible — rien à signaler.');
+        _avancerTourDonjon(data);
     }
 }
 

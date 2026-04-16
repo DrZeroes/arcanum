@@ -578,7 +578,10 @@ function initMagieUI() {
             <button id="btn-plus-magie-${ecole.replace(/\s+/g, '')}" class="btn-stat btn-plus edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
             <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
         magieData[ecole].sorts.forEach((s, i) => {
-            const _implemente = s.degats || s.soin || s.resurrection || s.curePoison || s.buffStat;
+            const _implemente = s.degats || s.soin || s.resurrection || s.curePoison
+                || s.buffStat || s.buffGroupe || s.buffPersistant || s.deverrouillage
+                || s.aoeEnnemi || s.invocation || s.nueeDInsectes || s.creationMortVivant
+                || s.implemente;
             const _badge = _implemente ? '' : ' <span style="color:#666;font-size:0.75em;font-style:normal;" title="Effet non implémenté dans le jeu">*</span>';
             pane.querySelector(`#spells-${ecole.replace(/\s+/g, '')}`).innerHTML += `<div id="spell-${ecole.replace(/\s+/g, '')}-${i}" class="spell-item">
                 <strong>${s.nom}</strong>${_badge} (Fatigue: ${s.cout})<br><em>${s.desc}</em></div>`;

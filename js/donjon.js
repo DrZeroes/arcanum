@@ -741,6 +741,16 @@ function deplacerJoueur(dx, dy) {
 window._donjonPorteCtx = null;
 
 function _interagirPorteDonjon(cellKey, pos, eventCell, myID, data) {
+    // Vérifier piège non déclenché avant toute interaction
+    const piege = eventCell.data?.piege;
+    if (piege && !piege.declenche) {
+        _verifierPiegeObjet(cellKey, piege, 'porte', () => _interagirPorteDonjon_suite(cellKey, pos, eventCell, myID, data));
+        return;
+    }
+    _interagirPorteDonjon_suite(cellKey, pos, eventCell, myID, data);
+}
+
+function _interagirPorteDonjon_suite(cellKey, pos, eventCell, myID, data) {
     const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_portes/' + cellKey);
     ref.once('value', snap => {
         let etat = snap.val();
@@ -847,6 +857,18 @@ function _afficherModalPorte(cellKey, etat) {
                     💥 Utiliser item / sort
                     <span style="color:#666;font-size:0.8em;display:block;">Grenade, dynamite, boule de feu…</span>
                 </button>` : ''}
+                ${(function(){
+                    const _connait = (window.perso?.magieInvesties?.['Déplacement']||0) >= 2;
+                    if (!_connait) return '';
+                    const _IN = (window.perso?.statsBase?.IN||0)+(window.perso?.statsInvesties?.IN||0);
+                    const _ch = Math.min(95, _IN * 5);
+                    const _ft = window.perso?.ftActuel || 0;
+                    const _peutLancer = _ft >= 5;
+                    return `<button onclick="_deverrouillagePorteDonjon('${cellKey}')" ${_peutLancer?'':'disabled'} style="background:#0d0d2a;color:#90caf9;border:1px solid #42a5f5;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;${_peutLancer?'':'opacity:0.5;'}">
+                        ✨ Déverrouillage
+                        <span style="color:#666;font-size:0.8em;display:block;">Chance : ${_ch}% (IN ${_IN}) · Coût : 5 FT</span>
+                    </button>`;
+                })()}
             </div>
             <button onclick="document.getElementById('modal-donjon-porte').remove()" style="width:100%;background:#222;color:#666;border:1px solid #444;padding:7px;border-radius:4px;cursor:pointer;">Fermer (sans avancer le tour)</button>
         </div>`;
@@ -867,6 +889,55 @@ function _utiliserClefPorte(cellKey) {
 }
 
 /** Tentative de crochetage de la porte. Succès → passage immédiat. */
+function _deverrouillagePorteDonjon(cellKey) {
+    const ctx = window._donjonPorteCtx;
+    const IN  = (window.perso?.statsBase?.IN || 0) + (window.perso?.statsInvesties?.IN || 0);
+    const chance = Math.min(95, IN * 5);
+    const roll   = Math.floor(Math.random() * 100);
+    const nom    = window.perso?.nom || '?';
+    // Déduire le coût FT
+    window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - 5);
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_portes/' + cellKey);
+    document.getElementById('modal-donjon-porte')?.remove();
+    if (roll < chance) {
+        if (typeof _toast === 'function') _toast(`✨ Porte déverrouillée magiquement ! (${roll}/${chance}%)`, 'success');
+        _logDonjon(`✨ ${nom} déverrouille la porte (Déverrouillage, ${roll}/${chance}%).`);
+        ref.update({ statut: 'ouverte' }).then(() => {
+            if (ctx) _passerPorte(cellKey, ctx.pos, ctx.myID, ctx.data);
+        });
+    } else {
+        if (typeof _toast === 'function') _toast(`❌ Déverrouillage échoué (${roll}/${chance}%).`, 'error');
+        _logDonjon(`❌ ${nom} échoue à déverrouiller la porte (${roll}/${chance}%).`);
+        if (ctx) _avancerTourDonjon(ctx.data);
+    }
+}
+
+function _deverrouillageCofreDonjon(cellKey) {
+    const ctx = window._donjonCoffreCtx;
+    const IN  = (window.perso?.statsBase?.IN || 0) + (window.perso?.statsInvesties?.IN || 0);
+    const chance = Math.min(95, IN * 5);
+    const roll   = Math.floor(Math.random() * 100);
+    const nom    = window.perso?.nom || '?';
+    window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - 5);
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_coffres/' + cellKey);
+    document.getElementById('modal-donjon-coffre')?.remove();
+    if (roll < chance) {
+        if (typeof _toast === 'function') _toast(`✨ Coffre déverrouillé magiquement ! (${roll}/${chance}%)`, 'success');
+        _logDonjon(`✨ ${nom} déverrouille un coffre (Déverrouillage, ${roll}/${chance}%).`);
+        ref.update({ statut: 'ouvert' }).then(() => {
+            ref.once('value', snap => { if (snap.val()) _afficherModalCoffre(cellKey, snap.val()); });
+        });
+    } else {
+        if (typeof _toast === 'function') _toast(`❌ Déverrouillage échoué (${roll}/${chance}%).`, 'error');
+        _logDonjon(`❌ ${nom} échoue à déverrouiller le coffre (${roll}/${chance}%).`);
+        if (ctx) _avancerTourDonjon(ctx.data);
+    }
+}
+
 function _crochetagePorte(cellKey) {
     const ctx        = window._donjonPorteCtx;
     const DX         = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
@@ -993,12 +1064,10 @@ function _verifierDetectionPieges(data, myID) {
     if (!data || !window.perso) return;
     const p         = window.perso;
     const detection = p.compInvesties?.detection_pieges || 0;
-    if (detection === 0) return;
-
     const grille  = data.grille || {};
     const maPos   = data.positions?.[myID] || { x: 1, y: 1 };
     const visible = _calculerVisibilite(grille, data.largeur || 10, data.hauteur || 8, maPos.x, maPos.y, data.etats_portes);
-    const range   = detection * 2; // niveau 1 = 2 cases, niveau 3 = 6 cases
+    const range   = detection > 0 ? detection * 2 : 1; // sans compétence : cases adjacentes seulement
 
     visible.forEach(key => {
         const cell = grille[key];
@@ -1012,8 +1081,8 @@ function _verifierDetectionPieges(data, myID) {
 
         // Calcul de détection : niveau * 15 + 10, modifié par la difficulté du piège
         const difficulte   = cell.event.data?.difficulte ?? 50;
-        const chanceBase   = Math.min(95, detection * 15 + 10);
-        const chanceFinale = Math.max(5, chanceBase - Math.floor((difficulte - 50) / 2));
+        const chanceBase   = detection > 0 ? Math.min(95, detection * 15 + 10) : 10;
+        const chanceFinale = Math.max(detection > 0 ? 5 : 10, chanceBase - Math.floor((difficulte - 50) / 2));
         const roll         = Math.floor(Math.random() * 100) + 1;
 
         if (roll <= chanceFinale) {
@@ -1217,6 +1286,140 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
     }
 }
 
+// ── Piège sur coffre / porte ─────────────────────────────────
+
+/**
+ * Vérifie si un coffre ou une porte a un piège non déclenché.
+ * Si oui, affiche un modal : désamorcer / ouvrir quand même.
+ * Appelle onContinue() si le joueur choisit de continuer sans piège.
+ */
+function _verifierPiegeObjet(cellKey, piege, targetLabel, onContinue) {
+    const p      = window.perso;
+    const myID   = (p?.nom || '').replace(/\s+/g, '_');
+    const desarm = p?.compInvesties?.desarmorcage || 0;
+    const detect = p?.compInvesties?.detection_pieges || 0;
+
+    // Détection automatique : jet avant l'interaction (10% de base, plus avec la compétence)
+    const chanceDetect = detect > 0
+        ? Math.max(10, Math.min(95, detect * 15 + 10) - Math.floor((piege.difficulte - 50) / 2))
+        : 10;
+    const detecte = (Math.floor(Math.random() * 100) + 1) <= chanceDetect;
+
+    if (!detecte) {
+        // Pas détecté → piège se déclenche immédiatement
+        _declencherPiegeObjet(cellKey, piege, myID);
+        onContinue();
+        return;
+    }
+
+    // Détecté → modal
+    const chanceDesarm = desarm > 0
+        ? Math.max(5, Math.min(95, desarm * 15 + 10) - Math.floor((piege.difficulte - 50) / 2))
+        : 0;
+
+    let modal = document.getElementById('modal-donjon-piege-objet');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-donjon-piege-objet';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const emojiTarget = targetLabel === 'coffre' ? '📦' : '🚪';
+    modal.innerHTML = `
+        <div style="background:#1a0d0d;border:2px solid #ff4444;border-radius:10px;padding:20px;max-width:340px;width:90%;">
+            <h3 style="color:#ff4444;margin:0 0 8px;">🪤 ${emojiTarget} Piège détecté !</h3>
+            <p style="color:#ccc;font-size:0.85em;margin:0 0 12px;">Ce ${targetLabel} est piégé (diff. ${piege.difficulte}).</p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${desarm > 0 ? `<button onclick="_desarmorcer_objet('${cellKey}')" style="background:#0d1a0d;color:#4caf50;border:1px solid #2a5a2a;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;">
+                    🔧 Désamorcer
+                    <span style="color:#666;font-size:0.8em;display:block;">Chance : ${chanceDesarm}% · Éch. crit. : explose !</span>
+                </button>` : ''}
+                <button onclick="_ouvrirMalgre_piege('${cellKey}')" style="background:#2a0d0d;color:#ff9800;border:1px solid #5a2a0d;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;">
+                    ⚡ Ouvrir quand même
+                    <span style="color:#666;font-size:0.8em;display:block;">Le piège se déclenchera !</span>
+                </button>
+            </div>
+            <button onclick="document.getElementById('modal-donjon-piege-objet').remove()" style="width:100%;background:#222;color:#666;border:1px solid #444;padding:7px;border-radius:4px;cursor:pointer;margin-top:10px;">Annuler</button>
+        </div>`;
+    modal.style.display = 'flex';
+
+    // Stocker le callback pour "ouvrir quand même"
+    window._piegeObjetCallback = { cellKey, piege, onContinue };
+}
+
+/** Déclenche les effets d'un piège sur coffre/porte. */
+function _declencherPiegeObjet(cellKey, piege, myID) {
+    const p         = window.perso;
+    const nom       = p?.nom || '?';
+    const degats    = piege.degats || 5;
+    const typeDegat = piege.type_degat || 'normal';
+    const emoji     = { poison: '☠️', feu: '🔥', elec: '⚡', normal: '🪤' }[typeDegat] || '🪤';
+
+    if (typeof _toast === 'function') _toast(`${emoji} Piège ! −${degats} PV !`, 'error');
+    _logDonjon(`${emoji} ${nom} déclenche un piège [${typeDegat}] sur un objet — −${degats} PV.`);
+
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/modif_stat').set({
+        stat: 'PV', valeur: -degats, timestamp: Date.now()
+    });
+
+    if (typeDegat === 'poison') {
+        const pvP = Math.max(1, Math.floor(degats / 2));
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/effets/poison').set({ degats: pvP, duree: 3, timestamp: Date.now() });
+        if (typeof _toast === 'function') _toast(`☠️ Empoisonné ! (−${pvP} PV/tour × 3 tours)`, 'error');
+    } else if (typeDegat === 'elec') {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/effets/etourdi').set({ duree: 1, timestamp: Date.now() });
+        if (typeof _toast === 'function') _toast('⚡ Étourdi pour 1 tour !', 'error');
+    } else if (typeDegat === 'feu') {
+        const brulures = Math.max(1, Math.floor(degats / 2));
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/modif_stat').set({ stat: 'PV', valeur: -brulures, timestamp: Date.now() + 1 });
+        if (typeof _toast === 'function') _toast(`🔥 Brûlures ! −${brulures} PV supplémentaires.`, 'error');
+    }
+
+    // Marquer le piège comme déclenché dans Firebase
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/data/piege/declenche').set(true);
+}
+
+/** Tente de désamorcer le piège d'un coffre/porte. */
+function _desarmorcer_objet(cellKey) {
+    document.getElementById('modal-donjon-piege-objet')?.remove();
+    const ctx  = window._piegeObjetCallback;
+    if (!ctx) return;
+    const p    = window.perso;
+    const myID = (p?.nom || '').replace(/\s+/g, '_');
+    const desarm = p?.compInvesties?.desarmorcage || 0;
+    const piege  = ctx.piege;
+    const chanceBase   = Math.min(95, desarm * 15 + 10);
+    const chanceFinale = Math.max(5, chanceBase - Math.floor((piege.difficulte - 50) / 2));
+    const roll = Math.floor(Math.random() * 100) + 1;
+
+    if (roll >= 96) {
+        if (typeof _toast === 'function') _toast('💥 Échec critique ! Le piège explose !', 'error');
+        _logDonjon(`💥 ${p.nom} : échec critique désarmorcage objet !`);
+        _declencherPiegeObjet(cellKey, piege, myID);
+        ctx.onContinue();
+    } else if (roll <= chanceFinale) {
+        if (typeof _toast === 'function') _toast(`✅ Piège désamorcé ! (${roll}/${chanceFinale}%)`, 'success');
+        _logDonjon(`✅ ${p.nom} désamorce le piège sur un objet.`);
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/data/piege/declenche').set(true);
+        ctx.onContinue();
+    } else {
+        if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
+        _logDonjon(`❌ ${p.nom} échoue à désamorcer l'objet (${roll}/${chanceFinale}%).`);
+    }
+    _avancerTourDonjon(window.donjonActif);
+}
+
+/** Ouvre malgré le piège détecté (déclenche et continue). */
+function _ouvrirMalgre_piege(cellKey) {
+    document.getElementById('modal-donjon-piege-objet')?.remove();
+    const ctx  = window._piegeObjetCallback;
+    if (!ctx) return;
+    const myID = (window.perso?.nom || '').replace(/\s+/g, '_');
+    _declencherPiegeObjet(cellKey, ctx.piege, myID);
+    ctx.onContinue();
+}
+
 // ── Coffre (verrou + durabilité) ─────────────────────────────
 
 /**
@@ -1224,9 +1427,20 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
  * Initialise l'état dans Firebase si pas encore fait, puis ouvre le modal.
  */
 function _initCoffreDonjon(cellKey, eventData) {
+    // Vérifier piège non déclenché avant toute interaction
+    const piege = eventData.data?.piege;
+    if (piege && !piege.declenche) {
+        _verifierPiegeObjet(cellKey, piege, 'coffre', () => _initCoffreDonjon_suite(cellKey, eventData));
+        return;
+    }
+    _initCoffreDonjon_suite(cellKey, eventData);
+}
+
+function _initCoffreDonjon_suite(cellKey, eventData) {
     const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_coffres/' + cellKey);
     ref.once('value', snap => {
         if (snap.val()) {
+            window._donjonCoffreCtx = { data: window.donjonActif };
             _afficherModalCoffre(cellKey, snap.val());
             return;
         }
@@ -1246,6 +1460,7 @@ function _initCoffreDonjon(cellKey, eventData) {
             loot
         };
 
+        window._donjonCoffreCtx = { data: window.donjonActif };
         ref.set(etat).then(() => {
             if (!verrouille) {
                 _logDonjon(`📦 ${window.perso?.nom} ouvre un coffre.`);
@@ -1570,6 +1785,18 @@ function _afficherModalCoffre(cellKey, etat) {
                     💥 Utiliser item / sort
                     <span style="color:#666;font-size:0.8em;display:block;">Grenade, dynamite, boule de feu…</span>
                 </button>` : ''}
+                ${(function(){
+                    const _connait = (window.perso?.magieInvesties?.['Déplacement']||0) >= 2;
+                    if (!_connait) return '';
+                    const _IN = (window.perso?.statsBase?.IN||0)+(window.perso?.statsInvesties?.IN||0);
+                    const _ch = Math.min(95, _IN * 5);
+                    const _ft = window.perso?.ftActuel || 0;
+                    const _peutLancer = _ft >= 5;
+                    return `<button onclick="_deverrouillageCofreDonjon('${cellKey}')" ${_peutLancer?'':'disabled'} style="background:#0d0d2a;color:#90caf9;border:1px solid #42a5f5;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;${_peutLancer?'':'opacity:0.5;'}">
+                        ✨ Déverrouillage
+                        <span style="color:#666;font-size:0.8em;display:block;">Chance : ${_ch}% (IN ${_IN}) · Coût : 5 FT</span>
+                    </button>`;
+                })()}
             </div>`;
     }
 

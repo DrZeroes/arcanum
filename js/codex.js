@@ -654,7 +654,11 @@ function mjLancerCombat() {
         const joueurs = snap.val() || {};
 
         db.ref('parties/' + sessionActuelle + '/compagnons').once('value', (snapComps) => {
+        db.ref('parties/' + sessionActuelle + '/familiers').once('value', (snapFam) => {
+        db.ref('parties/' + sessionActuelle + '/animaux').once('value', (snapAnim) => {
         const tousCompagnons = snapComps.val() || {};
+        const tousFamiliers  = snapFam.val()   || {};
+        const tousAnimaux    = snapAnim.val()  || {};
         const participants = [];
 
         // Joueurs + leurs compagnons (le MJ est exclu)
@@ -667,6 +671,54 @@ function mjLancerCombat() {
                 nom: j.nom,
                 vitesse: j.vitesse || j.niveau || 1
             });
+            // Familier depuis le nœud dédié
+            const familier = tousFamiliers[id];
+            if (familier && (familier.pvActuel === undefined || familier.pvActuel > 0)) {
+                const fPV = familier.pvActuel || familier.pv || 30;
+                const fFT = familier.ftActuel || familier.ft || 20;
+                participants.push({
+                    type: 'invoque',
+                    instanceId: Date.now() + Math.floor(Math.random() * 1000),
+                    id: 'familier_' + id,
+                    nom: familier.nom || 'Familier',
+                    race: 'familier',
+                    niveau: familier.niveau || 1,
+                    invocateurId: id,
+                    invocateurNom: j.nom,
+                    vitesse: familier.stats ? familier.stats.DX || 5 : 5,
+                    pvActuel: fPV, pvMax: fPV,
+                    ftActuel: fFT, ftMax: fFT,
+                    stats: familier.stats || { FO: 5, CN: 5, DX: 5, IN: 3, CH: 3 },
+                    res:   familier.res   || {},
+                    sortsConnus: familier.sortsConnus || [],
+                    riposteFeu: false, soinsParTour: 0, esquiveInnee: 0, ko: false
+                });
+            }
+
+            // Animal compagnon depuis le nœud dédié
+            const animal = tousAnimaux[id];
+            if (animal && (animal.pvActuel === undefined || animal.pvActuel > 0)) {
+                const aPV = animal.pvActuel || animal.pv || 30;
+                const aFT = animal.ftActuel || animal.ft || 20;
+                participants.push({
+                    type: 'invoque',
+                    instanceId: Date.now() + Math.floor(Math.random() * 1000) + 1,
+                    id: 'animal_' + id,
+                    nom: animal.nom || 'Animal',
+                    race: 'animal',
+                    niveau: animal.niveau || 1,
+                    invocateurId: id,
+                    invocateurNom: j.nom,
+                    vitesse: animal.stats ? animal.stats.DX || 5 : 5,
+                    pvActuel: aPV, pvMax: aPV,
+                    ftActuel: aFT, ftMax: aFT,
+                    stats: animal.stats || { FO: 8, CN: 8, DX: 8, IN: 3, CH: 3 },
+                    res:   animal.res   || {},
+                    sortsConnus: animal.sortsConnus || [],
+                    riposteFeu: false, soinsParTour: 0, esquiveInnee: 0, ko: false
+                });
+            }
+
             // Compagnons depuis le nœud dédié
             const compsRaw = tousCompagnons[id];
             const comps = compsRaw ? (Array.isArray(compsRaw) ? compsRaw : Object.values(compsRaw)) : [];
@@ -738,6 +790,8 @@ function mjLancerCombat() {
             if (typeof _toast === 'function') _toast('⚔ Combat lancé !', 'gold');
             mjAfficherInterfaceCombat();
         });
+        }); // fin once animaux
+        }); // fin once familiers
         }); // fin once compagnons
     });
 }
@@ -1826,12 +1880,56 @@ function _mjAfficherFormulaireEvent(mode) {
             <div style="margin-top:6px;">
                 Prob. verrouillée <em style="color:#555;">(sans clef)</em> : <input id="ev-prob-verrou-porte" type="number" min="0" max="100" value="30" style="${styles}width:55px;"> %
                 &nbsp; Durabilité : <input id="ev-durabilite-porte" type="number" min="10" max="100" value="30" style="${styles}width:50px;">
+            </div>
+            <div style="margin-top:8px;border-top:1px solid #333;padding-top:6px;">
+                <label style="color:#ff6b6b;cursor:pointer;">
+                    <input type="checkbox" id="ev-piege-actif-porte" style="margin-right:4px;">
+                    🪤 Porte piégée
+                </label>
+                <div id="ev-piege-details-porte" style="display:none;margin-top:6px;">
+                    Dégâts : <input id="ev-piege-degats-porte" type="number" value="8" min="1" max="99" style="${styles}width:45px;">
+                    &nbsp; Diff. : <input id="ev-piege-diff-porte" type="number" value="50" min="1" max="100" style="${styles}width:45px;">
+                    &nbsp; Type :
+                    <select id="ev-piege-type-porte" style="${styles}">
+                        <option value="normal">🪤 Normal</option>
+                        <option value="poison">☠️ Poison</option>
+                        <option value="feu">🔥 Feu</option>
+                        <option value="elec">⚡ Élec</option>
+                    </select>
+                </div>
             </div>`;
+        setTimeout(() => {
+            const cb = document.getElementById('ev-piege-actif-porte');
+            const det = document.getElementById('ev-piege-details-porte');
+            if (cb && det) cb.addEventListener('change', () => { det.style.display = cb.checked ? 'block' : 'none'; });
+        }, 0);
     } else if (mode === 'coffre') {
         html += `<strong style="color:#4caf50;">Coffre</strong><br>
             Probabilité verrouillé : <input id="ev-prob-verrou" type="number" min="0" max="100" value="30" style="${styles}width:55px;"> %
             &nbsp; Durabilité : <input id="ev-durabilite" type="number" min="10" max="100" value="20" style="${styles}width:50px;">
-            <span style="color:#555;font-size:0.9em;margin-left:6px;">(si verrouillé)</span>`;
+            <span style="color:#555;font-size:0.9em;margin-left:6px;">(si verrouillé)</span>
+            <div style="margin-top:8px;border-top:1px solid #333;padding-top:6px;">
+                <label style="color:#ff6b6b;cursor:pointer;">
+                    <input type="checkbox" id="ev-piege-actif-coffre" style="margin-right:4px;">
+                    🪤 Coffre piégé
+                </label>
+                <div id="ev-piege-details-coffre" style="display:none;margin-top:6px;">
+                    Dégâts : <input id="ev-piege-degats-coffre" type="number" value="8" min="1" max="99" style="${styles}width:45px;">
+                    &nbsp; Diff. : <input id="ev-piege-diff-coffre" type="number" value="50" min="1" max="100" style="${styles}width:45px;">
+                    &nbsp; Type :
+                    <select id="ev-piege-type-coffre" style="${styles}">
+                        <option value="normal">🪤 Normal</option>
+                        <option value="poison">☠️ Poison</option>
+                        <option value="feu">🔥 Feu</option>
+                        <option value="elec">⚡ Élec</option>
+                    </select>
+                </div>
+            </div>`;
+        setTimeout(() => {
+            const cb = document.getElementById('ev-piege-actif-coffre');
+            const det = document.getElementById('ev-piege-details-coffre');
+            if (cb && det) cb.addEventListener('change', () => { det.style.display = cb.checked ? 'block' : 'none'; });
+        }, 0);
     }
     html += '</div>';
     form.innerHTML = html;
@@ -1923,6 +2021,24 @@ function _mjLireFormulaireEvent(mode) {
     if (durabilitePorte) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilitePorte.value) || 30));
     if (probVerrou) event.data.probVerrou  = Math.min(100, Math.max(0, parseInt(probVerrou.value) || 30));
     if (durabilite) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilite.value) || 20));
+
+    // Piège sur coffre ou porte
+    const suffix = mode === 'coffre' ? 'coffre' : mode === 'porte' ? 'porte' : null;
+    if (suffix) {
+        const cbPiege    = document.getElementById(`ev-piege-actif-${suffix}`);
+        const piegeDegats = document.getElementById(`ev-piege-degats-${suffix}`);
+        const piegeDiff   = document.getElementById(`ev-piege-diff-${suffix}`);
+        const piegeType   = document.getElementById(`ev-piege-type-${suffix}`);
+        if (cbPiege?.checked) {
+            event.data.piege = {
+                degats:     parseInt(piegeDegats?.value) || 8,
+                difficulte: Math.min(100, Math.max(1, parseInt(piegeDiff?.value) || 50)),
+                type_degat: piegeType?.value || 'normal',
+                declenche:  false
+            };
+        }
+    }
+
     return event;
 }
 

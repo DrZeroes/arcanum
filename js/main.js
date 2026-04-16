@@ -622,13 +622,17 @@ function ouvrirPatchNotes(onglet) {
                     <li>Poison : bypass armure, ne peut pas tuer (surplus → FT)</li>
                     <li>Level up : soin complet PV + FT</li>
                     <li>Don d'or via modal (même UI que don d'objet)</li>
+                    <li>Refonte sorts de combat — Cat. 1 (dégâts), 2 (CC), 3 (buffs groupe/indiv.), 4 (initiative)</li>
+                    <li>Détection pièges : chance de base sans compétence</li>
                 </ul>
             </div>
             <div>
                 <h3 style="color:#f0b429;margin:0 0 8px;font-size:0.95em;">🔜 À faire</h3>
                 <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.88em;line-height:1.7;">
-                    <li>Pièges sur coffres/portes (déclencher à l'ouverture, types poison/élec/feu)</li>
-                    <li>Bénédictions étendues (nouvelles catégories d'effets)</li>
+                    <li>Sorts Cat. 5 — Incarnations élémentaires (Air, Pierre, Feu, Eau)</li>
+                    <li>Sorts Cat. 6 — Sorts Donjon (Déverrouillage magique, Détection de l'invisible)</li>
+                    <li>Pièges sur coffres/portes (déclencher à l'ouverture)</li>
+                    <li>Attribution XP pour kills par poison</li>
                 </ul>
             </div>`;
         modal.style.display = 'flex';
@@ -636,6 +640,19 @@ function ouvrirPatchNotes(onglet) {
     }
 
     contenu.innerHTML = `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.8 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Refonte sorts de combat (Cat. 1→4), buffs de groupe, initiative avancée</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#ce93d8;">⚔ Sorts offensifs</strong> — Choc/Éclair/Boule de feu avec effets de zone ; Vapeurs toxiques (poison) ; Nuée d'insectes (ralenti) ; Désintégration/Suppression de la vie (ROLL kill)</li>
+                <li><strong style="color:#9575cd;">🧠 Contrôle / CC</strong> — Cauchemar (AoE push) ; Pétrification (immunité physique) ; Enchevêtrement (vitesse /2, maintien ROLL) ; Stase, Domination, Entrave ; Dissipation des sortilèges (efface tous les effets ennemis)</li>
+                <li><strong style="color:#66bb6a;">🛡 Buffs groupe</strong> — Mur de pierres/force (−20% phys) ; Mur de feu (riposte 30%) ; Bouclier mystique (−20% magie) ; Brouillard (+20 esquive) ; Régénération (+3 PV/tour) ; Sanctuaire (morts-vivants bloqués) — drain FT/tour, dissipation auto</li>
+                <li><strong style="color:#4fc3f7;">✨ Buffs individuels</strong> — Bouclier de protection (−25% phys, se brise) ; Hâte (×2 vitesse, 3 tours) ; Occultation (−10% dég, +10 esq) ; Résistance aux sortilèges (+25 RM) ; Invisibilité (caché des cibles, drain FT)</li>
+                <li><strong style="color:#fff176;">⏩ Initiative</strong> — Distorsion spatiale (choix ▲ Devant / ▼ Derrière au prochain round) ; Altération temporelle (AoE vitesse /2, annulable) ; Tempus Fugit (alliés ×3 + AoE ralenti, annulable)</li>
+                <li>Détection pièges : 10% de base sans compétence (portée adjacente uniquement)</li>
+                <li>Bandeau buffs de groupe actifs sous la frise d'initiative</li>
+            </ul>
+        </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.7 — Avril 2026</h3>
             <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon (améliorations), quêtes, poison, level up, inventaire</p>

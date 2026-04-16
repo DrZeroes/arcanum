@@ -440,3 +440,91 @@ function resetEtRafraichir() {
     photoIndexSelection = 1; // On revient à la première photo
     rafraichirApercuAvatar();
 }
+
+// ==========================================
+// PERSONNAGE DE TEST (stats max, tous sorts)
+// ==========================================
+function creerPersonnageTest() {
+    const inputSession = document.getElementById('input-session');
+    const valSession   = (inputSession?.value || '').trim();
+    if (!valSession) {
+        inputSession?.focus();
+        inputSession.style.border = '2px solid #ff4444';
+        if (typeof _toast === 'function') _toast('⚠ Remplis le nom de la session avant de créer un personnage !', 'error');
+        else alert('Remplis le nom du groupe de jeu (session) avant de créer un personnage !');
+        return;
+    }
+    if (typeof sessionActuelle !== 'undefined') {
+        sessionActuelle = valSession.replace(/[^a-zA-Z0-9_]/g, '_');
+        localStorage.setItem('arcanum_session_name', sessionActuelle);
+    }
+
+    // Toutes les compétences
+    const toutesCompetences = {};
+    if (typeof competencesData !== 'undefined') {
+        Object.values(competencesData).flat().forEach(c => { toutesCompetences[c.id] = 20; });
+    } else {
+        ['arc','esquive','melee','lancer','attaque_sournoise','vol_a_la_tire','discretion',
+         'detection_piege','jeu','marchandage','soins','persuasion',
+         'reparation','armes_a_feu','crochetage','desamorcage'].forEach(id => { toutesCompetences[id] = 20; });
+    }
+
+    // Toutes les écoles de magie au niveau 5
+    const touteMagie = {};
+    if (typeof magieData !== 'undefined') {
+        Object.keys(magieData).forEach(ecole => { touteMagie[ecole] = 5; });
+    }
+
+    const statsBase = { FO: 20, IN: 20, CN: 20, DX: 20, CH: 20 };
+    const pvMax = (statsBase.FO * 2) + statsBase.IN;   // 60
+    const ftMax = (statsBase.CN * 2) + statsBase.IN;   // 60
+
+    perso = {
+        nom: "Testeur",
+        race: "Humain",
+        sexe: "M",
+        photo: "01.png",
+        antecedent: "Aventurier",
+        niveau: 20,
+        experience: 0,
+        pointsDispo: 0,
+        argent: 99999,
+        boostVitesseInne: 0,
+        boostPV: 0,
+        boostFT: 0,
+        statsBase: statsBase,
+        statsInvesties: { FO: 0, IN: 0, CN: 0, DX: 0, CH: 0 },
+        compInvesties: toutesCompetences,
+        compBase: {},
+        magieInvesties: touteMagie,
+        techInvesties: { Forge:7, Mécanique:7, Armurerie:7, Electricité:7, Botanique:7, Thérapeutique:7, Chimie:7, Explosifs:7 },
+        bonusInnes: { align: 0, resPhys: 0, resPoison: 0, resMagie: 0, resFeu: 0, resElec: 0 },
+        inventaire: [],
+        equipement: { tete: null, torse: null, gants: null, bottes: null, anneau: null, amulette: null, main_droite: null, main_gauche: null },
+        pvActuel: pvMax,
+        ftActuel: ftMax,
+        lieuActuel: "crash",
+        lieuxConnus: ["crash"],
+        estMort: false
+    };
+
+    localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
+    window.perso = perso;
+
+    cacherTout();
+    document.getElementById('ecran-fiche').style.display = 'block';
+
+    function _lancerMoteurApresCreationTest() {
+        if (window.userUID) {
+            if (typeof demarrerMoteurMulti === 'function') demarrerMoteurMulti();
+            if (typeof synchroniserJoueur  === 'function') synchroniserJoueur();
+        } else {
+            setTimeout(_lancerMoteurApresCreationTest, 200);
+        }
+    }
+    _lancerMoteurApresCreationTest();
+
+    if (typeof updateFicheUI     === 'function') updateFicheUI();
+    if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+    if (typeof appliquerFondActuel === 'function') appliquerFondActuel();
+}

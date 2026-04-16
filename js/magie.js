@@ -3,9 +3,9 @@ const magieData = {
         desc: "Les arcanes du Déplacement regroupent les sortilèges liés aux mouvements et aux déplacements d'",
         sorts: [
             { nom: "Désarmement", niv: 1, int: 6, cout: 2, desc: " Force la cible à lâcher son arme si elle échoue à résister." },
-            { nom: "Déverrouillage", niv: 1, int: 9, cout: 5, desc: "Ouvre magiquement les portes et conteneurs normaux." },
+            { nom: "Déverrouillage", niv: 1, int: 9, cout: 5, deverrouillage: true, desc: "Ouvre magiquement les portes et coffres verrouillés (IN×5% de chance, donjon uniquement)." },
             { nom: "Choc", niv: 5, int: 12, cout: 10, degats: 2, desc: "Repousse violemment une cible en arrière." },
-            { nom: "Distorsion spatiale", niv: 10, int: 15, cout: 10, desc: "Vous téléporte instantanément sur une courte distance." },
+            { nom: "Distorsion spatiale", niv: 10, int: 15, cout: 10, buffPersistant: true, desc: "Téléporte un allié : il jouera en PREMIER ou en DERNIER au prochain round (choix)." },
             { nom: "Téléportation", niv: 15, int: 18, cout: 20, desc: "Vous transporte instantanément vers un lieu déjà visité." }
         ]
     },
@@ -23,10 +23,10 @@ const magieData = {
         desc: "Ecole basée sur la manipulation de l’élément air. La plupart des sorts sont surtout défensif, mais il y a quelques sort plus ou moins offensifs.",
         sorts: [
             { nom: "Vitalité de l'Air", niv: 1, int: 6, cout: 5, desc: "Augmente la constitution de la cible pendant 3 tours.", buffStat: "CN", buffVal: 3, buffDuree: 3, rapide: true },
-            { nom: "Vapeurs toxiques", niv: 1, int: 9, cout: 5, degats: 8,desc: "Crée un nuage de gaz qui inflige des dégâts si la cible ne résiste pas." },
-            { nom: "Rafale de vent", niv: 5, int: 12, cout: 10, degats: 15,desc: "Génère une rafale qui projette objets et créatures." },
-            { nom: "Incarnation d'Air", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en air et la rend difficile à toucher." },
-            { nom: "Appel d'un élémentaire de l'Air", niv: 15, int: 18, cout: 20, desc: "Invoque un élémentaire d’Air." }
+            { nom: "Vapeurs toxiques", niv: 1, int: 9, cout: 5, degats: 4,desc: "Crée un nuage de gaz qui inflige des dégâts si la cible ne résiste pas." },
+            { nom: "Rafale de vent", niv: 5, int: 12, cout: 10, degats: 8,desc: "Génère une rafale qui projette objets et créatures." },
+            { nom: "Incarnation d'Air", niv: 10, int: 15, cout: 15, buffPersistant: true, desc: "+30 esquive et −20% dégâts physiques pendant 3 tours." },
+            { nom: "Appel d’un élémentaire de l’Air", niv: 15, int: 18, cout: 20, invocation: true, invocationId: "elem_air", desc: "Invoque un elementaire d’Air allie (98 PV)." }
         ]
     },
     "Terre": { 
@@ -34,37 +34,37 @@ const magieData = {
         sorts: [
             { nom: "Force de la Terre", niv: 1, int: 6, cout: 5, desc: "Augmente la force de la cible pendant 3 tours.", buffStat: "FO", buffVal: 3, buffDuree: 3, rapide: true },
             { nom: "Projectile de pierre", niv: 1, int: 9, cout: 5, degats: 8, desc: "Lance un projectile de pierre infligeant des dégâts." }, 
-            { nom: "Mur de pierres", niv: 5, int: 12, cout: 10, desc: "Crée un mur de pierre bloquant le passage." }, 
-            { nom: "Incarnation de Pierre", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en pierre." }, 
-            { nom: "Appel d’un élémentaire de Terre" , niv: 15, int: 18, cout: 20, desc: "Invoque un élémentaire de Terre." }
+            { nom: "Mur de pierres", niv: 5, int: 12, cout: 10, buffGroupe: true, cout_par_tour: 2, desc: "Réduit de 20% les dégâts physiques reçus par le groupe." },
+            { nom: "Incarnation de Pierre", niv: 10, int: 15, cout: 15, buffPersistant: true, desc: "−30% dégâts physiques et −20% dégâts magiques pendant 3 tours." },
+            { nom: "Appel d’un élémentaire de Terre", niv: 15, int: 18, cout: 20, invocation: true, invocationId: "elem_terre", desc: "Invoque un elementaire de Terre allie (122 PV)." }
         ] 
     },
     "Feu": { 
         desc: "Sortilèges basés sur le feu et la chaleur.", 
         sorts: [
             { nom: "Agilité du Feu", niv: 1, int: 6, cout: 5, desc: "Augmente la dextérité de la cible pendant 3 tours.", buffStat: "DX", buffVal: 3, buffDuree: 3, rapide: true },
-            { nom: "Mur de feu", niv: 1, int: 9, cout: 5, desc: "Crée un mur de flammes infligeant des dégâts." }, 
+            { nom: "Mur de feu", niv: 1, int: 9, cout: 5, buffGroupe: true, cout_par_tour: 1, desc: "Inflige des dégâts de feu en retour à chaque attaque ennemie en mêlée." },
             { nom: "Boule de feu", niv: 5, int: 12, cout: 10, degats: 15, desc: "Lance une boule de feu infligeant de lourds dégâts." }, 
-            { nom: "Incarnation de Feu", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en feu." }, 
-            { nom: "Appel d’un élémentaire de Feu", niv: 15, int: 18, cout: 20, desc: "Invoque un élémentaire de Feu." }
+            { nom: "Incarnation de Feu", niv: 10, int: 15, cout: 15, buffPersistant: true, desc: "Riposte automatique en feu (30% des dégâts reçus) pendant 3 tours." },
+            { nom: "Appel d’un élémentaire de Feu", niv: 15, int: 18, cout: 20, invocation: true, invocationId: "elem_feu", desc: "Invoque un elementaire de Feu allie (98 PV, riposte feu)." }
         ] 
     },
     "Eau": { 
         desc: "Sortilèges basés sur l'eau et la glace.", 
         sorts: [
             { nom: "Pureté de l’Eau", niv: 1, int: 6, cout: 5, desc: "Améliore le charisme de la cible pendant 3 tours.", buffStat: "CH", buffVal: 3, buffDuree: 3, rapide: true },
-            { nom: "Brouillard", niv: 1, int: 9, cout: 5, desc: "Crée un brouillard qui gêne la vision." }, 
+            { nom: "Brouillard", niv: 1, int: 9, cout: 5, buffGroupe: true, cout_par_tour: 1, desc: "+20 points d'esquive pour tout le groupe." },
             { nom: "Fureur de glace", niv: 5, int: 12, cout: 10, degats: 15, desc: "Inflige des dégâts de glace." }, 
-            { nom: "Incarnation d’Eau", niv: 10, int: 15, cout: 15, desc: "Transforme la cible en eau." }, 
-            { nom: "Appel d’un élémentaire de l’Eau", niv: 15, int: 18, cout: 20, desc: "Invoque un élémentaire d’Eau." }
+            { nom: "Incarnation d’Eau", niv: 10, int: 15, cout: 15, buffPersistant: true, desc: "+30 RM et +2 PV de régénération par tour pendant 3 tours." },
+            { nom: "Appel d’un élémentaire de l’Eau", niv: 15, int: 18, cout: 20, invocation: true, invocationId: "elem_eau", desc: "Invoque un elementaire d’Eau allie (98 PV, soin 2 PV/tour)." }
         ] 
     },
     "Energie": { 
         desc: "Manipulation des énergies cosmiques pures.", 
         sorts: [
-            { nom: "Bouclier de protection", niv: 1, int: 6, cout: 5, desc: "Protège la cible en réduisant les dégâts reçus." }, 
+            { nom: "Bouclier de protection", niv: 1, int: 6, cout: 5, buffPersistant: true, desc: "-25% dégâts physiques, se brise au premier coup reçu." },
             { nom: "Choc électrique", niv: 1, int: 9, cout: 5, degats: 10,desc: "Inflige des dégâts électriques à la cible." }, 
-            { nom: "Mur de force", niv: 5, int: 12, cout: 10, desc: "Crée une barrière magique qui bloque le passage." }, 
+            { nom: "Mur de force", niv: 5, int: 12, cout: 10, buffGroupe: true, cout_par_tour: 2, desc: "Réduit de 20% les dégâts physiques reçus par le groupe." },
             { nom: "Eclair", niv: 10, int: 15, cout: 15, degats: 30 ,desc: "Lance un éclair qui inflige de lourds dégâts à la cible." }, 
             { nom: "Désintégration", niv: 15, int: 18, cout: 20, degats: 999 ,desc: "Détruit la cible instantanément si le sort réussit." }
         ] 
@@ -82,11 +82,11 @@ const magieData = {
     "Méta": { 
         desc: "Sortilèges qui ont la primauté sur les autres sortilèges.", 
         sorts: [
-            { nom: "Résistance aux sortilèges", niv: 1, int: 6, cout: 5, desc: "Réduit les effets des sorts subis par la cible." }, 
+            { nom: "Résistance aux sortilèges", niv: 1, int: 6, cout: 5, buffPersistant: true, desc: "+25 RM pendant 3 tours." },
             { nom: "Dissipation des sortilèges", niv: 1, int: 9, cout:5, desc: "Supprime les sorts actifs sur une cible." }, 
-            { nom: "Bouclier mystique", niv: 5, int: 12, cout: 10, desc: "Protège la cible contre les effets magiques." }, 
+            { nom: "Bouclier mystique", niv: 5, int: 12, cout: 10, buffGroupe: true, cout_par_tour: 2, desc: "Réduit de 20% les dégâts magiques reçus par le groupe." },
             { nom: "Entrave aux sortilèges", niv: 10, int: 15, cout: 15, desc: "Empêche la cible de lancer des sorts." }, 
-            { nom: "Bouclier de réflexion", niv: 15, int: 18, cout: 20, desc: "Renvoie les sorts vers leur lanceur." }
+            { nom: "Bouclier de réflexion", niv: 15, int: 18, cout: 20, buffPersistant: true, desc: "Réfléchit la prochaine attaque magique reçue vers son lanceur (se brise après usage)." }
         ] 
     },
     "Transformation": { 
@@ -105,8 +105,8 @@ const magieData = {
             { nom: "Charmer les animaux", niv: 1, int: 6, cout: 5, desc: "Rend les animaux amicaux envers le lanceur." }, 
             { nom: "Enchevêtrement", niv: 1, int: 9, cout: 5, desc: "Immobilise la cible avec des plantes." }, 
             { nom: "Contrôler les animaux", niv: 5, int: 12, cout: 10, desc: "Permet de contrôler les animaux proches." }, 
-            { nom: "Appeler les animaux", niv: 10, int: 15, cout: 15, desc: "Fait apparaître des animaux alliés." }, 
-            { nom: "Régénération", niv: 15, int: 18, cout: 20, desc: "Soigne progressivement les membres du groupe." }
+            { nom: "Appeler les animaux", niv: 10, int: 15, cout: 15, invocation: true, invocationId: "animal_align", desc: "Invoque un animal allie (stats selon votre alignement magique)." },
+            { nom: "Régénération", niv: 15, int: 18, cout: 20, buffGroupe: true, cout_par_tour: 3, desc: "+3 PV à tous les alliés au début de chacun de leur tour." }
         ] 
     },
     "Nécromancie noire": { 
@@ -114,8 +114,8 @@ const magieData = {
         sorts: [
             { nom: "Blessure ", niv: 1, int: 6, cout: 3, degats: 6, desc: "diminue la vie de la cible.", rapide: true },
             { nom: "Rappel d’un esprit", niv: 1, int: 9, cout: 5, desc: "Permet de parler à l’esprit d’un cadavre." }, 
-            { nom: "Invocation de morts-vivants", niv: 5, int: 12, cout: 10, desc: "Invoque des morts-vivants hostiles autour de la cible." }, 
-            { nom: "Création de morts-vivants", niv: 10, int: 15, cout: 15, desc: "Réanime un cadavre qui devient allié." }, 
+            { nom: "Invocation de morts-vivants", niv: 5, int: 12, cout: 10, invocation: true, invocationId: "mort_vivant_align", desc: "Invoque un mort-vivant allie (stats selon votre alignement magique)." },
+            { nom: "Création de morts-vivants", niv: 10, int: 15, cout: 15, creationMortVivant: true, desc: "Reanime un ennemi mort qui combat pour vous." },
             { nom: "Suppression de la vie", niv: 15, int: 18, cout: 20,degats: 999, desc: "Tue instantanément la cible si le sort réussit." }
         ] 
     },
@@ -125,7 +125,7 @@ const magieData = {
             { nom: "Soins légers", niv: 1, int: 6, cout: 3,soin: 3, desc: "Soigne une petite quantité de points de vie." }, 
             { nom: "Antidote", niv: 1, int: 9, cout: 5, curePoison: true, desc: "Soigne les effets de poison." }, 
             { nom: "Soins importants", niv: 5, int: 12, cout: 10,soin: 15, desc: "Soigne une grande quantité de points de vie." }, 
-            { nom: "Sanctuaire", niv: 10, int: 15, cout: 15, desc: "Empêche les morts-vivants d’attaquer la cible." }, 
+            { nom: "Sanctuaire", niv: 10, int: 15, cout: 15, buffGroupe: true, cout_par_tour: 2, desc: "Les morts-vivants ne peuvent pas attaquer les membres du groupe." },
             { nom: "Résurrection", niv: 15, int: 18, cout: 20,soin: 999,resurrection: true, desc: "Ramène une cible à la vie." }
         ] 
     },
@@ -134,34 +134,205 @@ const magieData = {
         sorts: [
             { nom: "Illumination", niv: 1, int: 6, cout: 5, desc: "Augmente la luminosité autour de la cible." }, 
             { nom: "Flash", niv: 1, int: 9, cout: 5, desc: "Aveugle temporairement la cible." }, 
-            { nom: "Occultation", niv: 5, int: 12, cout: 10, desc: "Augmente l'armure de la cible." }, 
+            { nom: "Occultation", niv: 5, int: 12, cout: 10, buffPersistant: true, desc: "-10% dégâts reçus et +10 esquive pendant 3 tours." },
             { nom: "Monstre illusoire", niv: 10, int: 15, cout: 15, desc: "Crée un monstre fictif que la cible croit réel." }, 
-            { nom: "Invisibilité", niv: 15, int: 18, cout: 20, desc: "Rend la cible invisible." }
+            { nom: "Invisibilité", niv: 15, int: 18, cout: 20, buffPersistant: true, desc: "Cible invisible (−4 FT/tour). Disparaît de la liste des cibles ennemies." }
         ] 
     },
     "Invocation": { 
         desc: "Invoquer des créatures.", 
         sorts: [
-            { nom: "Nuée d’insectes", niv: 1, int: 6, cout: 5, desc: "Invoque un essaim qui ralentit la cible." }, 
-            { nom: "Champion orque", niv: 1, int: 9, cout: 8, desc: "Invoque un orque qui combat pour le lanceur." }, 
-            { nom: "Ogre gardien", niv: 5, int: 12, cout: 12, desc: "Invoque un ogre allié." }, 
-            { nom: "Porte des Enfers", niv: 10, int: 15, cout: 16, desc: "Invoque un démon." }, 
-            { nom: "Invocation d’un familier", niv: 15, int: 18, cout: 25, desc: "Invoque un familier permanent." }
+            { nom: "Nuée d’insectes", niv: 1, int: 6, cout: 5, degats: 3, nueeDInsectes: true, desc: "Degats legers + ralentit la cible de 25% pendant 2 tours." },
+            { nom: "Champion orque", niv: 1, int: 9, cout: 8, invocation: true, invocationId: "champion_orc", desc: "Invoque un orque allie (47 PV) qui combat pour le lanceur." },
+            { nom: "Ogre gardien", niv: 5, int: 12, cout: 12, invocation: true, invocationId: "ogre_gardien", desc: "Invoque un ogre allie (104 PV) qui combat pour le lanceur." },
+            { nom: "Porte des Enfers", niv: 10, int: 15, cout: 16, invocation: true, invocationId: "porte_enfers", desc: "Invoque un demon allie (200 PV) qui combat pour le lanceur." },
+            { nom: "Invocation d’un familier", niv: 15, int: 18, cout: 25, invocation: true, invocationId: "familier", estFamilier: true, desc: "Invoque un familier permanent (evolutif selon alignement). Castable hors combat." }
         ] 
     },
     "Temporel": { 
         desc: "Contrôler le cours du temps.", 
         sorts: [
             { nom: "Verrou magique", niv: 1, int: 6, cout: 2, desc: "Verouille une porte ou un coffre" }, 
-            { nom: "Altération temporelle", niv: 1, int: 9, cout: 5, desc: "Réduit de moitié la vitesse des créatures près du lanceur du sort" }, 
-            { nom: "Hâte", niv: 5, int: 12, cout: 10, desc: "Double  la vitesse de la cible." }, 
+            { nom: "Altération temporelle", niv: 1, int: 9, cout: 5, aoeEnnemi: true, cout_par_tour: 1, desc: "ROLL zone : ennemis ratant le jet ont leur vitesse réduite de 50%. Coût FT/tour, annulable." }, 
+            { nom: "Hâte", niv: 5, int: 12, cout: 10, buffPersistant: true, desc: "Vitesse ×2 pendant 3 tours." },
             { nom: "Stase", niv: 10, int: 15, cout: 15, desc: "Immobilise totalement une cible." }, 
-            { nom: "Tempus Fugit", niv: 15, int: 18, cout: 20, desc: "Triple la vitesse pour le lanceur et ses aliés et réduit celle des autres." }
+            { nom: "Tempus Fugit", niv: 15, int: 18, cout: 20, aoeEnnemi: true, cout_par_tour: 4, desc: "Alliés ×3 vitesse. ROLL zone sur ennemis : vitesse /2 si raté. Coût FT/tour, annulable." }
         ] 
     }
 };
 
 
+
+// ==========================================
+// DONNÉES DES CRÉATURES INVOCABLES
+// ==========================================
+
+const _INVOCATIONS_DATA = {
+    champion_orc: {
+        nom: "Champion orque", race: "orque", niveau: 5,
+        pv: 47, ft: 47,
+        stats: { FO: 11, CN: 11, DX: 8, IN: 2, CH: 2 },
+        res:  { physique: 0, magie: 0, feu: 0, poison: 35, elec: 0 }
+    },
+    ogre_gardien: {
+        nom: "Ogre gardien", race: "ogre", niveau: 8,
+        pv: 104, ft: 96,
+        stats: { FO: 23, CN: 12, DX: 11, IN: 1, CH: 7 },
+        res:  { physique: 38, magie: 0, feu: 10, poison: 40, elec: -20 }
+    },
+    porte_enfers: {
+        nom: "Demon invoque", race: "demon", niveau: 12,
+        pv: 200, ft: 98,
+        stats: { FO: 20, CN: 14, DX: 15, IN: 11, CH: 3 },
+        res:  { physique: 20, magie: 30, feu: 40, poison: 80, elec: 25 }
+    },
+    elem_air: {
+        nom: "Elementaire d'Air", race: "elementaire", niveau: 35,
+        pv: 98, ft: 50,
+        stats: { FO: 6, CN: 12, DX: 14, IN: 7, CH: 2 },
+        res:  { physique: 0, magie: 50, feu: 0, poison: 20, elec: 0 },
+        esquiveInnee: 15,
+        sortsConnus: ["Désarmement", "Choc"]
+    },
+    elem_terre: {
+        nom: "Elementaire de Terre", race: "elementaire", niveau: 35,
+        pv: 122, ft: 50,
+        stats: { FO: 6, CN: 18, DX: 4, IN: 4, CH: 5 },
+        res:  { physique: 75, magie: 0, feu: 0, poison: 50, elec: 0 }
+    },
+    elem_feu: {
+        nom: "Elementaire de Feu", race: "elementaire", niveau: 35,
+        pv: 98, ft: 50,
+        stats: { FO: 12, CN: 8, DX: 18, IN: 7, CH: 4 },
+        res:  { physique: 0, magie: 0, feu: 100, poison: 0, elec: 0 },
+        riposteFeu: true
+    },
+    elem_eau: {
+        nom: "Elementaire d'Eau", race: "elementaire", niveau: 35,
+        pv: 98, ft: 50,
+        stats: { FO: 10, CN: 14, DX: 12, IN: 7, CH: 2 },
+        res:  { physique: 10, magie: 30, feu: 0, poison: 30, elec: -60 },
+        soinsParTour: 2,
+        sortsConnus: ["Purete d'ondine"]
+    },
+    mort_vivant_align: [
+        { nom: "Soldat mort",         race: "mort-vivant", niveau: 5,  pv: 34,  ft: 47, stats: { FO: 11, CN: 12, DX: 8,  IN: 2,  CH: 2 }, res: { physique: 0,  magie: 0,  feu: 0,  poison: 140, elec: 0  }, alignMin: -100, alignMax: 25  },
+        { nom: "Combattant enrage",   race: "mort-vivant", niveau: 8,  pv: 80,  ft: 56, stats: { FO: 16, CN: 13, DX: 11, IN: 12, CH: 1 }, res: { physique: 40, magie: 40, feu: 40, poison: 85,  elec: 40 }, alignMin: 26,   alignMax: 60  },
+        { nom: "Guerrier squelette",  race: "mort-vivant", niveau: 10, pv: 63,  ft: 59, stats: { FO: 12, CN: 10, DX: 13, IN: 5,  CH: 2 }, res: { physique: 30, magie: 30, feu: 30, poison: 60,  elec: 30 }, alignMin: 61,   alignMax: 85  },
+        { nom: "Champion mort-vivant",race: "mort-vivant", niveau: 12, pv: 75,  ft: 79, stats: { FO: 11, CN: 13, DX: 17, IN: 8,  CH: 5 }, res: { physique: 60, magie: 10, feu: 25, poison: 70,  elec: 25 }, alignMin: 86,   alignMax: 100 }
+    ],
+    familier: [
+        { nom: "Familier subalterne",      race: "familier", niveau: 1, pv: 29,  ft: 29,  stats: { FO: 5,  CN: 5,  DX: 9,  IN: 3, CH: 3 }, res: { physique: 10, magie: 10, feu: 10, poison: 15, elec: 10 }, alignMin: -100, alignMax: 25  },
+        { nom: "Familier",                 race: "familier", niveau: 1, pv: 47,  ft: 43,  stats: { FO: 9,  CN: 7,  DX: 1,  IN: 3, CH: 3 }, res: { physique: 15, magie: 15, feu: 15, poison: 30, elec: 15 }, alignMin: 26,   alignMax: 50  },
+        { nom: "Familier Slasher",         race: "familier", niveau: 1, pv: 75,  ft: 69,  stats: { FO: 13, CN: 10, DX: 16, IN: 3, CH: 3 }, res: { physique: 20, magie: 20, feu: 20, poison: 50, elec: 20 }, alignMin: 51,   alignMax: 75  },
+        { nom: "Familier Griffe-sanglante",race: "familier", niveau: 1, pv: 111, ft: 105, stats: { FO: 16, CN: 13, DX: 18, IN: 3, CH: 3 }, res: { physique: 30, magie: 30, feu: 30, poison: 75, elec: 30 }, alignMin: 76,   alignMax: 100 }
+    ],
+    animal_align: [
+        { nom: "Loup",            race: "animal", niveau: 3,  pv: 34,  ft: 34,  stats: { FO: 11, CN: 9,  DX: 13, IN: 5,  CH: 3  }, res: { physique: 0,  magie: 0,  feu: 0,  poison: 25, elec: 0  }, alignMin: -100, alignMax: 20  },
+        { nom: "Cougar",          race: "animal", niveau: 4,  pv: 30,  ft: 36,  stats: { FO: 8,  CN: 9,  DX: 14, IN: 3,  CH: 6  }, res: { physique: 0,  magie: 0,  feu: 0,  poison: 25, elec: 0  }, alignMin: 21,   alignMax: 40  },
+        { nom: "Tigre",           race: "animal", niveau: 6,  pv: 30,  ft: 48,  stats: { FO: 10, CN: 12, DX: 14, IN: 6,  CH: 11 }, res: { physique: 0,  magie: 0,  feu: 0,  poison: 40, elec: 0  }, alignMin: 41,   alignMax: 55  },
+        { nom: "Grizzly",         race: "animal", niveau: 8,  pv: 58,  ft: 74,  stats: { FO: 14, CN: 16, DX: 10, IN: 5,  CH: 8  }, res: { physique: 30, magie: 10, feu: 30, poison: 90, elec: 30 }, alignMin: 56,   alignMax: 70  },
+        { nom: "Gorille forestier",race: "animal", niveau: 10, pv: 62,  ft: 70,  stats: { FO: 14, CN: 12, DX: 16, IN: 7,  CH: 7  }, res: { physique: 50, magie: 0,  feu: 50, poison: 90, elec: 50 }, alignMin: 71,   alignMax: 95  },
+        { nom: "Lapin Vorpal",    race: "animal", niveau: 15, pv: 108, ft: 139, stats: { FO: 14, CN: 18, DX: 17, IN: 18, CH: 14 }, res: { physique: 0,  magie: 0,  feu: 0,  poison: 70, elec: 0  }, alignMin: 96,   alignMax: 100, sortsConnus: ["Bouclier de protection", "Choc électrique"] }
+    ]
+};
+
+/** Retourne la bonne variante d'une invocation selon l'alignement du lanceur. */
+function _getInvocationParAlign(invocationId, align) {
+    const table = _INVOCATIONS_DATA[invocationId];
+    if (!Array.isArray(table)) return table;
+    return table.find(v => align >= v.alignMin && align <= v.alignMax) || table[0];
+}
+
+/** Construit l'entrée ordre_jeu pour un invoqué. */
+function _creerEntreeInvoque(modele, invocateurId, invocateurNom) {
+    const instanceId = Date.now();
+    return {
+        type:          "invoque",
+        instanceId,
+        id:            "invoque_" + instanceId,
+        nom:           modele.nom,
+        race:          modele.race || "",
+        niveau:        modele.niveau || 1,
+        invocateurId,
+        invocateurNom,
+        vitesse:       modele.stats.DX,
+        pvActuel:      modele.pv,
+        pvMax:         modele.pv,
+        ftActuel:      modele.ft,
+        ftMax:         modele.ft,
+        stats:         modele.stats,
+        res:           modele.res || {},
+        sortsConnus:   modele.sortsConnus || [],
+        riposteFeu:    modele.riposteFeu  || false,
+        soinsParTour:  modele.soinsParTour || 0,
+        esquiveInnee:  modele.esquiveInnee || 0,
+        ko:            false
+    };
+}
+
+/** Invoque un familier hors combat et le stocke dans Firebase. */
+function _lancerFamilierHorsCombat(coutReel, compIdx) {
+    if (!sessionActuelle || !window.perso) return;
+    const uid = window.perso.nom.replace(/\s+/g, '_');
+    db.ref('parties/' + sessionActuelle + '/familiers/' + uid).once('value', function(snap) {
+        const exist = snap.val();
+        if (exist && exist.pvActuel > 0) {
+            if (typeof _toast === 'function') _toast('🐾 Vous avez déjà un familier actif (' + exist.nom + ') !', 'warning');
+            else alert('🐾 Vous avez déjà un familier actif (' + exist.nom + ') !');
+            return;
+        }
+        const align = (compIdx !== null && compIdx !== undefined)
+            ? (window.perso.compagnons[compIdx].alignementMagique || 0)
+            : (perso.alignementMagique || 0);
+        const modele = _getInvocationParAlign('familier', align);
+        const entree = _creerEntreeInvoque(modele, uid, perso.nom);
+        entree.estFamilier = true;
+        if (compIdx !== null && compIdx !== undefined) {
+            window.perso.compagnons[compIdx].ftActuel -= coutReel;
+            if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+        } else {
+            perso.ftActuel -= coutReel;
+        }
+        db.ref('parties/' + sessionActuelle + '/familiers/' + uid).set(entree, function() {
+            if (typeof _toast === 'function') _toast('🐾 Familier invoqué : ' + entree.nom + ' !', 'success');
+            else alert('🐾 Familier invoqué : ' + entree.nom + ' !');
+            if (typeof autoSave === 'function') autoSave();
+            if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+        });
+    });
+}
+
+/** Invoque un animal compagnon hors combat et le stocke dans Firebase. */
+function _lancerAnimalHorsCombat(coutReel, compIdx) {
+    if (!sessionActuelle || !window.perso) return;
+    const uid = window.perso.nom.replace(/\s+/g, '_');
+    db.ref('parties/' + sessionActuelle + '/animaux/' + uid).once('value', function(snap) {
+        const exist = snap.val();
+        if (exist && exist.pvActuel > 0) {
+            if (typeof _toast === 'function') _toast('🐺 Vous avez déjà un animal compagnon actif (' + exist.nom + ') !', 'warning');
+            else alert('🐺 Vous avez déjà un animal compagnon actif (' + exist.nom + ') !');
+            return;
+        }
+        const align = (compIdx !== null && compIdx !== undefined)
+            ? (window.perso.compagnons[compIdx].alignementMagique || 0)
+            : (perso.alignementMagique || 0);
+        const modele = _getInvocationParAlign('animal_align', align);
+        const entree = _creerEntreeInvoque(modele, uid, perso.nom);
+        if (compIdx !== null && compIdx !== undefined) {
+            window.perso.compagnons[compIdx].ftActuel -= coutReel;
+            if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
+        } else {
+            perso.ftActuel -= coutReel;
+        }
+        db.ref('parties/' + sessionActuelle + '/animaux/' + uid).set(entree, function() {
+            if (typeof _toast === 'function') _toast('🐺 Animal invoqué : ' + entree.nom + ' !', 'success');
+            else alert('🐺 Animal invoqué : ' + entree.nom + ' !');
+            if (typeof autoSave === 'function') autoSave();
+            if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+        });
+    });
+}
 
 // ==========================================
 // SYSTÈME DE GRIMOIRE ET LANCEMENT DE SORTS
@@ -361,6 +532,20 @@ function preparerEtLancerSort(nomSort, compIdx) {
     }
     if (ftSource < coutReel) {
         alert(`💥 ${nomSource} est trop fatigué pour lancer ce sort !`);
+        return;
+    }
+
+    // --- Invocations hors combat ---
+    if (data.estFamilier) {
+        _lancerFamilierHorsCombat(coutReel, sortSourceCompIdx);
+        return;
+    }
+    if (data.invocationId === "animal_align") {
+        _lancerAnimalHorsCombat(coutReel, sortSourceCompIdx);
+        return;
+    }
+    if (data.invocation) {
+        alert("⚔️ Ce sort d'invocation ne peut être lancé qu'en combat !");
         return;
     }
 
@@ -566,4 +751,392 @@ function fermerModaleEtUpdate() {
     if (typeof autoSave === 'function') autoSave();
     if (typeof ouvrirMagieAccueil === 'function') ouvrirMagieAccueil();
     if (typeof rafraichirAccueil === 'function') rafraichirAccueil();
+}
+
+// ==========================================
+// EFFETS SECONDAIRES — COMBAT
+// ==========================================
+
+/** Jet de sort opposé : d100+IN_lanceur vs d100+(IN+RM)_cible. true = sort passe. */
+function _rollSortPasse(lanceurIN, cibleIN, cibleRM) {
+    const rollL = Math.floor(Math.random() * 100) + 1 + (lanceurIN || 0);
+    const rollC = Math.floor(Math.random() * 100) + 1 + ((cibleIN || 0) + (cibleRM || 0));
+    return rollL >= rollC;
+}
+
+/**
+ * Déplace une entrée ordre_jeu en DERNIÈRE position (push d'initiative).
+ * @returns {{ ordre: object[], tourActuel: number }}
+ */
+function _pousserEnDernier(ordre, tourActuel, cibleInstanceId, cibleJoueurId) {
+    const arr = [...ordre];
+    const idx = arr.findIndex(p =>
+        (cibleInstanceId != null && p.instanceId === cibleInstanceId) ||
+        (cibleJoueurId   && (p.id === cibleJoueurId || p.joueurID === cibleJoueurId))
+    );
+    if (idx === -1) return { ordre: arr, tourActuel };
+    const [cible] = arr.splice(idx, 1);
+    cible.pushed = true;
+    arr.push(cible);
+    const nouveauTour = idx < tourActuel ? Math.max(0, tourActuel - 1) : tourActuel;
+    return { ordre: arr, tourActuel: nouveauTour };
+}
+
+/**
+ * Nettoie pushed, re-trie par vitesse, et place les entries bonus_round
+ * (Distorsion spatiale) en tête (devant) ou en queue (derrière).
+ */
+function _nouveauRondOrdre(ordre) {
+    const sansPushed = ordre.map(p => {
+        const c = Object.assign({}, p);
+        delete c.pushed;
+        return c;
+    });
+    // Séparer les bonus_round des entrées normales
+    const devant   = sansPushed.filter(p => p.bonus_round?.position === 'devant')
+                               .map(p => { const c = Object.assign({}, p); delete c.bonus_round; return c; });
+    const derriere = sansPushed.filter(p => p.bonus_round?.position === 'derriere')
+                               .map(p => { const c = Object.assign({}, p); delete c.bonus_round; return c; });
+    const normaux  = sansPushed.filter(p => !p.bonus_round)
+                               .sort((a, b) => (b.vitesse || 0) - (a.vitesse || 0) || (a.type === 'joueur' ? -1 : 1));
+    return [...devant, ...normaux, ...derriere];
+}
+
+/**
+ * Avance le tour. Si nouveau round (wrap), re-trie et applique les bonus_round.
+ * @returns {{ ordre: object[], tourActuel: number }}
+ */
+function _avancerTourCombat(ordre, tourActuel) {
+    const prochainTour = _prochainTourVivant(ordre, tourActuel);
+    const estNouveauRond = prochainTour < tourActuel;
+    const aReorganiser = estNouveauRond && (ordre.some(p => p.pushed) || ordre.some(p => p.bonus_round));
+    const ordreRetour = aReorganiser ? _nouveauRondOrdre(ordre) : ordre;
+    return { ordre: ordreRetour, tourActuel: prochainTour };
+}
+
+/**
+ * Applique les effets secondaires d'un sort sur l'ennemi ciblé.
+ * Peut modifier ennemisMAJ en place (AoE).
+ * @returns {{ msgExtra: string, ordreUpdate: object[]|null, tourUpdate: number|null }}
+ */
+function _effetSecondaireEnnemi(sortData, cibleIdx, ennemisMAJ, ordreActuel, tourActuel, lanceurIN) {
+    const ennemi  = ennemisMAJ[cibleIdx];
+    const cibleIN = (ennemi.statsBase?.IN || 0) + (ennemi.statsInvesties?.IN || 0);
+    const cibleRM = ennemi.resistanceMagique || ennemi.compInvesties?.resistanceMagique || 0;
+    const nom     = (sortData.nom || '').trim();
+    const align   = window.perso?.alignementMagique || 0;
+
+    let msgExtra  = '';
+    let ordreUpdate = null;
+    let tourUpdate  = null;
+
+    // — Push en dernier : Choc, Choc électrique, Étourdissement, Rafale de vent —
+    if (['Choc', 'Rafale de vent', 'Choc électrique', 'Étourdissement'].includes(nom)) {
+        if (ennemi.pvActuel > 0) {
+            if (_rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+                const res = _pousserEnDernier(ordreActuel, tourActuel, ennemi.instanceId, null);
+                ordreUpdate = res.ordre;
+                tourUpdate  = res.tourActuel;
+                msgExtra = ' 💨 Repoussé en dernier !';
+            } else {
+                msgExtra = ' — ⛔ Effet résisté.';
+            }
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Boule de feu : 25% AoE splash sur les autres ennemis vivants —
+    if (nom === 'Boule de feu') {
+        const dmgBase = sortData.degats || 15;
+        const splash  = Math.max(1, Math.floor((dmgBase + (align / 100) * dmgBase) * 0.25));
+        let nbTouches = 0;
+        ennemisMAJ.forEach((e, i) => {
+            if (i === cibleIdx || e.pvActuel <= 0) return;
+            e.pvActuel = Math.max(0, e.pvActuel - splash);
+            nbTouches++;
+        });
+        if (nbTouches > 0) msgExtra = ` — 🔥 Éclaboussure : ${splash} dég. sur ${nbTouches} autre(s)`;
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Éclair : rebonds ½ → ¼ → ⅛ sur les autres ennemis vivants —
+    if (nom === 'Eclair' || nom === 'Éclair') {
+        const dmgBase = sortData.degats || 30;
+        let dmgRebond = Math.max(1, Math.floor((dmgBase + (align / 100) * dmgBase) / 2));
+        const vivants = ennemisMAJ.filter((e, i) => i !== cibleIdx && e.pvActuel > 0);
+        const rebonds = [];
+        vivants.forEach(e => {
+            if (dmgRebond < 1) return;
+            e.pvActuel = Math.max(0, e.pvActuel - dmgRebond);
+            rebonds.push(`${e.nom} (${dmgRebond})`);
+            dmgRebond = Math.floor(dmgRebond / 2);
+        });
+        if (rebonds.length > 0) msgExtra = ` — ⚡ Rebonds : ${rebonds.join(' → ')}`;
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Vapeurs toxiques : poison 2 tours (ROLL) —
+    if (nom === 'Vapeurs toxiques') {
+        if (ennemi.pvActuel > 0) {
+            if (_rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+                if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+                const dmgPoison = Math.max(1, Math.floor((sortData.degats || 4) * 0.5));
+                ennemisMAJ[cibleIdx].effets.poison = { duree: 2, degats: dmgPoison, source: window.perso?.nom || '?' };
+                msgExtra = ` — ☠ Empoisonné (${dmgPoison} dég./tour, 2 tours)`;
+            } else {
+                msgExtra = ' — ⛔ Poison résisté.';
+            }
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Nuée d'insectes : vitesse -25% (ROLL) —
+    if (nom === "Nuée d'insectes") {
+        if (ennemi.pvActuel > 0) {
+            if (_rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+                if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+                ennemisMAJ[cibleIdx].effets.ralenti = { facteur: 0.75 };
+                const ordreMAJ = [...ordreActuel].map(p => {
+                    if (p.type === 'ennemi' && p.instanceId === ennemi.instanceId) {
+                        const vOrig = p.vitesseOrig ?? p.vitesse;
+                        return Object.assign({}, p, { vitesse: Math.max(1, Math.floor(vOrig * 0.75)), vitesseOrig: vOrig });
+                    }
+                    return p;
+                });
+                ordreUpdate = ordreMAJ;
+                msgExtra = ' — 🐝 Ralenti (-25% vitesse) !';
+            } else {
+                msgExtra = ' — ⛔ Effet résisté.';
+            }
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Désarmement : perd son arme (ROLL) —
+    if (nom === 'Désarmement') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.desarme = true;
+            msgExtra = ' — ⚔ Désarmé (mains nues) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Absorption de la volonté : saute 1 tour sans regen (ROLL) —
+    if (nom === 'Absorption de la volonté') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.skip_tour = { tours: 1 };
+            msgExtra = ' — 🧠 Tour bloqué (sans regen) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Charme : ne peut pas cibler le lanceur 1 tour (ROLL) —
+    if (nom === 'Charme') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.charme = { cible_interdit: window.perso?.nom || '', tours: 1 };
+            msgExtra = ' — 💜 Charmé (ne peut pas attaquer le lanceur) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Flash : 25% miss sur la prochaine attaque (ROLL) —
+    if (nom === 'Flash') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.flash = true;
+            msgExtra = ' — ✨ Aveuglé (25% de rater) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Faiblesse : -5 dégâts sur les attaques (ROLL) —
+    if (nom === 'Faiblesse') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.faiblesse = { fo_delta: -5 };
+            msgExtra = ' — 💀 Affaibli (-5 dégâts) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Rétrécissement : +25% dégâts reçus pendant 2 tours (ROLL) —
+    if (nom === 'Rétrécissement') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.retrecissement = { facteur: 1.25, duree: 2 };
+            msgExtra = ' — 🔍 Rétréci (+25% dégâts, 2 tours) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Cauchemar : AoE push tous les ennemis ratant le jet (ROLL par ennemi) —
+    if (nom === 'Cauchemar') {
+        let ordreMAJ = [...ordreActuel];
+        let tourMAJ  = tourActuel;
+        let poussés  = 0;
+        ennemisMAJ.forEach((e) => {
+            if (e.pvActuel <= 0) return;
+            const eIN = (e.statsBase?.IN || 0) + (e.statsInvesties?.IN || 0);
+            const eRM = e.resistanceMagique || e.compInvesties?.resistanceMagique || 0;
+            if (!_rollSortPasse(lanceurIN, eIN, eRM)) {
+                const res = _pousserEnDernier(ordreMAJ, tourMAJ, e.instanceId, null);
+                ordreMAJ = res.ordre;
+                tourMAJ  = res.tourActuel;
+                poussés++;
+            }
+        });
+        if (poussés > 0) {
+            ordreUpdate = ordreMAJ;
+            tourUpdate  = tourMAJ;
+            msgExtra = ` — 😱 Cauchemar : ${poussés} ennemi(s) repoussé(s) !`;
+        } else {
+            msgExtra = ' — ⛔ Tous ont résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Pétrification : immunité physique, passe son tour avec regen (ROLL) —
+    if (nom === 'Pétrification') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.petrification = true;
+            msgExtra = ' — 🪨 Pétrifié (immunité physique, passe son tour) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Enchevêtrement : vitesse /2, ROLL de maintien à chaque tour (ROLL) —
+    if (nom === 'Enchevêtrement') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.enchevetre = { lanceurIN };
+            const ordreMAJ = [...ordreActuel].map(p => {
+                if (p.type === 'ennemi' && p.instanceId === ennemi.instanceId) {
+                    const vOrig = p.vitesseOrig ?? p.vitesse;
+                    return Object.assign({}, p, { vitesse: Math.max(1, Math.floor(vOrig * 0.5)), vitesseOrig: vOrig });
+                }
+                return p;
+            });
+            ordreUpdate = ordreMAJ;
+            msgExtra = ' — 🌿 Enchevêtré (vitesse /2) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Charmer les animaux : animal passe ses tours (ROLL facile) —
+    if (nom === 'Charmer les animaux') {
+        const estAnimal = ['animal', 'Animal', 'bête', 'Bête'].includes(ennemi.race || '');
+        if (!estAnimal) {
+            msgExtra = ' — ❌ Cible non animale.';
+        } else if (_rollSortPasse(lanceurIN * 2, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.charme_animal = { lanceur: window.perso?.nom || '' };
+            msgExtra = ' — 🐾 Animal charmé (passe ses tours) !';
+        } else {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Entrave aux sortilèges : ne peut plus lancer de sorts (ROLL) —
+    if (nom === 'Entrave aux sortilèges') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.entrave_sorts = true;
+            msgExtra = ' — 🔒 Entravé (ne peut plus lancer de sorts) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Stase : saute ses tours sans regen (ROLL) —
+    if (nom === 'Stase') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.stase = true;
+            msgExtra = ' — ⏸ En stase (ne peut plus agir) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Monstre illusoire : 50% chance fausse cible (ROLL) —
+    if (nom === 'Monstre illusoire') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.monstre_illusoire = true;
+            msgExtra = ' — 👻 Monstre illusoire actif (50% fausse cible) !';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Domination / Contrôler les animaux (ROLL) —
+    if (nom === 'Domination' || nom === 'Contrôler les animaux') {
+        const estAnimal = ['animal', 'Animal', 'bête', 'Bête'].includes(ennemi.race || '');
+        if (nom === 'Contrôler les animaux' && !estAnimal) {
+            msgExtra = ' — ❌ Cible non animale.';
+        } else if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+            ennemisMAJ[cibleIdx].effets.domine = { lanceur: window.perso?.nom || '' };
+            msgExtra = ` — 🎭 Dominé par ${window.perso?.nom || '?'} !`;
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Dissipation des sortilèges : efface tous les effets magiques (ROLL) —
+    if (nom === 'Dissipation des sortilèges') {
+        if (ennemi.pvActuel > 0 && _rollSortPasse(lanceurIN, cibleIN, cibleRM)) {
+            const nbEffets = Object.keys(ennemisMAJ[cibleIdx].effets || {}).length;
+            ennemisMAJ[cibleIdx].effets = {};
+            msgExtra = nbEffets > 0
+                ? ` — ✨ ${nbEffets} effet(s) dissipé(s) !`
+                : ' — ✨ Aucun effet à dissiper.';
+        } else if (ennemi.pvActuel > 0) {
+            msgExtra = ' — ⛔ Sort résisté.';
+        }
+        return { msgExtra, ordreUpdate, tourUpdate };
+    }
+
+    // — Nuée d'insectes : ralentissement 25% pendant 2 tours —
+    if (s.nueeDInsectes && ennemi.pvActuel > 0) {
+        if (!ennemisMAJ[cibleIdx].effets) ennemisMAJ[cibleIdx].effets = {};
+        const vOrig = (ordreUpdate || []).find(p => p.type === 'ennemi' && p.instanceId === ennemi.instanceId)?.vitesse
+                   || ennemi.statsBase?.DX || 5;
+        ennemisMAJ[cibleIdx].effets.nuee_insectes = { toursRestants: 2, vitesseOrig: vOrig };
+        ordreUpdate = (ordreUpdate || []).map(p => {
+            if (p.type === 'ennemi' && p.instanceId === ennemi.instanceId) {
+                const vO = p.vitesseOrig ?? p.vitesse;
+                return Object.assign({}, p, { vitesse: Math.max(1, Math.floor(vO * 0.75)), vitesseOrig: vO });
+            }
+            return p;
+        });
+        msgExtra += ' — 🐝 Ralenti de 25% pendant 2 tours !';
+    }
+
+    return { msgExtra, ordreUpdate, tourUpdate };
 }

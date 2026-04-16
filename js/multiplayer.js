@@ -507,14 +507,30 @@ function activerEcouteurStats() {
         let degats = -data.valeur;
 
         // 0. Esquive : 1% de chance par point de compétence (impossible si surchargé)
-        const esquive_pts = window.perso.compInvesties?.esquive || 0;
+        const esquive_pts_base = window.perso.compInvesties?.esquive || 0;
         const persoSurchargé = (typeof _estSurcharge === 'function') && _estSurcharge(window.perso);
+        // Brouillard : +20 esquive
+        const _buffsGroupeEsq = window.combatActif?.buffs_groupe || {};
+        const bonusEsqBrouillard = _buffsGroupeEsq['Brouillard']?.actif ? 20 : 0;
+        // Occultation : +10 esquive
+        const bonusEsqOccultation = window.perso.effets_actifs
+            ? Object.values(window.perso.effets_actifs).reduce((s, e) => s + (e.bonus_esquive || 0), 0) : 0;
+        // Incarnation d'Air : esquive fixée à 75
+        const _incAir = window.perso.effets_actifs && Object.values(window.perso.effets_actifs).some(e => e.incarnation && e.element_incarnation === 'Air');
+        const esquive_pts = _incAir ? 75 : (esquive_pts_base + bonusEsqBrouillard + bonusEsqOccultation);
         if (!persoSurchargé && esquive_pts > 0 && Math.floor(Math.random() * 100) < esquive_pts) {
             esquive = true;
             if (typeof _toast === 'function') _toast('🏃 Attaque esquivée !', 'success');
         }
 
         if (!esquive) {
+            // 0b. Bouclier mystique : −20% dégâts magiques
+            const _buffsGroupe = window.combatActif?.buffs_groupe || {};
+            if (data.magique && _buffsGroupe['Bouclier mystique']?.actif) {
+                degats = Math.max(0, Math.round(degats * 0.80));
+                if (typeof _toast === 'function') _toast('🔮 Bouclier mystique — −20% dég. magiques', 'success');
+            }
+
             // 1. Résistance élémentaire (avant armure)
             if (data.element) {
                 const resMap = { feu: 'resFeu', elec: 'resElec', poison: 'resPoison' };
@@ -533,6 +549,74 @@ function activerEcouteurStats() {
             if (typeof _armureTotal === 'function') {
                 const armure = _armureTotal(window.perso);
                 degats = Math.max(0, degats - armure);
+            }
+
+            // 2b. Mur de pierres / Mur de force : −20% dégâts physiques (pas magiques)
+            if (!data.magique && (_buffsGroupe['Mur de pierres']?.actif || _buffsGroupe['Mur de force']?.actif)) {
+                degats = Math.max(0, Math.round(degats * 0.80));
+                const nomMur = _buffsGroupe['Mur de pierres']?.actif ? 'Mur de pierres' : 'Mur de force';
+                if (typeof _toast === 'function') _toast(`🪨 ${nomMur} — −20% dég. physiques`, 'success');
+            }
+
+            // 2c. Bouclier de protection : −25% dégâts physiques, se brise au premier coup
+            if (!data.magique && window.perso.effets_actifs) {
+                const effetsArr = Object.entries(window.perso.effets_actifs);
+                const idxBouclier = effetsArr.findIndex(([, e]) => e.bouclier_physique && e.fragile);
+                if (idxBouclier !== -1) {
+                    const [cleBouclier] = effetsArr[idxBouclier];
+                    degats = Math.max(0, Math.round(degats * (1 - effetsArr[idxBouclier][1].bouclier_physique)));
+                    if (typeof _toast === 'function') _toast('🛡 Bouclier de protection absorbé et brisé !', 'success');
+                    // Briser le bouclier
+                    const _playerID = (window.perso.nom || '').replace(/\s+/g, '_');
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + _playerID + '/effets_actifs/' + cleBouclier).remove();
+                }
+            }
+
+            // 2d. Occultation : −10% tous dégâts
+            if (window.perso.effets_actifs) {
+                const aOccultation = Object.values(window.perso.effets_actifs).some(e => e.nom === 'Occultation' && e.reduction_degats);
+                if (aOccultation) {
+                    degats = Math.max(0, Math.round(degats * 0.90));
+                    if (typeof _toast === 'function') _toast('🌫 Occultation — −10% dégâts', 'success');
+                }
+            }
+
+            // 2e. Incarnation de Pierre : −75% tous dégâts
+            if (window.perso.effets_actifs && Object.values(window.perso.effets_actifs).some(e => e.incarnation && e.element_incarnation === 'Pierre')) {
+                degats = Math.max(0, Math.round(degats * 0.25));
+                if (typeof _toast === 'function') _toast('🪨 Incarnation de Pierre — −75% dégâts !', 'success');
+            }
+
+            // 2f. Bouclier de réflexion : réfléchit les attaques magiques/élémentaires
+            const _estMagique = !!data.element || !!data.magique;
+            if (_estMagique && window.perso.effets_actifs) {
+                const _effReflArr = Object.entries(window.perso.effets_actifs);
+                const _idxRef = _effReflArr.findIndex(([,e]) => e.reflexion);
+                if (_idxRef !== -1) {
+                    const [_cleRef, _effRef] = _effReflArr[_idxRef];
+                    const _playerIDRef = (window.perso.nom || '').replace(/\s+/g, '_');
+                    // Réfléchir les dégâts sur l'attaquant si instanceId connu
+                    if (data.instanceId != null && window.combatActif) {
+                        const _ennemisRef = [...(window.combatActif.ennemis || [])];
+                        const _idxREnemi = _ennemisRef.findIndex(e => e.instanceId === data.instanceId);
+                        if (_idxREnemi !== -1) {
+                            _ennemisRef[_idxREnemi].pvActuel = Math.max(0, _ennemisRef[_idxREnemi].pvActuel - degats);
+                            db.ref('parties/' + sessionActuelle + '/combat_actif/ennemis').set(_ennemisRef);
+                        }
+                    }
+                    degats = 0;
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + _playerIDRef + '/effets_actifs/' + _cleRef).remove();
+                    // Retirer le maintien chez le lanceur si différent
+                    if (_effRef.lanceur && _effRef.lanceur !== _playerIDRef) {
+                        db.ref('parties/' + sessionActuelle + '/joueurs/' + _effRef.lanceur + '/effets_actifs').once('value', snapL => {
+                            const effL = snapL.val() || {};
+                            const cleM = Object.keys(effL).find(k => effL[k].reflexion_maintien && effL[k].cible === _playerIDRef);
+                            if (cleM) db.ref('parties/' + sessionActuelle + '/joueurs/' + _effRef.lanceur + '/effets_actifs/' + cleM).remove();
+                        });
+                    }
+                    if (typeof _toast === 'function') _toast('🪞 Bouclier de réflexion — sort réfléchi !', 'success');
+                    if (typeof _logCombat === 'function') _logCombat(`🪞 ${window.perso.nom} réfléchit le sort !`);
+                }
             }
 
             // 3. Contamination poison (50% de base, réduite par resPoison ; CN ≥ 20 = immunité)
@@ -571,6 +655,38 @@ function activerEcouteurStats() {
             });
 
             valeurEffective = -degats;
+
+            // 2g. Incarnation de Feu : riposte feu personnelle (30%)
+            if (degats > 0 && data.instanceId != null && window.perso.effets_actifs &&
+                Object.values(window.perso.effets_actifs).some(e => e.incarnation && e.element_incarnation === 'Feu') &&
+                window.combatActif) {
+                const _riposteFeu = Math.max(1, Math.ceil(degats * 0.30));
+                const _ennemisRip = [...(window.combatActif.ennemis || [])];
+                const _idxRip = _ennemisRip.findIndex(e => e.instanceId === data.instanceId);
+                if (_idxRip !== -1) {
+                    _ennemisRip[_idxRip].pvActuel = Math.max(0, _ennemisRip[_idxRip].pvActuel - _riposteFeu);
+                    db.ref('parties/' + sessionActuelle + '/combat_actif/ennemis').set(_ennemisRip);
+                    if (typeof _logCombat === 'function') _logCombat(`🔥 Incarnation de Feu — riposte ${_riposteFeu} dégâts !`);
+                }
+            }
+
+            // 2h. Élémentaire de Feu allié : riposte 10% feu sur l'attaquant
+            if (degats > 0 && data.instanceId != null && window.combatActif) {
+                const _moiIdEF = (window.perso.nom || '').replace(/\s+/g, '_');
+                const _elemFeu = (window.combatActif.ordre_jeu || []).find(function(p) {
+                    return p.type === 'invoque' && p.riposteFeu && p.invocateurId === _moiIdEF && !p.ko;
+                });
+                if (_elemFeu) {
+                    const _ripEF  = Math.max(1, Math.ceil(degats * 0.10));
+                    const _enEF   = (window.combatActif.ennemis || []).slice();
+                    const _idxEF  = _enEF.findIndex(function(e) { return e.instanceId === data.instanceId; });
+                    if (_idxEF !== -1) {
+                        _enEF[_idxEF].pvActuel = Math.max(0, _enEF[_idxEF].pvActuel - _ripEF);
+                        db.ref('parties/' + sessionActuelle + '/combat_actif/ennemis').set(_enEF);
+                        if (typeof _logCombat === 'function') _logCombat(_elemFeu.nom + ' riposte ' + _ripEF + ' degats de feu sur ' + _enEF[_idxEF].nom + ' !');
+                    }
+                }
+            }
         } // fin !esquive
     }
 

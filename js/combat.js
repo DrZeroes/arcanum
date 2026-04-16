@@ -61,6 +61,26 @@ function afficherEtatCombat() {
     _afficherEnnemis(data);
     _afficherJoueurs();
     _afficherPanneauActions(data);
+    _afficherBuffsGroupe(data);
+}
+
+function _afficherBuffsGroupe(data) {
+    const zone = document.getElementById('combat-buffs-groupe');
+    if (!zone) return;
+    const buffs = data?.buffs_groupe || {};
+    const actifs = Object.entries(buffs).filter(([, b]) => b.actif);
+    if (actifs.length === 0) {
+        zone.style.display = 'none';
+        zone.innerHTML = '';
+        return;
+    }
+    const _icones = {
+        'Mur de pierres': '🪨', 'Mur de force': '🔵', 'Mur de feu': '🔥',
+        'Bouclier mystique': '🔮', 'Brouillard': '🌫', 'Régénération': '💚', 'Sanctuaire': '✝'
+    };
+    zone.style.display = 'flex';
+    zone.innerHTML = '🛡 Buffs actifs : '
+        + actifs.map(([nom, b]) => `<span style="background:rgba(102,187,106,0.2);padding:2px 6px;border-radius:4px;">${_icones[nom] || '✨'} ${nom} (${b.lanceur} −${b.cout_par_tour}FT/t)</span>`).join(' ');
 }
 
 function _afficherResultatCombat(resultat) {
@@ -165,8 +185,9 @@ function _afficherOrdreTour(data) {
             p.nom === actuelP.nom &&
             p.instanceId === actuelP.instanceId &&
             p.joueurID  === actuelP.joueurID;
-        const typeCls = p.type === 'joueur' ? 'tour-joueur'
+        const typeCls = p.type === 'joueur'    ? 'tour-joueur'
                       : p.type === 'compagnon' ? 'tour-compagnon'
+                      : p.type === 'invoque'   ? 'tour-compagnon'
                       : 'tour-ennemi';
         const estMoi = p.type === 'joueur' && p.nom === moiNom;
         const cls = `combat-tour-pill ${typeCls}${estActuel ? ' actuel' : ''}${estMoi ? ' tour-moi' : ''}`;
@@ -210,6 +231,27 @@ function _afficherEnnemis(data) {
                     <div class="combat-bar-fill" style="width:${pvPct}%; background:${couleur};"></div>
                 </div>
                 ${ftHtml}
+                ${(() => {
+                    const ef = e.effets || {};
+                    const tags = [
+                        ef.poison           ? `<span style="color:#9c4;font-size:10px;">☠ Poison ×${ef.poison.duree}</span>` : '',
+                        ef.ralenti          ? `<span style="color:#aaa;font-size:10px;">🐝 Ralenti</span>` : '',
+                        ef.enchevetre       ? `<span style="color:#7bc67e;font-size:10px;">🌿 Enchevêtré</span>` : '',
+                        ef.desarme          ? `<span style="color:#ff9800;font-size:10px;">⚔ Désarmé</span>` : '',
+                        ef.skip_tour        ? `<span style="color:#9575cd;font-size:10px;">🧠 CC</span>` : '',
+                        ef.stase            ? `<span style="color:#7986cb;font-size:10px;">⏸ Stase</span>` : '',
+                        ef.petrification    ? `<span style="color:#90a4ae;font-size:10px;">🪨 Pétrifié</span>` : '',
+                        ef.charme           ? `<span style="color:#f48fb1;font-size:10px;">💜 Charmé</span>` : '',
+                        ef.charme_animal    ? `<span style="color:#a5d6a7;font-size:10px;">🐾 Charmé</span>` : '',
+                        ef.domine           ? `<span style="color:#ff7043;font-size:10px;">🎭 Dominé</span>` : '',
+                        ef.entrave_sorts    ? `<span style="color:#80cbc4;font-size:10px;">🔒 Entravé</span>` : '',
+                        ef.monstre_illusoire? `<span style="color:#ce93d8;font-size:10px;">👻 Illusoire</span>` : '',
+                        ef.flash            ? `<span style="color:#fff176;font-size:10px;">✨ Aveuglé</span>` : '',
+                        ef.faiblesse        ? `<span style="color:#ef9a9a;font-size:10px;">💀 Affaibli</span>` : '',
+                        ef.retrecissement   ? `<span style="color:#80deea;font-size:10px;">🔍 Rétréci ×${ef.retrecissement.duree}</span>` : ''
+                    ].filter(Boolean).join(' ');
+                    return tags ? `<div style="margin-top:4px;">${tags}</div>` : '';
+                })()}
                 ${estMort ? '<div class="combat-mort-label">☠ Vaincu</div>' : ''}
             </div>`;
     }).join('');
@@ -322,21 +364,33 @@ function _afficherPanneauActions(data) {
     const estMonTour       = participant.type === 'joueur'     && participant.nom === window.perso?.nom;
     const estTourEnnemi    = participant.type === 'ennemi';
     const estTourCompagnon = participant.type === 'compagnon';
+    const _moiId           = (window.perso?.nom || '').replace(/\s+/g, '_');
+    const estMonInvoque    = participant.type === 'invoque' && participant.invocateurId === _moiId;
 
     if (statut) {
-        if (estTourEnnemi)       statut.textContent = `Tour de ${participant.nom} — le MJ joue…`;
+        if (estTourEnnemi)         statut.textContent = `Tour de ${participant.nom} — le MJ joue…`;
         else if (estTourCompagnon) statut.textContent = `Tour de ${participant.nom} (compagnon) — le MJ gère…`;
-        else if (estMonTour)     statut.textContent = `C'est votre tour !`;
-        else                     statut.textContent = `Tour de ${participant.nom}…`;
+        else if (estMonInvoque)    statut.textContent = `Tour de votre invoqué : ${participant.nom} !`;
+        else if (estMonTour)       statut.textContent = `C'est votre tour !`;
+        else                       statut.textContent = `Tour de ${participant.nom}…`;
     }
 
-    // Si c'est le tour d'un monstre ou compagnon et que le MJ est connecté
-    if (!estMonTour) {
+    // Si c'est le tour d'un monstre / compagnon / invoqué adverse
+    if (!estMonTour && !estMonInvoque) {
         if (window.estMJ && (estTourEnnemi || estTourCompagnon)) {
+            _afficherActionsControleMJ(participant, panel);
+        } else if (window.estMJ && participant.type === 'invoque') {
+            // MJ voit les invoqués adverses (ceux qu'il ne contrôle pas)
             _afficherActionsControleMJ(participant, panel);
         } else {
             panel.innerHTML = '';
         }
+        return;
+    }
+
+    // ── Tour de l'invoqué du joueur ──────────────────────────────
+    if (estMonInvoque) {
+        _afficherPanneauInvoque(participant, panel);
         return;
     }
 
@@ -359,9 +413,29 @@ function _afficherPanneauActions(data) {
         const maxPVRegen = (perso.statsBase.FO * 2) + (perso.statsBase.IN)
             + ((perso.statsInvesties?.FO || 0) * 2) + (perso.statsInvesties?.IN || 0)
             + (perso.boostPV || 0);
+        let pvRestores = 0;
         if (guerison > 0 && perso.pvActuel < maxPVRegen && perso.pvActuel > 0) {
             perso.pvActuel = Math.min(maxPVRegen, (perso.pvActuel || 0) + guerison);
-            if (typeof _toast === 'function') _toast(`💚 Régénération : +${guerison} PV`, 'success');
+            pvRestores += guerison;
+        }
+        // Buff groupe Régénération : +3 PV supplémentaires
+        const buffsGroupe = window.combatActif?.buffs_groupe || {};
+        if (buffsGroupe['Régénération']?.actif && perso.pvActuel > 0 && perso.pvActuel < maxPVRegen) {
+            const regenSort = 3;
+            perso.pvActuel = Math.min(maxPVRegen, perso.pvActuel + regenSort);
+            pvRestores += regenSort;
+        }
+        // Incarnation d'Eau : +PV regen par tour
+        const _effActifsEau = perso.effets_actifs || {};
+        const _incEau = Object.values(_effActifsEau).find(e => e.incarnation && e.element_incarnation === 'Eau');
+        if (_incEau && perso.pvActuel > 0 && perso.pvActuel < maxPVRegen) {
+            const regenEau = Math.max(1, Math.ceil(((perso.statsBase?.IN||0)+(perso.statsInvesties?.IN||0)) / 4));
+            perso.pvActuel = Math.min(maxPVRegen, perso.pvActuel + regenEau);
+            pvRestores += regenEau;
+        }
+
+        if (pvRestores > 0) {
+            if (typeof _toast === 'function') _toast(`💚 Régénération : +${pvRestores} PV`, 'success');
             if (typeof autoSave === 'function') autoSave();
             if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
         }
@@ -389,18 +463,23 @@ function _afficherPanneauActions(data) {
         return;
     }
 
+    // ── Détecter forme élémentaire ──
+    const _effActifsPanel = perso.effets_actifs || {};
+    const _incEntry  = Object.entries(_effActifsPanel).find(([,e]) => e.incarnation);
+    const [_incCle, _incEffet] = _incEntry || [null, null];
+    const _elemInc   = _incEffet?.element_incarnation; // 'Air'|'Pierre'|'Feu'|'Eau'|null
+    const _ELEM_ICONES = { Air:'💨', Pierre:'🪨', Feu:'🔥', Eau:'🌊' };
+
     // ── Bouton Attaquer ──
     const fo       = (perso.statsBase?.FO || 0) + (perso.statsInvesties?.FO || 0);
-    // foMod s'applique uniquement aux armes de mêlée et au corps à corps
     const _eqSlotPanel = perso.equipement || {};
     const _armePanel = _eqSlotPanel.main_droite || _eqSlotPanel.deux_mains || _eqSlotPanel.main_gauche;
     const _typePanelArme = (typeof itemsData !== 'undefined' && _armePanel) ? (itemsData[_armePanel.id]?.type || '') : '';
     const _estMelee = !_armePanel || _typePanelArme === 'arme_melee';
     let foMod      = _estMelee ? (fo > 10 ? fo - 10 : Math.floor((fo - 10) / 2)) : 0;
-    if (_estMelee && fo >= 20) foMod *= 2; // Bonus FO ≥ 20 : Modif. Dégâts doublé
+    if (_estMelee && fo >= 20) foMod *= 2;
     const melee    = perso.compInvesties?.melee || 0;
     const armureTot = _armureTotal(perso);
-    // Nom de l'arme équipée
     let armNom = 'Poing';
     if (typeof itemsData !== 'undefined') {
         const eq = perso.equipement || {};
@@ -410,19 +489,59 @@ function _afficherPanneauActions(data) {
     const _bonusLabel = _estActionBonus
         ? `<div class="combat-actions-titre" style="color:#f0b429; font-size:0.9em;">⚡ Action rapide !</div>`
         : '';
-    let html = _bonusLabel + `<div class="combat-actions-titre">Actions</div>
-        <button class="combat-sort-btn attaque" onclick="ouvrirCiblesAttaque()">
+
+    let html = '';
+    // Bandeau forme élémentaire
+    if (_elemInc) {
+        const _incJson = JSON.stringify(_incEffet).replace(/'/g, "\\'");
+        html += `<div style="text-align:center;background:rgba(255,160,0,0.1);border:1px solid #ff9800;border-radius:5px;padding:6px;margin-bottom:6px;font-size:0.85em;color:#ff9800;">
+            ${_ELEM_ICONES[_elemInc]} Forme <strong>${_elemInc}</strong> active
+            <button onclick="_annulerIncarnation('${_incCle}',${_incJson})" style="background:#5a0000;color:#ff6b6b;border:1px solid #8b0000;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.85em;margin-left:6px;">❌ Annuler</button>
+        </div>`;
+    }
+    html += _bonusLabel + `<div class="combat-actions-titre">Actions</div>`;
+
+    if (_elemInc) {
+        const _labelAtk = _elemInc === 'Feu' ? '🔥 Frappe de feu (mains nues)' : `${_ELEM_ICONES[_elemInc]} Frappe élémentaire`;
+        const _metaAtk  = _elemInc === 'Feu' ? 'Ignore armure · 50% splash' : _elemInc === 'Eau' ? `FO faible · Dégâts réduits` : `FO ${fo > 10 ? '+' : ''}${foMod}`;
+        html += `<button class="combat-sort-btn attaque" onclick="ouvrirCiblesAttaqueElementaire('${_elemInc}')">
+            <span class="sort-nom">${_labelAtk}</span>
+            <span class="sort-meta">${_metaAtk}</span>
+        </button>`;
+    } else {
+        html += `<button class="combat-sort-btn attaque" onclick="ouvrirCiblesAttaque()">
             <span class="sort-nom">⚔ ${armNom}</span>
             <span class="sort-meta">FO ${fo > 10 ? '+' : ''}${foMod} · Mêlée ${melee}${armureTot > 0 ? ' · 🛡' + armureTot : ''}</span>
         </button>`;
+    }
 
-    // ── Sorts connus ──
+    // ── Sorts connus (filtrés par élément si forme élémentaire) ──
     const sorts = _getSortsDisponibles();
+    const ftActuel = perso?.ftActuel ?? 0;
+    let sortsHtml = '';
+
+    // Sort spécial Pureté d'ondine (Incarnation d'Eau)
+    if (_elemInc === 'Eau') {
+        sortsHtml += `<button class="combat-sort-btn" onclick="ouvrirCiblesSortCombat('Pureté d\\'ondine')">
+            <span class="sort-nom">🌊 Pureté d'ondine</span>
+            <span class="sort-meta">💚 Soin · 4 FT</span>
+        </button>`;
+    }
+
     if (sorts.length > 0) {
-        const ftActuel = perso?.ftActuel ?? 0;
-        const sortsHtml = sorts.map(nom => {
+        sortsHtml += sorts.map(nom => {
             const s = (typeof trouverSort === 'function') ? trouverSort(nom) : null;
             if (!s) return '';
+            // Si forme élémentaire : filtrer par école de l'élément uniquement
+            if (_elemInc) {
+                let ecoleSort = null;
+                if (typeof magieData !== 'undefined') {
+                    for (const ecole in magieData) {
+                        if (magieData[ecole].sorts.some(ss => ss.nom === nom)) { ecoleSort = ecole; break; }
+                    }
+                }
+                if (ecoleSort !== _elemInc) return '';
+            }
             const cout = parseInt(s.cout, 10) || 0;
             const peut = ftActuel >= cout;
             const meta = s.degats ? `⚔ ${s.degats} dég.` : s.soin ? `💚 Soin` : `✨ Effet`;
@@ -434,12 +553,38 @@ function _afficherPanneauActions(data) {
                 <span class="sort-meta">${meta} · ${cout} FT</span>
             </button>`;
         }).filter(Boolean).join('');
-        if (sortsHtml) html += `<div class="combat-actions-titre" style="margin-top:8px;">Sorts</div>` + sortsHtml;
+    }
+    if (sortsHtml) html += `<div class="combat-actions-titre" style="margin-top:8px;">Sorts${_elemInc ? ` (${_ELEM_ICONES[_elemInc]} ${_elemInc})` : ''}</div>` + sortsHtml;
+
+    // ── Objets consommables (bloqués en forme élémentaire) ──
+    if (!_elemInc) {
+        const consomHtml = _genererBoutonsConsommables(perso);
+        if (consomHtml) html += `<div class="combat-actions-titre" style="margin-top:8px;">Objets</div>` + consomHtml;
     }
 
-    // ── Objets consommables ──
-    const consomHtml = _genererBoutonsConsommables(perso);
-    if (consomHtml) html += `<div class="combat-actions-titre" style="margin-top:8px;">Objets</div>` + consomHtml;
+    // ── Sorts actifs : AoE + incarnation maintien + réflexion maintien ──
+    const effetsActifs = perso.effets_actifs || {};
+    const sortsPersistantsAoe = Object.entries(effetsActifs).filter(([, e]) => e.persistant && e.aoeEnnemi);
+    const sortsIncMaintien    = Object.entries(effetsActifs).filter(([, e]) => e.incarnation_maintien || e.reflexion_maintien);
+    const aActifsSpeciaux = sortsPersistantsAoe.length > 0 || sortsIncMaintien.length > 0;
+    if (aActifsSpeciaux) {
+        html += `<div class="combat-actions-titre" style="margin-top:8px; color:#b39ddb;">Sorts actifs</div>`;
+        sortsPersistantsAoe.forEach(([cle, eff]) => {
+            const effJson = JSON.stringify(eff).replace(/'/g, "\\'");
+            html += `<button class="combat-sort-btn" onclick="_annulerSortPersistantAoe('${cle}', ${effJson})" style="border-color:#7e57c2; opacity:0.85;">
+                <span class="sort-nom">${eff.icone || '⏳'} ${eff.nom} <span style="color:#f44336; font-size:0.85em;">❌ Annuler</span></span>
+                <span class="sort-meta">−${eff.cout_par_tour} FT/tour</span>
+            </button>`;
+        });
+        sortsIncMaintien.forEach(([cle, eff]) => {
+            const effJson = JSON.stringify(eff).replace(/'/g, "\\'");
+            const fn = eff.incarnation_maintien ? `_annulerIncarnation` : `_annulerBouclierReflexion`;
+            html += `<button class="combat-sort-btn" onclick="${fn}('${cle}',${effJson})" style="border-color:#7e57c2; opacity:0.85;">
+                <span class="sort-nom">${eff.icone || '✨'} ${eff.nom} <span style="color:#f44336; font-size:0.85em;">❌ Annuler</span></span>
+                <span class="sort-meta">−${eff.cout_par_tour} FT/tour</span>
+            </button>`;
+        });
+    }
 
     // ── Passer son tour ──
     html += `<button class="combat-sort-btn" onclick="passerTourCombat()" style="margin-top:8px; opacity:0.75;">
@@ -746,17 +891,94 @@ function finaliserSortSurCompagnon(ownerID, compIdx, compNom) {
 let _sortCombatEnCours = null;
 
 function ouvrirCiblesSortCombat(nomSort) {
+    // Sort virtuel Incarnation d'Eau
+    if (nomSort === "Pureté d'ondine") {
+        const IN = (window.perso?.statsBase?.IN || 0) + (window.perso?.statsInvesties?.IN || 0);
+        const soin = Math.max(3, Math.ceil(IN / 2));
+        _sortCombatEnCours = { nom: "Pureté d'ondine", cout: 4, soin: soin, purteDOndine: true };
+        const panel = document.getElementById('combat-actions-panel');
+        if (!panel) return;
+        db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
+            const joueurs = snap.val() || {};
+            const moiId = (window.perso?.nom || '').replace(/\s+/g, '_');
+            let html = `<div class="combat-actions-titre">🌊 Pureté d'ondine — +${soin} PV</div>
+                <div class="combat-cibles-label allie">Choisir la cible</div>
+                <button class="combat-cible-btn allie" onclick="finaliserSortCombat('${moiId}','joueur')">
+                    Vous-même <span class="cible-pv">PV ${window.perso.pvActuel}</span>
+                </button>`;
+            for (let id in joueurs) {
+                if (joueurs[id].estMJ || id === moiId || (joueurs[id].pvActuel ?? 0) <= 0) continue;
+                html += `<button class="combat-cible-btn allie" onclick="finaliserSortCombat('${id}','joueur')">${joueurs[id].nom} <span class="cible-pv">PV ${joueurs[id].pvActuel}</span></button>`;
+            }
+            html += `<button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+            panel.innerHTML = html;
+        });
+        return;
+    }
+
     const s = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
     if (!s) return;
     _sortCombatEnCours = s;
 
-    const data           = window.combatActif;
-    const ennemisVivants = (data?.ennemis || []).filter(e => e.pvActuel > 0);
-    const peutEnnemis    = !!s.degats || (!s.soin && !s.resurrection && !s.buffStat);
-    const peutAllie      = !!s.soin || !!s.resurrection || !!s.buffStat;
-
     const panel = document.getElementById('combat-actions-panel');
     if (!panel) return;
+
+    // ── Invocation directe (pas de sélection de cible) ──
+    if (s.invocation && !s.estFamilier) {
+        finaliserSortCombat('self', 'invocation');
+        return;
+    }
+    if (s.estFamilier) {
+        finaliserSortCombat('self', 'invocation_familier');
+        return;
+    }
+
+    // ── Création de morts-vivants : liste des ennemis morts ──
+    if (s.creationMortVivant) {
+        const data = window.combatActif;
+        const mortsList = (data?.ennemis || []).filter(e => e.pvActuel <= 0);
+        if (mortsList.length === 0) {
+            panel.innerHTML = `<div class="combat-actions-titre">Création de morts-vivants</div>
+                <p class="combat-vide" style="color:#f66;">Aucun cadavre disponible.</p>
+                <button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+        } else {
+            let html = `<div class="combat-actions-titre">☠ Réanimer un cadavre</div>
+                <div class="combat-cibles-label ennemi">Choisir le cadavre</div>`;
+            mortsList.forEach(e => {
+                html += `<button class="combat-cible-btn ennemi" onclick="finaliserSortCombat(${e.instanceId}, 'creation_mort_vivant')">${e.nom}</button>`;
+            });
+            html += `<button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+            panel.innerHTML = html;
+        }
+        return;
+    }
+
+    // ── Buff de groupe : cible unique "Groupe entier" ──
+    if (s.buffGroupe) {
+        panel.innerHTML = `<div class="combat-actions-titre">Sort — ${s.nom}</div>
+            <div style="color:#a5d6a7;font-size:12px;text-align:center;margin-bottom:8px;font-style:italic;">${s.desc}</div>
+            <button class="combat-cible-btn allie" onclick="finaliserSortCombat('groupe','groupe')" style="border-color:#66bb6a;">
+                🛡 Tout le groupe
+            </button>
+            <button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+        return;
+    }
+
+    // ── Sort AoE ennemi : pas de sélection, lance sur tous les ennemis ──
+    if (s.aoeEnnemi) {
+        panel.innerHTML = `<div class="combat-actions-titre">Sort — ${s.nom}</div>
+            <div style="color:#ef9a9a;font-size:12px;text-align:center;margin-bottom:8px;font-style:italic;">${s.desc}</div>
+            <button class="combat-cible-btn ennemi" onclick="finaliserSortCombat('aoe','aoe')" style="border-color:#ef5350;">
+                🌀 Cibler tous les ennemis
+            </button>
+            <button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+        return;
+    }
+
+    const data           = window.combatActif;
+    const ennemisVivants = (data?.ennemis || []).filter(e => e.pvActuel > 0);
+    const peutEnnemis    = !!s.degats || (!s.soin && !s.resurrection && !s.buffStat && !s.buffPersistant);
+    const peutAllie      = !!s.soin || !!s.resurrection || !!s.buffStat || !!s.buffPersistant;
 
     const _render = (joueurs) => {
         let html = `<div class="combat-actions-titre">Cible — ${s.nom}</div>`;
@@ -851,24 +1073,51 @@ function finaliserSortCombat(cibleId, typeCible) {
         const idx = ennemisMAJ.findIndex(e => e.instanceId === cibleId);
         if (idx === -1) return;
 
+        const lanceurIN = (window.perso.statsBase?.IN || 0) + (window.perso.statsInvesties?.IN || 0);
         let msg = `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}.`;
+
         if (s.degats) {
+            // Sorts à kill instantané (degats ≥ 999) : ROLL requis
+            let sortResiste = false;
+            if (s.degats >= 999 && typeof _rollSortPasse === 'function') {
+                const cIN = (ennemisMAJ[idx].statsBase?.IN || 0) + (ennemisMAJ[idx].statsInvesties?.IN || 0);
+                const cRM = ennemisMAJ[idx].resistanceMagique || ennemisMAJ[idx].compInvesties?.resistanceMagique || 0;
+                sortResiste = !_rollSortPasse(lanceurIN, cIN, cRM);
+            }
+
             const crit = _lancerCritique(window.perso);
-            let degats = Math.floor(s.degats + (align / 100) * s.degats);
+            let degats = sortResiste ? 0 : Math.floor(s.degats + (align / 100) * s.degats);
             let critLabel = '';
-            if (crit.type === 'echec') {
-                degats    = 0;
-                critLabel = ' ⚠ ÉCHEC CRITIQUE';
-            } else if (crit.type === 'critique') {
-                degats    = Math.round(degats * crit.mult);
-                critLabel = crit.mult >= 2 ? ' ⚡ CRITIQUE ×2 !' : ' ⚡ CRITIQUE ×1.5 !';
+            if (!sortResiste) {
+                if (crit.type === 'echec') {
+                    degats    = 0;
+                    critLabel = ' ⚠ ÉCHEC CRITIQUE';
+                } else if (crit.type === 'critique') {
+                    degats    = Math.round(degats * crit.mult);
+                    critLabel = crit.mult >= 2 ? ' ⚡ CRITIQUE ×2 !' : ' ⚡ CRITIQUE ×1.5 !';
+                }
+            }
+            // Rétrécissement : +25% dégâts reçus (sort magique inclus)
+            if (!sortResiste && degats > 0 && ennemisMAJ[idx].effets?.retrecissement) {
+                degats = Math.round(degats * ennemisMAJ[idx].effets.retrecissement.facteur);
             }
             ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degats);
             if (degats > 0) _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
-            msg = `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
+            msg = sortResiste
+                ? `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom} — ⛔ Sort résisté !`
+                : `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
         }
 
-        const ordreMAJSort = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
+        let ordreMAJSort = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
+        let tourActuelEffet = data.tour_actuel || 0;
+
+        // — Effets secondaires du sort —
+        if (typeof _effetSecondaireEnnemi === 'function') {
+            const eff = _effetSecondaireEnnemi(s, idx, ennemisMAJ, ordreMAJSort, tourActuelEffet, lanceurIN);
+            if (eff.msgExtra) msg += eff.msgExtra;
+            ordreMAJSort = _marquerKODansOrdre(eff.ordreUpdate || ordreMAJSort, ennemisMAJ);
+            if (eff.tourUpdate != null) tourActuelEffet = eff.tourUpdate;
+        }
 
         // ── Sort rapide ──────────────────────────────────────────
         const _tousEnnemisKOSort = ennemisMAJ.every(e => e.pvActuel <= 0);
@@ -882,6 +1131,10 @@ function finaliserSortCombat(cibleId, typeCible) {
         }
         const _aEncoreActionsSort = s.rapide && !_tousEnnemisKOSort && window._actionsRapides.restantes > 0;
 
+        const _avance = typeof _avancerTourCombat === 'function'
+            ? _avancerTourCombat(ordreMAJSort, tourActuelEffet)
+            : { ordre: ordreMAJSort, tourActuel: _prochainTourVivant(ordreMAJSort, tourActuelEffet) };
+
         if (_aEncoreActionsSort) {
             db.ref('parties/' + sessionActuelle + '/combat_actif').update({
                 ennemis:   ennemisMAJ,
@@ -893,17 +1146,80 @@ function finaliserSortCombat(cibleId, typeCible) {
             _afficherPanneauActions(window.combatActif);
         } else {
             db.ref('parties/' + sessionActuelle + '/combat_actif').update({
-                ennemis:    ennemisMAJ,
-                ordre_jeu:  ordreMAJSort,
-                tour_actuel: _prochainTourVivant(ordreMAJSort, data.tour_actuel || 0)
+                ennemis:     ennemisMAJ,
+                ordre_jeu:   _avance.ordre,
+                tour_actuel: _avance.tourActuel
             });
             _logCombat(msg);
         }
 
     } else if (typeCible === 'joueur') {
+        // ── Rafale de vent sur allié : dégâts /2 + joue immédiatement après ──
+        if (s.nom === 'Rafale de vent' && s.degats) {
+            const crit = _lancerCritique(window.perso);
+            let degats = Math.floor(s.degats / 2 + (align / 100) * (s.degats / 2));
+            let critLabel = '';
+            if (crit.type === 'echec') {
+                degats = 0; critLabel = ' ⚠ ÉCHEC CRITIQUE';
+            } else if (crit.type === 'critique') {
+                degats = Math.round(degats * crit.mult);
+                critLabel = crit.mult >= 2 ? ' ⚡ CRITIQUE ×2 !' : ' ⚡ CRITIQUE ×1.5 !';
+            }
+            if (degats > 0) {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/modif_stat').set({
+                    stat: 'PV', valeur: -degats, timestamp: Date.now()
+                });
+            }
+            // Insérer la cible juste après la position actuelle dans l'ordre
+            const ordreRafale = [...(data.ordre_jeu || [])];
+            const tourCourant = data.tour_actuel || 0;
+            const idxCible = ordreRafale.findIndex(p => p.id === cibleId);
+            if (idxCible !== -1) {
+                const [entry] = ordreRafale.splice(idxCible, 1);
+                const insertAt = idxCible < tourCourant ? tourCourant : tourCourant + 1;
+                ordreRafale.splice(Math.min(insertAt, ordreRafale.length), 0, entry);
+            }
+            const rafaleMsg = `${window.perso.nom} lance ${s.nom} sur un allié${critLabel} : ${degats} dégâts — ⚡ joue immédiatement après !`;
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ordre_jeu:   ordreRafale,
+                tour_actuel: _prochainTourVivant(ordreRafale, tourCourant)
+            });
+            _logCombat(rafaleMsg);
+            _sortCombatEnCours = null;
+            return;
+        }
+
         const moiId = window.userUID || '';
         const estSurMoi = (cibleId === moiId);
         let soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'}.`;
+
+        // ── Pureté d'ondine (sort virtuel Incarnation d'Eau) ──
+        if (s.purteDOndine) {
+            const soinVal = s.soin || 5;
+            if (estSurMoi) {
+                const maxPV = (window.perso.statsBase.FO * 2) + window.perso.statsBase.IN
+                    + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0) + (window.perso.boostPV || 0);
+                window.perso.pvActuel = Math.min(maxPV, (window.perso.pvActuel || 0) + soinVal);
+                window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - 4);
+                if (typeof autoSave === 'function') autoSave();
+                if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+            } else {
+                window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - 4);
+                if (typeof autoSave === 'function') autoSave();
+                if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/modif_stat').set({
+                    stat: 'PV', valeur: soinVal, timestamp: Date.now()
+                });
+            }
+            soinMsg = `${window.perso.nom} invoque Pureté d'ondine sur ${estSurMoi ? window.perso.nom : 'un allié'} — 🌊 +${soinVal} PV !`;
+            const _ordreOndine = data.ordre_jeu || [];
+            db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+                .set(_prochainTourVivant(_ordreOndine, data.tour_actuel || 0));
+            _logCombat(soinMsg);
+            _sortCombatEnCours = null;
+            _gagnerXP(2);
+            return;
+        }
 
         // Sort antidote (curePoison)
         if (s.curePoison) {
@@ -955,6 +1271,141 @@ function finaliserSortCombat(cibleId, typeCible) {
             soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — ${s.buffStat} ${signe}${s.buffVal} pendant ${s.buffDuree || 3} tours !`;
         }
 
+        // ── Buffs persistants individuels ───────────────────────
+        if (s.nom === 'Bouclier de protection') {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: '🛡', nom: 'Bouclier de protection',
+                type: 'benediction', bouclier_physique: 0.25, fragile: true, temporaire: false
+            });
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — 🛡 −25% dégâts physiques (se brise au premier coup) !`;
+
+        } else if (s.nom === 'Hâte') {
+            // Modifier la vitesse dans ordre_jeu
+            const ordreHate = [...(data.ordre_jeu || [])];
+            const idxHate = ordreHate.findIndex(p => p.type === 'joueur' && p.id === cibleId);
+            if (idxHate !== -1) {
+                const vOrig = ordreHate[idxHate].vitesseOrig ?? ordreHate[idxHate].vitesse;
+                ordreHate[idxHate] = Object.assign({}, ordreHate[idxHate], {
+                    vitesse: (vOrig || 0) * 2,
+                    vitesseOrig: vOrig
+                });
+                db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreHate);
+            }
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: '⚡', nom: 'Hâte',
+                type: 'benediction', temporaire: true, toursRestants: 3, hate: true
+            });
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — ⚡ Vitesse ×2 pendant 3 tours !`;
+
+        } else if (s.nom === 'Occultation') {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: '🌫', nom: 'Occultation',
+                type: 'benediction', temporaire: true, toursRestants: 3,
+                reduction_degats: 0.10, bonus_esquive: 10
+            });
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — 🌫 −10% dégâts / +10 esquive (3 tours) !`;
+
+        } else if (s.nom === 'Résistance aux sortilèges') {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: '🔮', nom: 'Résistance aux sortilèges',
+                type: 'benediction', temporaire: true, toursRestants: 3,
+                stats: { RM: 25 }
+            });
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — 🔮 +25 RM pendant 3 tours !`;
+
+        } else if (s.nom === 'Distorsion spatiale') {
+            // Afficher le choix Devant/Derrière — le tour avancera après le choix
+            _choisirDirectionDistorsion(cibleId);
+            return; // FT déjà déduit, on attend le choix
+
+        } else if (s.nom === 'Invisibilité') {
+            const casterID = (window.perso.nom || '').replace(/\s+/g, '_');
+            // L'effet invisible va sur la cible
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push({
+                icone: '👁', nom: 'Invisibilité',
+                type: 'benediction', persistant: true, cout_par_tour: 4,
+                invisible: true, temporaire: false
+            });
+            // Si le lanceur est différent de la cible, le drain FT est sur le lanceur
+            if (cibleId !== casterID) {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').push({
+                    icone: '👁', nom: 'Invisibilité (maintien)',
+                    type: 'benediction', persistant: true, cout_par_tour: 4, temporaire: false
+                });
+            }
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — 👁 Invisible (−4 FT/tour) !`;
+
+        } else if (['Incarnation d\'Air','Incarnation de Pierre','Incarnation de Feu','Incarnation d\'Eau'].includes(s.nom)) {
+            const _ELEM_MAP = { 'Incarnation d\'Air':'Air','Incarnation de Pierre':'Pierre','Incarnation de Feu':'Feu','Incarnation d\'Eau':'Eau' };
+            const _ELEM_ICO = { 'Air':'💨','Pierre':'🪨','Feu':'🔥','Eau':'🌊' };
+            const elem = _ELEM_MAP[s.nom];
+            const icone = _ELEM_ICO[elem];
+            const cout = 3;
+            const casterID = (window.perso.nom || '').replace(/\s+/g, '_');
+            const estSelfCast = (cibleId === casterID);
+
+            // Lire l'arme équipée de la cible pour la sauvegarder + désarmer
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId).once('value', snapCible => {
+                const cibleData = snapCible.val() || {};
+                const arme_sauvegardee = {
+                    main_droite: cibleData.equipement?.main_droite || null,
+                    deux_mains:  cibleData.equipement?.deux_mains  || null
+                };
+                // Effet incarnation sur la cible
+                const incEffet = {
+                    icone, nom: s.nom, type: 'benediction',
+                    incarnation: true, element_incarnation: elem,
+                    lanceur: casterID, arme_sauvegardee,
+                    temporaire: false
+                };
+                // Si self-cast : le drain FT est sur la cible elle-même
+                if (estSelfCast) { incEffet.persistant = true; incEffet.cout_par_tour = cout; }
+
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push(incEffet);
+
+                // Désarmer la cible
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/equipement').update({
+                    main_droite: null, deux_mains: null
+                });
+
+                // Si caster ≠ cible : drain FT sur le lanceur
+                if (!estSelfCast) {
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').push({
+                        icone, nom: s.nom + ' (maintien)', type: 'benediction',
+                        persistant: true, cout_par_tour: cout,
+                        incarnation_maintien: true, cible: cibleId,
+                        element_incarnation: elem, temporaire: false
+                    });
+                }
+            });
+            _gagnerXP(3);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — ${icone} Transformation élémentaire (${cout} FT/tour) !`;
+
+        } else if (s.nom === 'Bouclier de réflexion') {
+            const casterID = (window.perso.nom || '').replace(/\s+/g, '_');
+            const estSelfCast = (cibleId === casterID);
+            const refEffet = {
+                icone: '🪞', nom: 'Bouclier de réflexion', type: 'benediction',
+                reflexion: true, lanceur: casterID, temporaire: false
+            };
+            if (estSelfCast) { refEffet.persistant = true; refEffet.cout_par_tour = 2; }
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/effets_actifs').push(refEffet);
+            if (!estSelfCast) {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').push({
+                    icone: '🪞', nom: 'Bouclier de réflexion (maintien)', type: 'benediction',
+                    persistant: true, cout_par_tour: 2,
+                    reflexion_maintien: true, cible: cibleId, temporaire: false
+                });
+            }
+            _gagnerXP(2);
+            soinMsg = `${window.perso.nom} lance ${s.nom} sur ${estSurMoi ? window.perso.nom : 'un allié'} — 🪞 Sort réfléchi actif (2 FT/tour) !`;
+        }
+
         // ── Rapid + avancement de tour ─────────────────────────
         const _tourActuelJoueur = data.tour_actuel || 0;
         if (s.rapide) {
@@ -971,9 +1422,300 @@ function finaliserSortCombat(cibleId, typeCible) {
                 .set(_prochainTourVivant(data.ordre_jeu || [], _tourActuelJoueur));
             _logCombat(soinMsg);
         }
+
+    } else if (typeCible === 'aoe') {
+        // ── Sort AoE ennemi persistant (Altération temporelle, Tempus Fugit) ──
+        const lanceurIN   = (window.perso.statsBase?.IN || 0) + (window.perso.statsInvesties?.IN || 0);
+        const coutParTour = s.cout_par_tour || 1;
+        const casterID    = (window.perso.nom || '').replace(/\s+/g, '_');
+        const ennemisAoe  = [...(data.ennemis || [])];
+        let ordreAoe      = [...(data.ordre_jeu || [])];
+        const msgs        = [];
+
+        if (s.nom === 'Altération temporelle' || s.nom === 'Tempus Fugit') {
+            // Triple la vitesse des alliés (Tempus Fugit uniquement)
+            if (s.nom === 'Tempus Fugit') {
+                ordreAoe = ordreAoe.map(p => {
+                    if ((p.type === 'joueur' || p.type === 'compagnon') && !p.ko) {
+                        const vOrig = p.vitesseOrig ?? p.vitesse;
+                        return Object.assign({}, p, { vitesse: (vOrig || 0) * 3, vitesseOrig: vOrig, tempus_fugit: true });
+                    }
+                    return p;
+                });
+                msgs.push('⚡ Alliés ×3 vitesse');
+            }
+
+            // ROLL zone sur chaque ennemi vivant
+            let nbRalentis = 0, nbResistes = 0;
+            const tagEffet = s.nom === 'Tempus Fugit' ? 'tempus_ralenti' : 'alteration_temp';
+            ennemisAoe.forEach((e, idx) => {
+                if (e.pvActuel <= 0) return;
+                const cIN = (e.statsBase?.IN || 0) + (e.statsInvesties?.IN || 0);
+                const cRM = e.resistanceMagique || e.compInvesties?.resistanceMagique || 0;
+                if (_rollSortPasse(lanceurIN, cIN, cRM)) {
+                    if (!ennemisAoe[idx].effets) ennemisAoe[idx].effets = {};
+                    ennemisAoe[idx].effets[tagEffet] = { lanceur: window.perso.nom || '' };
+                    // Réduire vitesse dans ordre_jeu
+                    ordreAoe = ordreAoe.map(p => {
+                        if (p.type === 'ennemi' && p.instanceId === e.instanceId) {
+                            const vOrig = p.vitesseOrig ?? p.vitesse;
+                            return Object.assign({}, p, { vitesse: Math.max(1, Math.floor((vOrig || 1) * 0.5)), vitesseOrig: vOrig });
+                        }
+                        return p;
+                    });
+                    nbRalentis++;
+                } else {
+                    nbResistes++;
+                }
+            });
+            if (nbRalentis > 0) msgs.push(`🐢 ${nbRalentis} ennemi(s) ralenti(s)`);
+            if (nbResistes > 0) msgs.push(`⛔ ${nbResistes} résisté(s)`);
+
+            // Effet persistant sur le lanceur (drain FT + flag aoeEnnemi pour restauration)
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').push({
+                icone: s.nom === 'Tempus Fugit' ? '⏩' : '⏳',
+                nom: s.nom,
+                type: 'benediction',
+                persistant: true,
+                cout_par_tour: coutParTour,
+                aoeEnnemi: true,
+                tagEffet: tagEffet,
+                temporaire: false
+            });
+        }
+
+        const _avanceAoe = typeof _avancerTourCombat === 'function'
+            ? _avancerTourCombat(ordreAoe, data.tour_actuel || 0)
+            : { ordre: ordreAoe, tourActuel: _prochainTourVivant(ordreAoe, data.tour_actuel || 0) };
+
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ennemis:     ennemisAoe,
+            ordre_jeu:   _avanceAoe.ordre,
+            tour_actuel: _avanceAoe.tourActuel
+        });
+        _gagnerXP(3);
+        _logCombat(`${window.perso.nom} lance ${s.nom} — ${msgs.join(' / ')} (−${coutParTour} FT/tour)`);
+
+    } else if (typeCible === 'groupe') {
+        // ── Buff de groupe persistant ───────────────────────────
+        const coutParTour = s.cout_par_tour || Math.ceil((s.cout || 1) / 5);
+        const casterID    = (window.perso.nom || '').replace(/\s+/g, '_');
+
+        // Écrire dans combat_actif/buffs_groupe
+        db.ref('parties/' + sessionActuelle + '/combat_actif/buffs_groupe/' + s.nom).set({
+            actif: true,
+            lanceur: window.perso.nom || '',
+            cout_par_tour: coutParTour
+        });
+
+        // Effet persistant sur le lanceur (drain FT chaque tour)
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').push({
+            icone: '🛡',
+            nom: s.nom,
+            type: 'benediction',
+            persistant: true,
+            cout_par_tour: coutParTour,
+            buffGroupe: true,
+            temporaire: false
+        });
+
+        _gagnerXP(3);
+        const _tourGroupe = data.tour_actuel || 0;
+        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+            .set(_prochainTourVivant(data.ordre_jeu || [], _tourGroupe));
+        _logCombat(`${window.perso.nom} lance ${s.nom} — 🛡 Groupe protégé ! (−${coutParTour} FT/tour)`);
+
+    } else if (typeCible === 'invocation' || typeCible === 'invocation_familier') {
+        // ── Invocation d'une créature alliée ───────────────────────
+        const invocateurId  = (window.perso.nom || '').replace(/\s+/g, '_');
+        const align         = window.perso.alignementMagique || 0;
+        const modele        = (typeof _getInvocationParAlign === 'function')
+            ? _getInvocationParAlign(s.invocationId, align)
+            : _INVOCATIONS_DATA?.[s.invocationId];
+        if (!modele) { _sortCombatEnCours = null; return; }
+
+        // Familier : unicité — ne pas dupliquer si déjà présent dans ordre_jeu
+        if (s.estFamilier) {
+            const dejaPresentOrdre = (data.ordre_jeu || []).some(p => p.type === 'invoque' && p.race === 'familier' && p.invocateurId === invocateurId);
+            if (dejaPresentOrdre) {
+                if (typeof _toast === 'function') _toast('Votre familier est déjà actif !', 'info');
+                _sortCombatEnCours = null;
+                return;
+            }
+        }
+
+        const entree = (typeof _creerEntreeInvoque === 'function')
+            ? _creerEntreeInvoque(modele, invocateurId, window.perso.nom)
+            : null;
+        if (!entree) { _sortCombatEnCours = null; return; }
+
+        // Familier : stocker aussi dans Firebase compagnons pour persistance
+        if (s.estFamilier) {
+            const familierData = Object.assign({}, modele, {
+                isFamilier: true, invocateurId, niveau: 1, xp: 0,
+                pvActuel: modele.pv, ftActuel: modele.ft,
+                pvBase: modele.pv, ftBase: modele.ft
+            });
+            db.ref('parties/' + sessionActuelle + '/familiers/' + invocateurId).set(familierData);
+        }
+
+        const ordreAvecInvoque = [...(data.ordre_jeu || []), entree];
+        ordreAvecInvoque.sort((a, b) => (b.vitesse || 0) - (a.vitesse || 0) || (a.type === 'joueur' ? -1 : 1));
+        const _avanceInv = typeof _avancerTourCombat === 'function'
+            ? _avancerTourCombat(ordreAvecInvoque, data.tour_actuel || 0)
+            : { ordre: ordreAvecInvoque, tourActuel: _prochainTourVivant(ordreAvecInvoque, data.tour_actuel || 0) };
+
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ordre_jeu:   _avanceInv.ordre,
+            tour_actuel: _avanceInv.tourActuel
+        });
+        _gagnerXP(2);
+        _logCombat(`${window.perso.nom} invoque ${modele.nom} (${modele.pv} PV) !`);
+
+    } else if (typeCible === 'creation_mort_vivant') {
+        // ── Réanimation d'un cadavre ────────────────────────────────
+        const invocateurId = (window.perso.nom || '').replace(/\s+/g, '_');
+        const mort = (data.ennemis || []).find(e => e.instanceId === cibleId);
+        if (!mort) { _sortCombatEnCours = null; return; }
+
+        const pvBase   = mort.pvMax || 30;
+        const ftBase   = mort.ftMax || 20;
+        const entree   = {
+            type: 'invoque', instanceId: Date.now(), id: 'invoque_mort_' + Date.now(),
+            nom: mort.nom + ' (allié)', race: 'mort-vivant', niveau: mort.niveau || 1,
+            invocateurId, invocateurNom: window.perso.nom,
+            vitesse: (mort.statsBase?.DX || 5) + (mort.statsInvesties?.DX || 0),
+            pvActuel: Math.floor(pvBase * 0.5), pvMax: Math.floor(pvBase * 0.5),
+            ftActuel: Math.floor(ftBase * 0.5), ftMax: Math.floor(ftBase * 0.5),
+            stats: mort.statsBase || { FO: 8, CN: 8, DX: 8, IN: 2, CH: 2 },
+            res:   { physique: 0, magie: 0, feu: 0, poison: 80, elec: 0 },
+            sortsConnus: [], riposteFeu: false, soinsParTour: 0, esquiveInnee: 0, ko: false
+        };
+        const ordreAvecMort = [...(data.ordre_jeu || []), entree];
+        const _avanceMort = typeof _avancerTourCombat === 'function'
+            ? _avancerTourCombat(ordreAvecMort, data.tour_actuel || 0)
+            : { ordre: ordreAvecMort, tourActuel: _prochainTourVivant(ordreAvecMort, data.tour_actuel || 0) };
+
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ordre_jeu:   _avanceMort.ordre,
+            tour_actuel: _avanceMort.tourActuel
+        });
+        _gagnerXP(3);
+        _logCombat(`${window.perso.nom} réanime ${mort.nom} — ☠ cadavre allié (${entree.pvActuel} PV) !`);
     }
 
     _sortCombatEnCours = null;
+}
+
+// ── Distorsion spatiale — choix de direction ──────────────────
+
+function _choisirDirectionDistorsion(cibleId) {
+    const panel = document.getElementById('combat-actions-panel');
+    if (!panel) return;
+    const data     = window.combatActif;
+    const nomCible = (data?.ordre_jeu || []).find(p => p.id === cibleId)?.nom || cibleId;
+    panel.innerHTML = `<div class="combat-actions-titre">✨ Distorsion spatiale — ${nomCible}</div>
+        <div style="color:#b39ddb;font-size:12px;text-align:center;margin-bottom:10px;">
+            Au prochain round, ${nomCible} jouera…
+        </div>
+        <button class="combat-cible-btn allie" onclick="_appliquerDistorsionSpatiale('${cibleId}','devant')" style="border-color:#66bb6a;">
+            ▲ En PREMIER — avant tout le monde
+        </button>
+        <button class="combat-cible-btn allie" onclick="_appliquerDistorsionSpatiale('${cibleId}','derriere')" style="border-color:#ef5350;">
+            ▼ En DERNIER — après tout le monde
+        </button>`;
+}
+
+function _appliquerDistorsionSpatiale(cibleId, direction) {
+    const data = window.combatActif;
+    if (!data || !window.perso) return;
+
+    // Marquer la cible dans ordre_jeu avec bonus_round
+    const ordreBonus = (data.ordre_jeu || []).map(p => {
+        if (p.type === 'joueur' && p.id === cibleId) {
+            return Object.assign({}, p, { bonus_round: { position: direction } });
+        }
+        return p;
+    });
+
+    const avance = typeof _avancerTourCombat === 'function'
+        ? _avancerTourCombat(ordreBonus, data.tour_actuel || 0)
+        : { ordre: ordreBonus, tourActuel: _prochainTourVivant(ordreBonus, data.tour_actuel || 0) };
+
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+        ordre_jeu:   avance.ordre,
+        tour_actuel: avance.tourActuel
+    });
+
+    const nomCible  = (data.ordre_jeu || []).find(p => p.id === cibleId)?.nom || cibleId;
+    const dirLabel  = direction === 'devant' ? '▲ en PREMIER' : '▼ en DERNIER';
+    _logCombat(`${window.perso.nom} lance Distorsion spatiale — ${nomCible} jouera ${dirLabel} au prochain round !`);
+    _gagnerXP(2);
+    _sortCombatEnCours = null;
+}
+
+// ── Annulation d'un sort persistant AoE ──────────────────────
+
+/**
+ * Annule un sort persistant de type AoE (Altération temporelle / Tempus Fugit).
+ * Restaure la vitesse des ennemis/alliés affectés et retire l'effet du lanceur.
+ * Avance le tour.
+ * @param {string} cle  Clé Firebase dans effets_actifs du lanceur
+ * @param {object} effet  Objet de l'effet (nom, tagEffet)
+ */
+function _annulerSortPersistantAoe(cle, effet) {
+    const data     = window.combatActif;
+    const playerID = (window.perso?.nom || '').replace(/\s+/g, '_');
+    if (!data) return;
+
+    const tagEffet = effet.tagEffet || '';
+    const ennemisMAJ = (data.ennemis || []).map(e => {
+        if (tagEffet && e.effets?.[tagEffet]) {
+            const ne = Object.assign({}, e, { effets: Object.assign({}, e.effets) });
+            delete ne.effets[tagEffet];
+            return ne;
+        }
+        return e;
+    });
+
+    // Restaurer les vitesses dans ordre_jeu
+    let ordreMAJ = (data.ordre_jeu || []).map(p => {
+        // Ennemis ralentis par ce sort
+        if (p.type === 'ennemi' && p.vitesseOrig !== undefined) {
+            const ennemi = ennemisMAJ.find(e => e.instanceId === p.instanceId);
+            if (ennemi && !ennemi.effets?.ralenti && !ennemi.effets?.[tagEffet]) {
+                const c = Object.assign({}, p, { vitesse: p.vitesseOrig });
+                delete c.vitesseOrig;
+                return c;
+            }
+        }
+        // Alliés accélérés par Tempus Fugit
+        if (effet.nom === 'Tempus Fugit' && p.tempus_fugit && p.vitesseOrig !== undefined) {
+            const c = Object.assign({}, p, { vitesse: p.vitesseOrig });
+            delete c.vitesseOrig;
+            delete c.tempus_fugit;
+            return c;
+        }
+        return p;
+    });
+
+    // Retirer l'effet du lanceur
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs/' + cle).remove();
+
+    const avance = typeof _avancerTourCombat === 'function'
+        ? _avancerTourCombat(ordreMAJ, data.tour_actuel || 0)
+        : { ordre: ordreMAJ, tourActuel: _prochainTourVivant(ordreMAJ, data.tour_actuel || 0) };
+
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+        ennemis:     ennemisMAJ,
+        ordre_jeu:   avance.ordre,
+        tour_actuel: avance.tourActuel
+    });
+
+    _logCombat(`${window.perso?.nom} annule ${effet.nom} — vitesses restaurées.`);
+    if (typeof _toast === 'function') _toast(`✨ ${effet.nom} annulé.`, 'info');
+    if (typeof autoSave === 'function') autoSave();
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 }
 
 // ── Système d'XP ─────────────────────────────────────────────
@@ -1057,7 +1799,50 @@ function _afficherActionsControleMJ(participant, panel) {
     const ennemisVivants = (data?.ennemis || []).filter(e => e.pvActuel > 0);
 
     if (participant.type === 'ennemi') {
+        // — Vérifier les effets CC bloquants —
+        const _ennemiCC = (data?.ennemis || []).find(e => e.instanceId === participant.instanceId);
+        const _effCC = _ennemiCC?.effets || {};
+
+        if (_effCC.skip_tour || _effCC.charme_animal) {
+            const labelCC = _effCC.skip_tour ? '🧠 Tour bloqué (Absorption)' : '🐾 Animal charmé';
+            panel.innerHTML = `<div class="combat-actions-titre">⚔ ${participant.nom}</div>
+                <div style="color:#9575cd; text-align:center; padding:8px; font-style:italic;">${labelCC}</div>
+                <button class="combat-sort-btn" onclick="mjSkipTourCC(${participant.instanceId})" style="width:100%; margin-top:6px;">
+                    <span class="sort-nom">⏭ Passer (CC)</span>
+                    <span class="sort-meta">Aucune regen</span>
+                </button>`;
+            return;
+        }
+        if (_effCC.stase) {
+            panel.innerHTML = `<div class="combat-actions-titre">⚔ ${participant.nom}</div>
+                <div style="color:#7986cb; text-align:center; padding:8px; font-style:italic;">⏸ En stase</div>
+                <button class="combat-sort-btn" onclick="mjSkipTourCC(${participant.instanceId})" style="width:100%; margin-top:6px;">
+                    <span class="sort-nom">⏭ Passer (Stase)</span>
+                    <span class="sort-meta">Aucune regen</span>
+                </button>`;
+            return;
+        }
+        if (_effCC.petrification) {
+            panel.innerHTML = `<div class="combat-actions-titre">⚔ ${participant.nom}</div>
+                <div style="color:#90a4ae; text-align:center; padding:8px; font-style:italic;">🪨 Pétrifié — immunité physique</div>
+                <button class="combat-sort-btn" onclick="mjPasserTourEnnemi(${participant.instanceId})" style="width:100%; margin-top:6px;">
+                    <span class="sort-nom">⏭ Passer le tour</span>
+                    <span class="sort-meta">Regen normale</span>
+                </button>`;
+            return;
+        }
+
+        // Indicateurs visuels pour effets non-bloquants
+        const _noticesCC = [
+            _effCC.flash           ? '<div style="color:#fff176;font-size:11px;margin-bottom:4px;">✨ Aveuglé — 25% de rater</div>' : '',
+            _effCC.desarme         ? '<div style="color:#ff9800;font-size:11px;margin-bottom:4px;">⚔ Désarmé — mains nues (−5 dég.)</div>' : '',
+            _effCC.faiblesse       ? '<div style="color:#ef9a9a;font-size:11px;margin-bottom:4px;">💀 Affaibli (−5 dégâts)</div>' : '',
+            _effCC.monstre_illusoire ? '<div style="color:#ce93d8;font-size:11px;margin-bottom:4px;">👻 50% chance fausse cible</div>' : '',
+            _effCC.charme          ? `<div style="color:#f48fb1;font-size:11px;margin-bottom:4px;">💜 Charmé — ne peut pas attaquer ${_effCC.charme.cible_interdit}</div>` : ''
+        ].filter(Boolean).join('');
+
         let html = '<div class="combat-actions-titre">⚔ ' + participant.nom + ' attaque</div>'
+            + _noticesCC
             + '<div class="combat-cibles-label allie">Choisir la cible</div>';
         db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
             const joueurs = snap.val() || {};
@@ -1067,10 +1852,32 @@ function _afficherActionsControleMJ(participant, panel) {
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
                 if ((joueurs[id].pvActuel || 0) > 0) {
-                    const estDiscret = premierTour && discrets[id] === true;
+                    const estDiscret  = premierTour && discrets[id] === true;
+                    const estInterdit = _effCC.charme && _effCC.charme.cible_interdit === joueurs[id].nom;
+                    // Invisibilité : cacher la cible si elle a un effet invisible actif
+                    const effetsAllie  = joueurs[id].effets_actifs || {};
+                    const estInvisible = Object.values(effetsAllie).some(e => e.invisible === true);
+                    // Sanctuaire : bloquer si le monstre est mort-vivant
+                    const buffsGroupe = window.combatActif?.buffs_groupe || {};
+                    const raceMonstre = (data?.ennemis || []).find(e => e.instanceId === participant.instanceId)?.race || '';
+                    const mortsVivants = ['mort-vivant','Mort-vivant','undead','Undead','zombie','Zombie','squelette','Squelette','fantôme','Fantôme'];
+                    const sanctuaireBloque = buffsGroupe['Sanctuaire']?.actif && mortsVivants.includes(raceMonstre);
+
                     if (estDiscret) {
                         html += '<button class="combat-cible-btn allie" disabled style="opacity:0.35; cursor:not-allowed;">'
                             + '🫥 ' + joueurs[id].nom + ' <span class="cible-pv">(discret)</span>'
+                            + '</button>';
+                    } else if (estInterdit) {
+                        html += '<button class="combat-cible-btn allie" disabled style="opacity:0.35; cursor:not-allowed;">'
+                            + '💜 ' + joueurs[id].nom + ' <span class="cible-pv">(charmé)</span>'
+                            + '</button>';
+                    } else if (estInvisible) {
+                        html += '<button class="combat-cible-btn allie" disabled style="opacity:0.35; cursor:not-allowed;">'
+                            + '👁 ' + joueurs[id].nom + ' <span class="cible-pv">(invisible)</span>'
+                            + '</button>';
+                    } else if (sanctuaireBloque) {
+                        html += '<button class="combat-cible-btn allie" disabled style="opacity:0.35; cursor:not-allowed;">'
+                            + '✝ ' + joueurs[id].nom + ' <span class="cible-pv">(Sanctuaire)</span>'
                             + '</button>';
                     } else {
                         html += '<button class="combat-cible-btn allie" onclick="mjAttaqueMonstreJoueur(\'' + id + '\', \'' + joueurs[id].nom + '\')">'
@@ -1087,6 +1894,16 @@ function _afficherActionsControleMJ(participant, panel) {
                     const nomSafe = c.nom.replace(/'/g, "\\'");
                     html += '<button class="combat-cible-btn allie" style="border-color:#ffe082;" onclick="mjAttaqueMonstreCompagnon(' + participant.instanceId + ', ' + c.compIdx + ', \'' + c.ownerID + '\', \'' + nomSafe + '\')">'
                         + '🤝 ' + c.nom + ' <span class="cible-pv">PV ' + (c.pvActuel ?? '?') + '/' + (c.pvMax || '?') + '</span>'
+                        + '</button>';
+                });
+            }
+            // Invoqués comme cibles
+            const ordreInvoques = (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'invoque' && !p.ko);
+            if (ordreInvoques.length > 0) {
+                html += '<div class="combat-cibles-label" style="color:#ce93d8; margin-top:6px;">🔮 Invoqués</div>';
+                ordreInvoques.forEach(iv => {
+                    html += '<button class="combat-cible-btn allie" style="border-color:#ce93d8;" onclick="mjAttaqueMonstreInvoque(' + participant.instanceId + ', ' + iv.instanceId + ')">'
+                        + '🔮 ' + iv.nom + ' <span class="cible-pv">PV ' + (iv.pvActuel ?? '?') + '/' + (iv.pvMax || '?') + '</span>'
                         + '</button>';
                 });
             }
@@ -1468,10 +2285,40 @@ function mjAttaqueMonstreJoueur(joueurID, joueurNom) {
     if (!window._ennemisOntAttaque) window._ennemisOntAttaque = new Set();
     if (monstre?.instanceId !== undefined) window._ennemisOntAttaque.add(monstre.instanceId);
 
+    const _effMonstre = monstreComplet?.effets || {};
+    const _ennemisForCC = [...(data?.ennemis || [])];
+    const _mIdxCC = _ennemisForCC.findIndex(e => e.instanceId === monstreComplet?.instanceId);
+
+    // — Monstre illusoire : 50% chance d'attaquer un monstre imaginaire —
+    if (_effMonstre.monstre_illusoire && Math.random() < 0.5) {
+        _logCombat(`${monstre.nom} attaque ${joueurNom} — 👻 Attaque un monstre imaginaire !`);
+        const _ordreIll = data?.ordre_jeu || [];
+        db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+            .set(_prochainTourVivant(_ordreIll, data.tour_actuel || 0));
+        return;
+    }
+
+    // — Flash : 25% de rater, consomme l'effet —
+    if (_effMonstre.flash) {
+        if (_mIdxCC !== -1) delete _ennemisForCC[_mIdxCC].effets.flash;
+        if (Math.random() < 0.25) {
+            _logCombat(`${monstre.nom} attaque ${joueurNom} — ✨ Raté (Aveuglé) !`);
+            const _ordreFlash = data?.ordre_jeu || [];
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ennemis:     _ennemisForCC,
+                tour_actuel: _prochainTourVivant(_ordreFlash, data.tour_actuel || 0)
+            });
+            return;
+        }
+        // Pas de miss : on met juste à jour l'effet
+        db.ref('parties/' + sessionActuelle + '/combat_actif/ennemis').set(_ennemisForCC);
+    }
+
     // Damage simple: 1d8 + niveau/2
     const de = Math.ceil(Math.random() * 8);
-    const bonus = Math.floor((monstreComplet.niveau || monstre.niveau || 1) / 2);
-    const degats = de + bonus;
+    const _faiblesse = _effMonstre.faiblesse?.fo_delta || 0;
+    const bonus = Math.max(0, Math.floor((monstreComplet.niveau || monstre.niveau || 1) / 2) + _faiblesse);
+    const degats = Math.max(1, de + bonus);
     const element = _getElementEnnemi(monstreComplet);
 
     // Dégâts de fatigue : lire degatsFT de l'arme du monstre, sinon formule niveau
@@ -1525,8 +2372,24 @@ function mjAttaqueMonstreJoueur(joueurID, joueurNom) {
         if (degatsFinaux > 0) {
             db.ref('parties/' + sessionActuelle + '/joueurs/' + joueurID + '/modif_stat').set({
                 stat: 'PV', valeur: -degatsFinaux, element: element || null, critique: coupCritique,
-                degatsFT: degatsFTMonstre, timestamp: Date.now()
+                degatsFT: degatsFTMonstre, source_race: monstreComplet.race || null,
+                magique: !!(element && ['feu','elec'].includes(element)),
+                instanceId: monstreComplet.instanceId ?? null,
+                timestamp: Date.now()
             });
+        }
+
+        // — Mur de feu : riposte de feu quand un ennemi frappe un allié en mêlée —
+        const _buffsGroupe = window.combatActif?.buffs_groupe || {};
+        if (_buffsGroupe['Mur de feu']?.actif && degatsFinaux > 0) {
+            const degatsRetour = Math.max(1, Math.ceil(degatsFinaux * 0.3));
+            const idxMonstre = (data?.ennemis || []).findIndex(e => e.instanceId === monstreComplet?.instanceId);
+            if (idxMonstre !== -1) {
+                const ennemisRetour = [...(data.ennemis || [])];
+                ennemisRetour[idxMonstre].pvActuel = Math.max(0, ennemisRetour[idxMonstre].pvActuel - degatsRetour);
+                db.ref('parties/' + sessionActuelle + '/combat_actif/ennemis').set(ennemisRetour);
+                _logCombat(`🔥 Mur de feu — ${monstre.nom} subit ${degatsRetour} dégâts de riposte !`);
+            }
         }
 
         _logCombat(msgCourt, msgDetail);
@@ -1664,30 +2527,154 @@ function mjPasserTourCompagnon(ownerID, compIdx, guerisonVal) {
 }
 
 /** MJ passe le tour d'un ennemi : roll récupération → ennemi récupère PV et FT. */
+/** Saute le tour d'un ennemi sous effet CC (sans regen). Nettoie l'effet. */
+function mjSkipTourCC(instanceId) {
+    const data = window.combatActif;
+    if (!data) return;
+    const ennemisMAJ = [...(data.ennemis || [])];
+    const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
+    if (idx === -1) return;
+    const e = ennemisMAJ[idx];
+
+    // Décrémenter/nettoyer les effets de skip
+    if (e.effets?.skip_tour) {
+        const restants = (e.effets.skip_tour.tours || 1) - 1;
+        if (restants <= 0) delete e.effets.skip_tour;
+        else e.effets.skip_tour.tours = restants;
+        _logCombat(`${e.nom} — 🧠 Tour bloqué (CC)`);
+    } else if (e.effets?.stase) {
+        _logCombat(`${e.nom} — ⏸ En stase`);
+        // La stase est persistante — ne pas supprimer automatiquement
+    } else if (e.effets?.charme_animal) {
+        _logCombat(`${e.nom} — 🐾 Animal charmé, ne bouge pas`);
+        // La charme animal est persistante
+    }
+
+    const ordre = data.ordre_jeu || [];
+    const _avance = typeof _avancerTourCombat === 'function'
+        ? _avancerTourCombat(ordre, data.tour_actuel || 0)
+        : { ordre, tourActuel: _prochainTourVivant(ordre, data.tour_actuel || 0) };
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+        ennemis:     ennemisMAJ,
+        ordre_jeu:   _avance.ordre,
+        tour_actuel: _avance.tourActuel
+    });
+}
+
 function mjPasserTourEnnemi(instanceId) {
     const data = window.combatActif;
     if (!data) return;
     const ennemisMAJ = [...(data.ennemis || [])];
     const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
     if (idx === -1) return;
-    const e       = ennemisMAJ[idx];
-    const niv     = e.niveau || 1;
-    const guerison = Math.max(1, Math.floor(niv / 3));
+    const e   = ennemisMAJ[idx];
+    const niv = e.niveau || 1;
     // Initialiser FT ennemi si absent
-    if (e.ftMax  === undefined) e.ftMax  = Math.max(5, niv * 2);
+    if (e.ftMax    === undefined) e.ftMax    = Math.max(5, niv * 2);
     if (e.ftActuel === undefined) e.ftActuel = e.ftMax;
-    const recup = _roleRecuperation(guerison);
-    e.pvActuel  = Math.min(e.pvMax,  (e.pvActuel  || 0) + recup.pv);
-    e.ftActuel  = Math.min(e.ftMax,  (e.ftActuel  || 0) + recup.ft);
+
+    let msg = '';
+
+    // — Tick de poison —
+    if (e.effets?.poison) {
+        const poison = e.effets.poison;
+        const dmg = poison.degats || 1;
+        e.pvActuel = Math.max(0, (e.pvActuel || 0) - dmg);
+        const restants = poison.duree - 1;
+        msg = `${e.nom} — ☠ Poison : −${dmg} PV (${restants} tour(s) restant(s))`;
+        if (restants <= 0) {
+            delete e.effets.poison;
+        } else {
+            e.effets.poison.duree = restants;
+        }
+        _logCombat(msg);
+        // Si l'ennemi meurt du poison, avancer le tour sans regen
+        if (e.pvActuel <= 0) {
+            const ordre = data.ordre_jeu || [];
+            const ordreKO = _marquerKODansOrdre(ordre, ennemisMAJ);
+            _verifierFinCombat(ennemisMAJ);
+            db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+                ennemis:     ennemisMAJ,
+                ordre_jeu:   ordreKO,
+                tour_actuel: _prochainTourVivant(ordreKO, data.tour_actuel || 0)
+            });
+            return;
+        }
+    }
+
+    // — Tick de durée sur les effets temporaires —
+    if (e.effets) {
+        // Rétrécissement : décrémente duree
+        if (e.effets.retrecissement) {
+            const r = e.effets.retrecissement;
+            r.duree--;
+            if (r.duree <= 0) {
+                delete e.effets.retrecissement;
+                _logCombat(`${e.nom} — 🔍 Rétrécissement expiré.`);
+            }
+        }
+        // Charme : décrémente tours
+        if (e.effets.charme) {
+            e.effets.charme.tours--;
+            if (e.effets.charme.tours <= 0) {
+                delete e.effets.charme;
+                _logCombat(`${e.nom} — 💜 Charme expiré.`);
+            }
+        }
+        // Nuée d'insectes : décrémente durée + restaure vitesse
+        if (e.effets.nuee_insectes) {
+            e.effets.nuee_insectes.toursRestants--;
+            if (e.effets.nuee_insectes.toursRestants <= 0) {
+                delete e.effets.nuee_insectes;
+                _logCombat(`${e.nom} — 🐝 Nuée dissipée, vitesse restaurée.`);
+            }
+        }
+        // Enchevêtrement : ROLL de maintien (le lanceur essaie de maintenir)
+        if (e.effets.enchevetre) {
+            const lIN = e.effets.enchevetre.lanceurIN || 10;
+            const eIN = (e.statsBase?.IN || 0) + (e.statsInvesties?.IN || 0);
+            const eRM = e.resistanceMagique || e.compInvesties?.resistanceMagique || 0;
+            if (typeof _rollSortPasse === 'function' && !_rollSortPasse(lIN, eIN, eRM)) {
+                // L'ennemi se libère
+                delete e.effets.enchevetre;
+                // Restaurer vitesse d'origine dans ordre_jeu
+                _logCombat(`${e.nom} — 🌿 Se libère de l'enchevêtrement !`);
+            }
+        }
+    }
+
+    // — Regen normale (pas de regen si empoisonné) —
+    const estEmpoisonne = !!(e.effets?.poison);
+    if (!estEmpoisonne) {
+        const guerison = Math.max(1, Math.floor(niv / 3));
+        const recup    = _roleRecuperation(guerison);
+        e.pvActuel = Math.min(e.pvMax, (e.pvActuel || 0) + recup.pv);
+        e.ftActuel = Math.min(e.ftMax, (e.ftActuel || 0) + recup.ft);
+        msg = recup.ft > 0
+            ? `${e.nom} passe son tour et récupère +${recup.pv} PV / +${recup.ft} FT.${recup.label}`
+            : `${e.nom} passe son tour — rien récupéré.${recup.label}`;
+        _logCombat(msg);
+    }
+
     const ordre = data.ordre_jeu || [];
+    // Restaurer vitesse si enchevêtrement libéré (recherche vitesseOrig)
+    const ordreRestauré = ordre.map(p => {
+        if (p.type === 'ennemi' && p.instanceId === instanceId && p.vitesseOrig !== undefined
+            && !e.effets?.enchevetre && !e.effets?.ralenti) {
+            const c = Object.assign({}, p, { vitesse: p.vitesseOrig });
+            delete c.vitesseOrig;
+            return c;
+        }
+        return p;
+    });
+    const _avance = typeof _avancerTourCombat === 'function'
+        ? _avancerTourCombat(ordreRestauré, data.tour_actuel || 0)
+        : { ordre: ordreRestauré, tourActuel: _prochainTourVivant(ordreRestauré, data.tour_actuel || 0) };
     db.ref('parties/' + sessionActuelle + '/combat_actif').update({
         ennemis:     ennemisMAJ,
-        tour_actuel: _prochainTourVivant(ordre, data.tour_actuel || 0)
+        ordre_jeu:   _avance.ordre,
+        tour_actuel: _avance.tourActuel
     });
-    const msg = recup.ft > 0
-        ? e.nom + ' passe son tour et récupère +' + recup.pv + ' PV / +' + recup.ft + ' FT.' + recup.label
-        : e.nom + ' passe son tour — rien récupéré.' + recup.label;
-    _logCombat(msg);
 }
 
 // ── Attaque mêlée ─────────────────────────────────────────────
@@ -1731,16 +2718,84 @@ function _decrementerEffetsTemporaires() {
     if (!effets) return;
     const playerID = (window.perso.nom || '').replace(/\s+/g, '_');
     const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs');
+    let ftModifie = false;
+
     Object.entries(effets).forEach(([cle, effet]) => {
+        // ── Effets persistants : drainer FT chaque tour ──
+        if (effet.persistant && effet.cout_par_tour) {
+            window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - effet.cout_par_tour);
+            ftModifie = true;
+            if (typeof _toast === 'function') _toast(`⚡ −${effet.cout_par_tour} FT (${effet.nom})`, 'info');
+            if ((window.perso.ftActuel || 0) <= 0) {
+                ref.child(cle).remove();
+                if (typeof _toast === 'function') _toast(`✨ ${effet.nom} dissipé (FT épuisé).`, 'info');
+                // Si c'est un buff de groupe → retirer de combat_actif/buffs_groupe
+                if (effet.buffGroupe || ['Mur de pierres','Mur de force','Mur de feu','Bouclier mystique','Brouillard','Régénération','Sanctuaire'].includes(effet.nom)) {
+                    db.ref('parties/' + sessionActuelle + '/combat_actif/buffs_groupe/' + effet.nom).remove();
+                    if (typeof _logCombat === 'function') _logCombat(`${window.perso.nom} : ${effet.nom} dissipé (FT épuisé) !`);
+                }
+                // Si c'est Invisibilité → le flag invisible s'efface avec l'entrée
+                if (effet.invisible || effet.nom === 'Invisibilité') {
+                    if (typeof _logCombat === 'function') _logCombat(`${window.perso.nom} redevient visible !`);
+                }
+                // Si c'est un sort AoE persistant → restaurer les vitesses
+                if (effet.aoeEnnemi && window.combatActif) {
+                    _annulerSortPersistantAoe(cle, effet);
+                    return;
+                }
+                // Incarnation maintien : FT épuisée → annuler l'incarnation sur la cible aussi
+                if (effet.incarnation_maintien && effet.cible) {
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs').once('value', snap => {
+                        const effCible = snap.val() || {};
+                        const cleInc = Object.keys(effCible).find(k => effCible[k].incarnation && effCible[k].element_incarnation === effet.element_incarnation);
+                        if (cleInc) {
+                            const arme = effCible[cleInc].arme_sauvegardee || {};
+                            db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs/' + cleInc).remove();
+                            db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/equipement').update({
+                                main_droite: arme.main_droite || null, deux_mains: arme.deux_mains || null
+                            });
+                        }
+                    });
+                    if (typeof _logCombat === 'function') _logCombat(`${window.perso.nom} : ${effet.nom.replace(' (maintien)','')} dissipé (FT épuisé) !`);
+                }
+                // Bouclier de réflexion maintien : FT épuisée
+                if (effet.reflexion_maintien && effet.cible) {
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs').once('value', snap => {
+                        const effCible = snap.val() || {};
+                        const cleRef = Object.keys(effCible).find(k => effCible[k].reflexion);
+                        if (cleRef) db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs/' + cleRef).remove();
+                    });
+                }
+            }
+            return;
+        }
+
+        // ── Effets à durée limitée ──
         if (!effet.temporaire) return;
         const restants = (effet.toursRestants || 0) - 1;
         if (restants <= 0) {
             ref.child(cle).remove();
             if (typeof _toast === 'function') _toast(`✨ ${effet.nom} a expiré.`, 'info');
+            // Restaurer la vitesse si Hâte expire
+            if (effet.hate && window.combatActif) {
+                const ordreRestHate = (window.combatActif.ordre_jeu || []).map(p => {
+                    if (p.type === 'joueur' && p.id === playerID && p.vitesseOrig !== undefined) {
+                        return Object.assign({}, p, { vitesse: p.vitesseOrig, vitesseOrig: undefined });
+                    }
+                    return p;
+                });
+                db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreRestHate);
+                if (typeof _logCombat === 'function') _logCombat(`${window.perso.nom} : Hâte expirée, vitesse restaurée.`);
+            }
         } else {
             ref.child(cle + '/toursRestants').set(restants);
         }
     });
+
+    if (ftModifie) {
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    }
 }
 
 /**
@@ -2012,8 +3067,33 @@ function lancerAttaqueMelee(instanceId) {
     if (idx === -1) return;
 
     // Armure ennemie réduit les dégâts
-    const armEnnemi    = _armureTotal(ennemisMAJ[idx]);
-    const degatsFinaux = Math.max(0, degatsBase - armEnnemi);
+    const armEnnemi = _armureTotal(ennemisMAJ[idx]);
+    const _effCibleAtk = ennemisMAJ[idx].effets || {};
+
+    // Pétrification : immunité aux dégâts physiques
+    let degatsFinaux = 0;
+    if (_effCibleAtk.petrification) {
+        const msgPetri = `${perso.nom} attaque ${ennemisMAJ[idx].nom} — 🪨 Pétrifié, immunisé aux dégâts physiques !`;
+        _logCombat(msgPetri);
+        const ordreMAJPetri = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
+        const _avancePetri = typeof _avancerTourCombat === 'function'
+            ? _avancerTourCombat(ordreMAJPetri, data.tour_actuel || 0)
+            : { ordre: ordreMAJPetri, tourActuel: _prochainTourVivant(ordreMAJPetri, data.tour_actuel || 0) };
+        db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+            ennemis:     ennemisMAJ,
+            ordre_jeu:   _avancePetri.ordre,
+            tour_actuel: _avancePetri.tourActuel
+        });
+        if (typeof autoSave === 'function') autoSave();
+        return;
+    }
+
+    degatsFinaux = Math.max(0, degatsBase - armEnnemi);
+
+    // Rétrécissement : +25% dégâts reçus
+    if (_effCibleAtk.retrecissement && degatsFinaux > 0) {
+        degatsFinaux = Math.round(degatsFinaux * _effCibleAtk.retrecissement.facteur);
+    }
 
     ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degatsFinaux);
     const _ennemiTue = ennemisMAJ[idx].pvActuel <= 0;
@@ -2061,4 +3141,350 @@ function lancerAttaqueMelee(instanceId) {
     }
 
     if (typeof autoSave === 'function') autoSave();
+}
+
+// ── Attaque élémentaire ───────────────────────────────────────
+
+function ouvrirCiblesAttaqueElementaire(element) {
+    const data = window.combatActif;
+    const ennemisVivants = (data?.ennemis || []).filter(e => e.pvActuel > 0);
+    const panel = document.getElementById('combat-actions-panel');
+    if (!panel) return;
+    const labelAtk = element === 'Feu' ? '🔥 Cible principale' : element === 'Eau' ? '🌊 Frappe' : '✨ Frappe élémentaire';
+    let html = `<div class="combat-actions-titre">Choisir la cible</div>
+        <div class="combat-cibles-label ennemi">⚔ Ennemis</div>`;
+    if (ennemisVivants.length === 0) {
+        html += '<p class="combat-vide">Aucun ennemi vivant.</p>';
+    } else {
+        ennemisVivants.forEach(e => {
+            html += `<button class="combat-cible-btn ennemi"
+                onclick="lancerAttaqueElementaire(${e.instanceId},'${element}')">
+                ${e.nom} <span class="cible-pv">PV ${e.pvActuel}/${e.pvMax}</span>
+            </button>`;
+        });
+    }
+    html += `<button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
+    panel.innerHTML = html;
+}
+
+function lancerAttaqueElementaire(instanceId, element) {
+    const perso = window.perso;
+    const data  = window.combatActif;
+    if (!perso || !data) return;
+
+    const fo = (perso.statsBase?.FO || 0) + (perso.statsInvesties?.FO || 0);
+    const foMod = fo > 10 ? fo - 10 : Math.floor((fo - 10) / 2);
+    const crit  = _lancerCritique(perso);
+    const melee_pts = perso.compInvesties?.melee || 0;
+
+    // Dés unarmed selon élément
+    let deBase;
+    if (element === 'Eau') { deBase = Math.max(1, Math.floor(fo / 2)); }      // dégâts faibles
+    else { deBase = Math.max(1, Math.floor(Math.random() * 6) + 1 + foMod); } // 1d6 + foMod
+
+    deBase = Math.max(0, Math.round(deBase * (1 + melee_pts * 0.05)));
+    let degatsBase = deBase;
+    let critLabel = '';
+    if (crit.type === 'echec') { degatsBase = 0; critLabel = ' ⚠ ÉCHEC CRITIQUE'; }
+    else if (crit.type === 'critique') { degatsBase = Math.round(degatsBase * crit.mult); critLabel = ' ⚡ CRITIQUE ×1.5 !'; }
+
+    const ennemisMAJ = [...(data.ennemis || [])];
+    const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
+    if (idx === -1) return;
+
+    let degatsFinaux;
+    if (element === 'Feu') {
+        // Ignore l'armure de la cible principale
+        degatsFinaux = degatsBase;
+        // 50% des dégâts aux autres ennemis vivants
+        ennemisMAJ.forEach((e, i) => {
+            if (i !== idx && e.pvActuel > 0) {
+                const splash = Math.max(1, Math.round(degatsBase * 0.5));
+                e.pvActuel = Math.max(0, e.pvActuel - splash);
+            }
+        });
+    } else {
+        const armEnnemi = _armureTotal(ennemisMAJ[idx]);
+        degatsFinaux = Math.max(0, degatsBase - armEnnemi);
+    }
+
+    // Rétrécissement
+    const _effCibleInc = ennemisMAJ[idx].effets || {};
+    if (_effCibleInc.retrecissement && degatsFinaux > 0) {
+        degatsFinaux = Math.round(degatsFinaux * _effCibleInc.retrecissement.facteur);
+    }
+
+    ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degatsFinaux);
+    _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
+    if (typeof _incStatPartie === 'function') _incStatPartie('attaques', 1);
+
+    const elemLabel = element === 'Feu' ? ' [🔥Feu]' : element === 'Eau' ? ' [🌊Eau]' : ` [${element}]`;
+    const splashNote = element === 'Feu' && ennemisMAJ.filter((e,i) => i!==idx && e.pvActuel>0).length > 0 ? ' + splash 50%' : '';
+    const msgCourt = `${perso.nom} attaque ${ennemisMAJ[idx].nom}${elemLabel}${critLabel}${degatsFinaux > 0 ? ' : '+degatsFinaux+' dégâts'+splashNote+'!' : ' : attaque ratée !'}`;
+
+    const ordreMAJ = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
+    const prochainTour = _prochainTourVivant(ordreMAJ, data.tour_actuel || 0);
+    _verifierFinCombat(ennemisMAJ);
+
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+        ennemis: ennemisMAJ, ordre_jeu: ordreMAJ, tour_actuel: prochainTour
+    });
+    _logCombat(msgCourt);
+    if (typeof autoSave === 'function') autoSave();
+}
+
+// ── Annuler incarnation ───────────────────────────────────────
+
+function _annulerIncarnation(cle, effet) {
+    const playerID = (window.perso?.nom || '').replace(/\s+/g, '_');
+
+    if (effet.incarnation) {
+        // Appelé depuis le panneau de la CIBLE
+        const casterID = effet.lanceur;
+        const arme = effet.arme_sauvegardee || {};
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs/' + cle).remove();
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/equipement').update({
+            main_droite: arme.main_droite || null, deux_mains: arme.deux_mains || null
+        });
+        if (casterID && casterID !== playerID) {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs').once('value', snap => {
+                const effC = snap.val() || {};
+                const cleM = Object.keys(effC).find(k => effC[k].incarnation_maintien && effC[k].element_incarnation === effet.element_incarnation);
+                if (cleM) db.ref('parties/' + sessionActuelle + '/joueurs/' + casterID + '/effets_actifs/' + cleM).remove();
+            });
+        }
+        if (typeof _toast === 'function') _toast(`✨ ${effet.nom} annulé — arme restaurée.`, 'info');
+        _logCombat(`${window.perso.nom} annule ${effet.nom}.`);
+
+    } else if (effet.incarnation_maintien) {
+        // Appelé depuis le panneau du LANCEUR
+        const cibleID = effet.cible;
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs/' + cle).remove();
+        if (cibleID) {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/effets_actifs').once('value', snap => {
+                const effC = snap.val() || {};
+                const cleInc = Object.keys(effC).find(k => effC[k].incarnation && effC[k].element_incarnation === effet.element_incarnation);
+                if (cleInc) {
+                    const arme = effC[cleInc].arme_sauvegardee || {};
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/effets_actifs/' + cleInc).remove();
+                    db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/equipement').update({
+                        main_droite: arme.main_droite || null, deux_mains: arme.deux_mains || null
+                    });
+                }
+            });
+        }
+        if (typeof _toast === 'function') _toast(`✨ ${effet.nom.replace(' (maintien)','')} annulé.`, 'info');
+        _logCombat(`${window.perso.nom} annule ${effet.nom.replace(' (maintien)','')}.`);
+    }
+}
+
+function _annulerBouclierReflexion(cle, effet) {
+    const playerID = (window.perso?.nom || '').replace(/\s+/g, '_');
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/effets_actifs/' + cle).remove();
+    if (effet.cible) {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs').once('value', snap => {
+            const effC = snap.val() || {};
+            const cleRef = Object.keys(effC).find(k => effC[k].reflexion);
+            if (cleRef) db.ref('parties/' + sessionActuelle + '/joueurs/' + effet.cible + '/effets_actifs/' + cleRef).remove();
+        });
+    }
+    if (typeof _toast === 'function') _toast('🪞 Bouclier de réflexion annulé.', 'info');
+    _logCombat(`${window.perso.nom} annule le Bouclier de réflexion.`);
+}
+
+/** MJ : monstre attaque un invoqué. */
+function mjAttaqueMonstreInvoque(instanceMonstre, instanceInvoque) {
+    const data = window.combatActif;
+    if (!data) return;
+    const monstre = (data.ennemis || []).find(function(e) { return e.instanceId === instanceMonstre; });
+    if (!monstre) return;
+    const ordre = data.ordre_jeu || [];
+    const inv   = ordre.find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+
+    const fo    = (monstre.statsBase ? monstre.statsBase.FO || 8 : 8) + (monstre.statsInvesties ? monstre.statsInvesties.FO || 0 : 0);
+    const foMod = fo > 10 ? fo - 10 : 0;
+    const de    = Math.floor(Math.random() * 6) + 1;
+    let degats  = Math.max(0, de + foMod);
+    // Résistance physique de l'invoqué
+    const resPhys = inv.res ? inv.res.physique || 0 : 0;
+    if (resPhys > 0) degats = Math.max(0, Math.round(degats * (1 - resPhys / 100)));
+
+    const ordreMAJ = ordre.map(function(p) {
+        if (p.type === 'invoque' && p.instanceId === instanceInvoque) {
+            const nvPV = Math.max(0, (p.pvActuel || 0) - degats);
+            return Object.assign({}, p, { pvActuel: nvPV, ko: nvPV <= 0 });
+        }
+        return p;
+    });
+
+    // Si l'invoqué est mort, le retirer de l'ordre
+    const invMort = (ordreMAJ.find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; }) || {}).ko;
+    const ordreFinal = invMort ? ordreMAJ.filter(function(p) { return !(p.type === 'invoque' && p.instanceId === instanceInvoque); }) : ordreMAJ;
+
+    const prochain = _prochainTourVivant(ordreFinal, data.tour_actuel || 0);
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({ ordre_jeu: ordreFinal, tour_actuel: prochain });
+
+    var msg = monstre.nom + ' attaque ' + inv.nom + ' : ' + degats + ' degats !';
+    if (invMort) msg += ' ' + inv.nom + ' est detruit !';
+    _logCombat(msg);
+}
+
+// ── Système d'invocations ─────────────────────────────────────
+
+function _afficherPanneauInvoque(inv, panel) {
+    const data = window.combatActif;
+    if (!data || !inv) return;
+    const ennemisVivants = (data.ennemis || []).filter(function(e) { return e.pvActuel > 0; });
+    if ((inv.soinsParTour || 0) > 0 && (inv.pvActuel || 0) < inv.pvMax) {
+        const nvPV = Math.min(inv.pvMax, (inv.pvActuel || 0) + inv.soinsParTour);
+        _invoqueMajOrdre(inv.instanceId, function(p) { return Object.assign({}, p, { pvActuel: nvPV }); });
+        if (typeof _toast === 'function') _toast(inv.nom + ' regenere ' + inv.soinsParTour + ' PV.', 'success');
+        inv = Object.assign({}, inv, { pvActuel: nvPV });
+    }
+    const guerison = Math.max(1, Math.floor((inv.stats ? inv.stats.CN || 5 : 5) / 3));
+    const fo  = inv.stats ? inv.stats.FO || 5 : 5;
+    const foMod = fo > 10 ? fo - 10 : 0;
+    let html = '<div class="combat-actions-titre">Invoque : ' + inv.nom + ' <span style="font-size:0.8em;color:#aaa;font-weight:normal;">PV ' + inv.pvActuel + '/' + inv.pvMax + ' FT ' + inv.ftActuel + '/' + inv.ftMax + '</span></div>';
+    if ((inv.ftActuel || 0) <= 0) {
+        html += '<div style="color:#f44336;text-align:center;margin:6px 0;">Epuise</div>';
+        html += '<button class="combat-sort-btn" onclick="_invoquePasser(' + inv.instanceId + ')"><span class="sort-nom">Passer</span><span class="sort-meta">+' + guerison + ' FT</span></button>';
+        html += '<button class="combat-sort-btn" style="opacity:0.7;margin-top:4px;" onclick="_invoqueAnnuler(' + inv.instanceId + ')"><span class="sort-nom">Renvoyer ' + inv.nom + '</span></button>';
+        panel.innerHTML = html; return;
+    }
+    html += '<div class="combat-cibles-label ennemi">Attaquer</div>';
+    if (ennemisVivants.length === 0) {
+        html += '<p class="combat-vide">Aucun ennemi vivant.</p>';
+    } else {
+        ennemisVivants.forEach(function(e) {
+            html += '<button class="combat-cible-btn ennemi" onclick="_invoqueAttaque(' + inv.instanceId + ',' + e.instanceId + ')">' + e.nom + ' <span class="cible-pv">PV ' + e.pvActuel + '/' + e.pvMax + '</span></button>';
+        });
+    }
+    var sorts = inv.sortsConnus || [];
+    if (sorts.length > 0 && (inv.ftActuel || 0) > 0) {
+        html += '<div class="combat-cibles-label" style="color:#9575cd;margin-top:6px;">Sorts</div>';
+        sorts.forEach(function(nomSort) {
+            var sDef = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+            if (!sDef) return;
+            var cout = sDef.cout || 0;
+            var peut = (inv.ftActuel || 0) >= cout;
+            html += '<button class="combat-sort-btn' + (peut ? '' : ' epuise') + '" ' + (peut ? '' : 'disabled') + ' onclick="' + (peut ? '_invoqueSort(' + inv.instanceId + ',\'' + nomSort.replace(/'/g, "\\'") + '\')' : '') + '"><span class="sort-nom">' + sDef.nom + '</span><span class="sort-meta">' + (sDef.degats ? sDef.degats + ' deg.' : 'Effet') + ' - ' + cout + ' FT</span></button>';
+        });
+    }
+    html += '<button class="combat-sort-btn" style="margin-top:8px;opacity:0.75;" onclick="_invoquePasser(' + inv.instanceId + ')"><span class="sort-nom">Passer</span><span class="sort-meta">+' + guerison + ' FT</span></button>';
+    html += '<button class="combat-sort-btn" style="opacity:0.6;margin-top:2px;" onclick="_invoqueAnnuler(' + inv.instanceId + ')"><span class="sort-nom">Renvoyer ' + inv.nom + '</span></button>';
+    panel.innerHTML = html;
+}
+
+function _invoqueMajOrdre(instanceId, fn) {
+    const data = window.combatActif;
+    if (!data) return;
+    const ordreMAJ = (data.ordre_jeu || []).map(function(p) { return p.type === 'invoque' && p.instanceId === instanceId ? fn(p) : p; });
+    window.combatActif = Object.assign({}, window.combatActif, { ordre_jeu: ordreMAJ });
+    db.ref('parties/' + sessionActuelle + '/combat_actif/ordre_jeu').set(ordreMAJ);
+}
+
+function _invoqueAttaque(instanceInvoque, instanceEnnemi) {
+    const data = window.combatActif;
+    if (!data) return;
+    const ordre = data.ordre_jeu || [];
+    const inv   = ordre.find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+    const ennemisMAJ = (data.ennemis || []).slice();
+    const idx = ennemisMAJ.findIndex(function(e) { return e.instanceId === instanceEnnemi; });
+    if (idx === -1) return;
+    const fo    = inv.stats ? inv.stats.FO || 5 : 5;
+    const foMod = fo > 10 ? fo - 10 : 0;
+    const de    = Math.floor(Math.random() * 6) + 1;
+    let degats  = Math.max(0, de + foMod);
+    const armure = typeof _armureTotal === 'function' ? _armureTotal(ennemisMAJ[idx]) : 0;
+    degats = Math.max(0, degats - armure);
+    ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degats);
+    const ordreAvec = ordre.map(function(p) {
+        if (p.type === 'invoque' && p.instanceId === instanceInvoque) {
+            return Object.assign({}, p, { ftActuel: Math.max(0, (p.ftActuel || 0) - 2) });
+        }
+        return p;
+    });
+    const ordreKO  = _marquerKODansOrdre(ordreAvec, ennemisMAJ);
+    const prochain = _prochainTourVivant(ordreKO, data.tour_actuel || 0);
+    _verifierFinCombat(ennemisMAJ);
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({ ennemis: ennemisMAJ, ordre_jeu: ordreKO, tour_actuel: prochain });
+    _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 4 : 1);
+    _logCombat(inv.nom + ' attaque ' + ennemisMAJ[idx].nom + ' : ' + degats + ' degats ! (PV : ' + ennemisMAJ[idx].pvActuel + ')');
+}
+
+function _invoquePasser(instanceInvoque) {
+    const data = window.combatActif;
+    if (!data) return;
+    const inv = (data.ordre_jeu || []).find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+    const guerison = Math.max(1, Math.floor((inv.stats ? inv.stats.CN || 5 : 5) / 3));
+    _invoqueMajOrdre(instanceInvoque, function(p) { return Object.assign({}, p, { ftActuel: Math.min(p.ftMax || 50, (p.ftActuel || 0) + guerison) }); });
+    const ordreMAJ = window.combatActif.ordre_jeu || [];
+    const prochain = _prochainTourVivant(ordreMAJ, data.tour_actuel || 0);
+    db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel').set(prochain);
+    _logCombat(inv.nom + ' passe son tour (+' + guerison + ' FT).');
+}
+
+function _invoqueAnnuler(instanceInvoque) {
+    const data = window.combatActif;
+    if (!data) return;
+    const inv = (data.ordre_jeu || []).find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+    const ordreMAJ = (data.ordre_jeu || []).filter(function(p) { return !(p.type === 'invoque' && p.instanceId === instanceInvoque); });
+    const prochain = _prochainTourVivant(ordreMAJ, data.tour_actuel || 0);
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({ ordre_jeu: ordreMAJ, tour_actuel: prochain });
+    _logCombat((window.perso ? window.perso.nom : '?') + ' renvoie ' + inv.nom + '.');
+    if (typeof _toast === 'function') _toast(inv.nom + ' renvoyé.', 'info');
+}
+
+function _invoqueSort(instanceInvoque, nomSort) {
+    const data = window.combatActif;
+    if (!data) return;
+    const inv   = (data.ordre_jeu || []).find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+    const sDef  = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+    if (!sDef) return;
+    const panel = document.getElementById('combat-actions-panel');
+    if (!panel) return;
+    const ennemisVivants = (data.ennemis || []).filter(function(e) { return e.pvActuel > 0; });
+    let html = '<div class="combat-actions-titre">' + sDef.nom + ' (' + inv.nom + ')</div><div class="combat-cibles-label ennemi">Choisir la cible</div>';
+    ennemisVivants.forEach(function(e) {
+        html += '<button class="combat-cible-btn ennemi" onclick="_invoqueSortSurEnnemi(' + inv.instanceId + ',\'' + nomSort.replace(/'/g, "\\'") + '\',' + e.instanceId + ')">' + e.nom + ' <span class="cible-pv">PV ' + e.pvActuel + '/' + e.pvMax + '</span></button>';
+    });
+    html += '<button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">Annuler</button>';
+    panel.innerHTML = html;
+}
+
+function _invoqueSortSurEnnemi(instanceInvoque, nomSort, instanceEnnemi) {
+    const data = window.combatActif;
+    if (!data) return;
+    const inv = (data.ordre_jeu || []).find(function(p) { return p.type === 'invoque' && p.instanceId === instanceInvoque; });
+    if (!inv) return;
+    const sDef = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+    if (!sDef) return;
+    const ennemisMAJ = (data.ennemis || []).slice();
+    const idx = ennemisMAJ.findIndex(function(e) { return e.instanceId === instanceEnnemi; });
+    if (idx === -1) return;
+    const cout = sDef.cout || 0;
+    let msg = inv.nom + ' lance ' + nomSort + ' sur ' + ennemisMAJ[idx].nom;
+    if (sDef.degats) {
+        let degats = Math.floor(sDef.degats);
+        ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degats);
+        msg += ' : ' + degats + ' degats !';
+    }
+    if (typeof _effetSecondaireEnnemi === 'function') {
+        const eff = _effetSecondaireEnnemi(sDef, idx, ennemisMAJ, data.ordre_jeu || [], data.tour_actuel || 0, inv.stats ? inv.stats.IN || 3 : 3);
+        if (eff.msgExtra) msg += eff.msgExtra;
+    }
+    const ordreMAJ = (data.ordre_jeu || []).map(function(p) {
+        return p.type === 'invoque' && p.instanceId === instanceInvoque ? Object.assign({}, p, { ftActuel: Math.max(0, (p.ftActuel || 0) - cout) }) : p;
+    });
+    const ordreKO  = _marquerKODansOrdre(ordreMAJ, ennemisMAJ);
+    const prochain = _prochainTourVivant(ordreKO, data.tour_actuel || 0);
+    _verifierFinCombat(ennemisMAJ);
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({ ennemis: ennemisMAJ, ordre_jeu: ordreKO, tour_actuel: prochain });
+    _gagnerXP(2);
+    _logCombat(msg);
 }

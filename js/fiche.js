@@ -279,6 +279,11 @@ photoContainer.innerHTML = `
                 if (btnMoins) {
                     btnMoins.style.visibility = (investissementsTemporaires.comp[id] > 0) ? "visible" : "hidden";
                 }
+
+                let btnPlus = document.getElementById('btn-plus-comp-' + id);
+                if (btnPlus) {
+                    btnPlus.style.display = (investi >= 20) ? "none" : "";
+                }
             });
         }
     }
@@ -479,7 +484,7 @@ div.innerHTML += `<div class="skill-row">
             <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
             <button id="btn-moins-${c.id}" class="btn-stat btn-moins edit-only" onclick="modComp('${c.id}', -4)">-</button>
             <span id="fiche-val-${c.id}" class="stat-value">0</span>
-            <button class="btn-stat btn-plus edit-only" onclick="modComp('${c.id}', 4)">+</button>
+            <button id="btn-plus-comp-${c.id}" class="btn-stat btn-plus edit-only" onclick="modComp('${c.id}', 4)">+</button>
         </div>`;
         });
         tabComp.querySelector('.sub-contents').appendChild(div);
@@ -570,7 +575,7 @@ function initMagieUI() {
         pane.innerHTML = `<div class="magic-school-header"><strong>${ecole}</strong>
             <button id="btn-moins-magie-${ecole.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modMagie('${ecole}', -1)">-</button>
             <span id="magie-val-${ecole.replace(/\s+/g, '')}">0/5</span>
-            <button class="btn-stat btn-plus edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
+            <button id="btn-plus-magie-${ecole.replace(/\s+/g, '')}" class="btn-stat btn-plus edit-only" onclick="modMagie('${ecole}', 1)">+</button></div>
             <div id="spells-${ecole.replace(/\s+/g, '')}"></div>`;
         magieData[ecole].sorts.forEach((s, i) => {
             const _implemente = s.degats || s.soin || s.resurrection || s.curePoison || s.buffStat;
@@ -602,7 +607,12 @@ function updateMagieUI_Display() {
         if (btnMoins) {
             btnMoins.style.visibility = (investissementsTemporaires.magie[e] > 0) ? "visible" : "hidden";
         }
-        
+
+        let btnPlusMagie = document.getElementById('btn-plus-magie-' + id);
+        if (btnPlusMagie) {
+            btnPlusMagie.style.display = (act >= 5) ? "none" : "";
+        }
+
         for (let i = 0; i < 5; i++) {
             let sDiv = document.getElementById(`spell-${id}-${i}`);
             if (sDiv) {
@@ -686,7 +696,7 @@ function initTechUI() {
         pane.innerHTML = `<div class="magic-school-header"><strong>${d}</strong>
             <button id="btn-moins-tech-${d.replace(/\s+/g, '')}" class="btn-stat edit-only" onclick="modTech('${d}', -1)">-</button>
             <span id="tech-val-${d.replace(/\s+/g, '')}">0/7</span>
-            <button class="btn-stat btn-plus edit-only" onclick="modTech('${d}', 1)">+</button></div>
+            <button id="btn-plus-tech-${d.replace(/\s+/g, '')}" class="btn-stat btn-plus edit-only" onclick="modTech('${d}', 1)">+</button></div>
             <div id="schemas-${d.replace(/\s+/g, '')}"></div>`;
             
         // --- C'EST ICI QUE ÇA SE PASSE ---
@@ -723,7 +733,12 @@ function updateTechUI_Display() {
         if (btnMoins) {
             btnMoins.style.visibility = (investissementsTemporaires.tech[d] > 0) ? "visible" : "hidden";
         }
-        
+
+        let btnPlusTech = document.getElementById('btn-plus-tech-' + id);
+        if (btnPlusTech) {
+            btnPlusTech.style.display = (act >= 7) ? "none" : "";
+        }
+
         for (let i = 0; i < 7; i++) {
             let sDiv = document.getElementById(`schema-${id}-${i}`);
             if (sDiv) {

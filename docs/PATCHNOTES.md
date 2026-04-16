@@ -2,6 +2,74 @@
 
 ---
 
+## v0.8 — Avril 2026
+
+### Refonte complète des sorts de combat
+
+Tous les sorts disposent désormais d'effets mécaniques réels en combat, organisés en 4 catégories.
+
+#### Catégorie 1 — Dégâts & effets secondaires
+- **Choc, Choc électrique, Étourdissement, Rafale de vent** : dégâts + ROLL → cible repoussée en dernier dans la frise
+- **Boule de feu** : dégâts + 25% de chances d'éclabousser les ennemis adjacents (½ dégâts)
+- **Éclair** : dégâts principaux + propagation en chaîne (½ → ¼ → ⅛) sur les ennemis proches
+- **Vapeurs toxiques** : dégâts + ROLL → poison (2 tours)
+- **Nuée d'insectes** : dégâts + ROLL → vitesse −25% (ralenti dans la frise)
+- **Désarmement** : ROLL → ennemi désarmé (−5 dégâts en mains nues)
+- **Absorption de la volonté** : ROLL → ennemi bloqué (passe son tour sans regen)
+- **Charme** : ROLL → ennemi charmé (ne peut plus attaquer le lanceur)
+- **Flash** : ROLL → ennemi aveuglé (25% de rater sa prochaine attaque, consommé en une frappe)
+- **Faiblesse** : ROLL → ennemi affaibli (−5 dégâts, FO −5)
+- **Rétrécissement** : ROLL → ennemi rétréci (reçoit +25% dégâts pendant 3 tours)
+- **Désintégration / Suppression de la vie** : ROLL requis — tue instantanément si réussi
+
+#### Catégorie 2 — Contrôle / CC
+- **Cauchemar** : ROLL zone → tous les ennemis vivants repoussés en dernier dans la frise
+- **Pétrification** : ROLL → immunité physique totale (attaques mêlée ignorées), passe ses tours avec regen
+- **Enchevêtrement** : ROLL → vitesse /2 + ROLL de maintien à chaque tour du MJ (libération aléatoire)
+- **Charmer les animaux** : ROLL facile si cible `race: animal` → passe ses tours indéfiniment
+- **Entrave aux sortilèges** : ROLL → ennemi ne peut plus lancer de sorts
+- **Stase** : ROLL → ennemi immobilisé (passe ses tours sans regen)
+- **Monstre illusoire** : ROLL → 50% de chance que le monstre attaque un allié imaginaire
+- **Domination / Contrôler les animaux** : ROLL → ennemi dominé (le MJ peut le retourner contre ses alliés)
+- **Dissipation des sortilèges** : ROLL → efface tous les effets magiques actifs sur l'ennemi ciblé
+
+Toutes les CC : durée/maintien ROLL gérés tour par tour dans `mjPasserTourEnnemi`. Vitesse originale restaurée automatiquement à l'expiration.
+
+#### Catégorie 3 — Buffs & Protections persistantes
+
+**Buffs de groupe** (bouton unique "🛡 Tout le groupe", FT dépensée chaque tour du lanceur) :
+- **Mur de pierres / Mur de force** : −20% dégâts physiques pour tout le groupe
+- **Mur de feu** : riposte automatique en feu (30% des dégâts reçus) sur chaque attaque ennemie en mêlée
+- **Bouclier mystique** : −20% dégâts magiques pour tout le groupe
+- **Brouillard** : +20 pts d'esquive pour tout le groupe
+- **Régénération** : +3 PV à chaque allié en début de son tour
+- **Sanctuaire** : les morts-vivants ne peuvent pas cibler les membres du groupe
+- Dissipation automatique si FT épuisée, avec log de combat
+
+**Buffs individuels** (ciblage allié normal) :
+- **Bouclier de protection** : −25% dégâts physiques, se brise au premier coup reçu
+- **Hâte** : vitesse ×2 pendant 3 tours (modifie immédiatement la frise), restaurée automatiquement à l'expiration
+- **Occultation** : −10% tous dégâts + +10 esquive pendant 3 tours
+- **Résistance aux sortilèges** : +25 RM pendant 3 tours
+- **Invisibilité** : cible invisible (cachée dans la liste des cibles ennemies), coûte 4 FT/tour au lanceur
+
+Bandeau "🛡 Buffs actifs" affiché sous la frise d'initiative pour tous.
+
+#### Catégorie 4 — Vitesse / Initiative
+- **Distorsion spatiale** : cibler un allié → choix ▲ Devant / ▼ Derrière → au prochain round, la cible joue son tour bonus en tête ou en queue de frise
+- **Altération temporelle** : AoE zone — ROLL sur chaque ennemi vivant → vitesse /2 si raté. Coûte 1 FT/tour, annulable à tout moment depuis le panneau d'actions du lanceur
+- **Tempus Fugit** : alliés ×3 vitesse (immédiat dans la frise) + ROLL zone enemies → vitesse /2 si raté. Coûte 4 FT/tour, annulable
+
+### Système de mécanique d'initiative
+- **Nouveau round** : le tri par vitesse s'exécute désormais même sans entrées `pushed`, ce qui garantit la prise en compte des `bonus_round` (Distorsion spatiale) et des changements de vitesse (Tempus Fugit)
+- **ROLL de résistance** unifié : `d100 + IN_lanceur vs d100 + (IN_cible + RM_cible)` — plus haut gagne
+
+### Détection de pièges
+- Chance de base **10%** même sans compétence Détection (portée : case adjacente uniquement)
+- Avec compétence : formule inchangée (portée ×2, chance jusqu'à 95%)
+
+---
+
 ## v0.7 — Avril 2026
 
 ### Système de Quêtes (améliorations)

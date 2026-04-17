@@ -3,3 +3,10 @@
 
 # Fiches personnages (données privées joueurs)
 docs/*.json
+
+# Graphify - fichiers générés/cache
+graphify-out/cache/
+graphify-out/cost.json
+graphify-out/manifest.json
+graphify-out/transcripts/
+.graphify_*

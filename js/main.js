@@ -153,14 +153,32 @@ function allerAccueil() {
 }
 
 function lancerD20Accueil() {
-    const roll = 1 + Math.floor(Math.random() * 20);
-    const el = document.getElementById('d20-resultat');
-    if (!el) return;
-    const isCrit = roll === 20;
-    const isFail = roll === 1;
-    el.textContent = roll;
-    el.style.color = isCrit ? '#ffd700' : isFail ? '#ff4444' : '#e0c8ff';
-    el.style.textShadow = isCrit ? '0 0 10px #ffd700' : isFail ? '0 0 8px #ff4444' : 'none';
+    const btn = document.getElementById('btn-d20');
+    const el  = document.getElementById('d20-resultat');
+    if (!el || !btn) return;
+
+    btn.classList.remove('rolling');
+    void btn.offsetWidth;
+    btn.classList.add('rolling');
+
+    el.classList.remove('pop', 'crit');
+    el.style.color = '#9575cd';
+    let ticks = 0;
+    const intervalle = setInterval(() => {
+        el.textContent = 1 + Math.floor(Math.random() * 20);
+        ticks++;
+        if (ticks > 8) {
+            clearInterval(intervalle);
+            const roll   = 1 + Math.floor(Math.random() * 20);
+            const isCrit = roll === 20;
+            const isFail = roll === 1;
+            el.textContent = roll;
+            el.style.color = isCrit ? '#ffd700' : isFail ? '#ff4444' : '#e0c8ff';
+            el.classList.add('pop');
+            if (isCrit) el.classList.add('crit');
+            btn.classList.remove('rolling');
+        }
+    }, 60);
 }
 
 function ouvrirEcranCompagnons() {

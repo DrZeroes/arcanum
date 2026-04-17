@@ -1383,8 +1383,10 @@ visibility: hidden !important;}
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    align-items: center;
+    align-items: flex-start;
     min-height: 0;
+    max-height: 40vh;
+    overflow-y: auto;
     flex-shrink: 0;
 }
 
@@ -1596,3 +1598,33 @@ visibility: hidden !important;}
     padding:2px 5px; font-size:0.7em; cursor:pointer; }
 .comp-inv-btn:hover { background:#2a3a2a; }
 #modal-comp-don button:hover { filter:brightness(1.2); }
+/* ── Lancer de dé d20 (accueil) ─────────────────────────────── */
+@keyframes d20-shake {
+    0%   { transform: rotate(0deg)   scale(1);    }
+    15%  { transform: rotate(-18deg) scale(1.15); }
+    30%  { transform: rotate(14deg)  scale(1.2);  }
+    45%  { transform: rotate(-10deg) scale(1.15); }
+    60%  { transform: rotate(8deg)   scale(1.1);  }
+    75%  { transform: rotate(-5deg)  scale(1.05); }
+    90%  { transform: rotate(3deg)   scale(1.02); }
+    100% { transform: rotate(0deg)   scale(1);    }
+}
+@keyframes d20-pop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes d20-crit {
+    0%, 100% { text-shadow: 0 0 8px #ffd700, 0 0 20px #ffd700; }
+    50%       { text-shadow: 0 0 20px #ffd700, 0 0 40px #ffaa00; }
+}
+#btn-d20.rolling {
+    animation: d20-shake 0.6s ease-out;
+    pointer-events: none;
+}
+#d20-resultat.pop {
+    animation: d20-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+#d20-resultat.crit {
+    animation: d20-crit 1s ease-in-out infinite;
+}

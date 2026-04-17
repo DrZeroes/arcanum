@@ -191,6 +191,36 @@ const succesData = [
         type: 'seuil', cle: 'villes_decouvertes', seuil: 7
     },
 
+    // ── Lieux spécifiques ────────────────────────────────────
+    {
+        id: 'decouverte_tarante',
+        nom: 'Bienvenue à Tarante',
+        desc: 'Mettre les pieds dans la grande cité industrielle de Tarante.',
+        icone: '🏭', categorie: 'Exploration',
+        type: 'lieu', cle: 'tarante'
+    },
+    {
+        id: 'decouverte_trist_coll',
+        nom: 'Collines Brumeuses',
+        desc: 'Découvrir le village minier de Triste Colline.',
+        icone: '⛏️', categorie: 'Exploration',
+        type: 'lieu', cle: 'tris'
+    },
+    {
+        id: 'decouverte_caladon',
+        nom: 'La Grande Cité',
+        desc: 'Atteindre l\'ancienne cité royale de Caladon.',
+        icone: '👑', categorie: 'Exploration',
+        type: 'lieu', cle: 'caladon'
+    },
+    {
+        id: 'decouverte_desespoir',
+        nom: 'Bout du Monde',
+        desc: 'Fouler le sol maudit de l\'Île du Désespoir.',
+        icone: '💀', categorie: 'Exploration',
+        type: 'lieu', cle: 'dese'
+    },
+
     // ── Compagnons ───────────────────────────────────────────
     {
         id: 'premier_compagnon',
@@ -424,12 +454,23 @@ function _flushSuccesToasts() {
 function _verifierSucces(cle) {
     if (!window.perso) return;
     const sp = window.perso.stats_partie || {};
-    const aVerifier = cle
+
+    // Succès par seuil numérique
+    const parSeuil = cle
         ? succesData.filter(s => s.type === 'seuil' && s.cle === cle)
         : succesData.filter(s => s.type === 'seuil');
-    aVerifier.forEach(s => {
+    parSeuil.forEach(s => {
         if (window.perso.succes?.[s.id]) return;
         if ((sp[s.cle] || 0) >= s.seuil) _debloquerSucces(s.id);
+    });
+
+    // Succès par découverte de lieu
+    const parLieu = cle
+        ? succesData.filter(s => s.type === 'lieu' && s.cle === cle)
+        : succesData.filter(s => s.type === 'lieu');
+    parLieu.forEach(s => {
+        if (window.perso.succes?.[s.id]) return;
+        if ((window.perso.lieuxConnus || []).includes(s.cle)) _debloquerSucces(s.id);
     });
 }
 

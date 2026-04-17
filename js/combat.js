@@ -111,7 +111,14 @@ function _verifierFinCombat(ennemisMAJ) {
     if (!tousKO) return;
     db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('victoire');
     if (window.estMJ) {
-        setTimeout(() => db.ref('parties/' + sessionActuelle + '/combat_actif').remove(), 4000);
+        setTimeout(() => {
+            db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+            if (window.donjonActif) {
+                const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+                refDonjon.child('pause').remove();
+                refDonjon.child('rencontre_en_attente').remove();
+            }
+        }, 4000);
     }
 }
 
@@ -158,7 +165,14 @@ function _verifierDefaite(ordreActuel) {
             _logCombat('💀 Tous les alliés sont tombés — DÉFAITE !');
             db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
             if (window.estMJ) {
-                setTimeout(() => db.ref('parties/' + sessionActuelle + '/combat_actif').remove(), 4000);
+                setTimeout(() => {
+                    db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+                    if (window.donjonActif) {
+                        const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+                        refDonjon.child('pause').remove();
+                        refDonjon.child('rencontre_en_attente').remove();
+                    }
+                }, 4000);
             }
         }
     });
@@ -1020,7 +1034,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             html += `<div class="combat-cibles-label allie">💚 Alliés</div>`;
             const moiId = (window.perso?.nom || '').replace(/\s+/g, '_');
             const moiPV = window.perso?.pvActuel ?? 0, moiPVMax = window.perso?.pvMax ?? 0;
-            if (s.resurrection || s.buffStat || s.buffPersistant || moiPV < moiPVMax) {
+            if (s.resurrection || s.buffStat || s.buffPersistant || s.soin || moiPV < moiPVMax) {
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortCombat('${moiId}', 'joueur')">Vous-même</button>`;
                 nbCibles++;
@@ -1039,7 +1053,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             }
             const compagnons = (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'compagnon' && !p.ko);
             compagnons.forEach(c => {
-                if (!s.resurrection && !s.buffStat && (c.pvActuel ?? 0) >= (c.pvMax || 0)) return;
+                if (!s.resurrection && !s.buffStat && c.pvMax > 0 && (c.pvActuel ?? 0) >= c.pvMax) return;
                 const nomSafe = c.nom.replace(/'/g, "\\'");
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortSurCompagnon('${c.ownerID}', ${c.compIdx}, '${nomSafe}')">

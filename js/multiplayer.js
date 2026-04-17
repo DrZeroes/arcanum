@@ -341,9 +341,9 @@ function activerEcouteurDonjon() {
         }
 
         // ── Côté joueur ──
-        // Ouvrir l'écran donjon si pas déjà affiché
+        // Ouvrir l'écran donjon si pas déjà affiché — mais pas si un combat est en cours
         const ecran = document.getElementById('ecran-donjon');
-        if (ecran && ecran.style.display !== 'flex') {
+        if (ecran && ecran.style.display !== 'flex' && !window.combatActif) {
             if (typeof ouvrirEcranDonjon === 'function') ouvrirEcranDonjon();
             else ecran.style.display = 'flex';
         }
@@ -1488,6 +1488,7 @@ function activerEcouteurPartageLieux() {
             if (lieuDef?.estVille && typeof _incStatPartie === 'function') {
                 _incStatPartie('villes_decouvertes', 1);
             }
+            if (typeof _verifierSucces === 'function') _verifierSucces(idLieu);
         }
     });
 }

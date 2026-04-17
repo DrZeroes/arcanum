@@ -16,7 +16,7 @@ const magieData = {
             { nom: "Perception du contenu", niv: 1, int: 9, cout: 2, desc: "Permet de voir l’inventaire de la cible." },
             { nom: "Perception de l'aura", niv: 5, int: 12, cout: 5, desc: "Révèle certains attributs cachés de la cible." },
             { nom: "Détection de l'invisible", niv: 10, int: 15, cout: 10, implemente: true, desc: "Permet de voir créatures et objets invisibles." },
-            { nom: "Identification", niv: 15, int: 18, cout: 15, desc: "Identifie toutes les propriétés magiques d’un objet." }
+            { nom: "Identification", niv: 15, int: 18, cout: 15, implemente: true, desc: "Identifie toutes les propriétés magiques d’un objet." }
         ]
     },
     "Air": {
@@ -396,33 +396,123 @@ function ouvrirMagieAccueil() {
     if (!container) return;
     container.innerHTML = "";
 
+    const _iconsEcole = {"Déplacement":"🌀","Divination":"👁️","Air":"💨","Terre":"🪨","Feu":"🔥","Eau":"💧","Energie":"⚡","Mental":"🧠","Méta":"💠","Transformation":"🦋","Nature":"🌿","Nécromancie noire":"💀","Nécromancie blanche":"🕊️","Illusion":"🎭","Invocation":"👹","Temporel":"⏳"};
+
     const _sortHtml = (data, ftSource, onclickCall, couleurBord, couleurFond) => {
         const coutReel = parseInt(data.cout, 10) || 0;
-        const peutLancer = (ftSource >= coutReel);
+        // Utile hors combat : soin, rez, cure poison, dégâts directs, familier
+        const utileHorsCombat = !!(data.soin || data.resurrection || data.curePoison
+            || data.degats || data.estFamilier);
+        const peutLancer = utileHorsCombat && (ftSource >= coutReel);
+        if (!utileHorsCombat) {
+            // Grisé + petit
+            return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:5px;margin-bottom:4px;opacity:0.35;">
+                <span style="color:#666;font-size:0.8em;">${data.nom} <span style="color:#444;">(${coutReel} FT)</span></span>
+                <span style="color:#444;font-size:0.75em;">⚔ Combat</span>
+            </div>`;
+        }
+        const btnLabel = ftSource < coutReel ? '❌ Épuisé' : '✨ Lancer';
         return `
             <div style="background: ${couleurFond}; border: 1px solid ${couleurBord}; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <div style="flex: 1;">
                     <strong style="color: #d1c4e9;">${data.nom}</strong><br>
                     <small style="color: #9575cd; font-style: italic;">Coût : ${coutReel} FT</small>
                 </div>
-                <button onclick="${onclickCall}"
+                <button onclick="${peutLancer ? onclickCall : ''}"
                     style="background: ${peutLancer ? couleurBord : '#444'}; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: ${peutLancer ? 'pointer' : 'not-allowed'};"
                     ${peutLancer ? '' : 'disabled'}>
-                    ${peutLancer ? '✨ Lancer' : '❌ Épuisé'}
+                    ${btnLabel}
                 </button>
             </div>`;
     };
 
-    // --- SORTS DU JOUEUR ---
+    const _renderGrilleEcoles = (nomSection, sortsParEcole, ftSource, buildOnclick, couleurBord, couleurFond, prefixId) => {
+        const couleurTitre = couleurBord === '#4caf50' ? '#a5d6a7' : '#9575cd';
+        let html = `<p style="color:${couleurTitre};font-weight:bold;margin:4px 0 8px;">${nomSection}</p>`;
+        // Grille de cases école
+        html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">`;
+        for (const ecole in sortsParEcole) {
+            const icon = _iconsEcole[ecole] || '🪄';
+            const eid  = prefixId + '_' + ecole.replace(/[^a-zA-Z0-9]/g, '_');
+            const nb   = sortsParEcole[ecole].length;
+            const nbUtil = sortsParEcole[ecole].filter(s =>
+                (s.soin || s.resurrection || s.curePoison || s.degats || s.estFamilier) && ftSource >= (parseInt(s.cout,10)||0)
+            ).length;
+            const utilLabel = nbUtil > 0
+                ? `<div style="color:#4caf50;font-size:0.75em;">✨ ${nbUtil} utilisable${nbUtil>1?'s':''}</div>`
+                : `<div style="color:#555;font-size:0.75em;">— hors combat</div>`;
+            html += `<button onclick="
+                var all=document.querySelectorAll('[id^=\\'${prefixId}_\\']');
+                all.forEach(function(el){if(el.id!=='${eid}')el.style.display='none';});
+                var d=document.getElementById('${eid}');
+                d.style.display=d.style.display==='none'?'block':'none';"
+                style="background:#1a0f2a;color:#d1c4e9;border:1px solid ${couleurBord};border-radius:8px;
+                       padding:8px 4px;cursor:pointer;text-align:center;font-size:0.82em;">
+                <div style="font-size:1.4em;">${icon}</div>
+                <div style="font-weight:bold;font-size:0.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ecole}</div>
+                <div style="color:#888;font-size:0.75em;">${nb} sort${nb>1?'s':''}</div>
+                ${utilLabel}
+            </button>`;
+        }
+        html += `</div>`;
+        // Panneaux de sorts (cachés par défaut, un seul ouvert à la fois)
+        for (const ecole in sortsParEcole) {
+            const eid = prefixId + '_' + ecole.replace(/[^a-zA-Z0-9]/g, '_');
+            html += `<div id="${eid}" style="display:none;border-left:2px solid ${couleurBord};padding-left:8px;margin-bottom:8px;">`;
+            html += `<p style="color:${couleurTitre};font-size:0.85em;margin:4px 0 6px;">${_iconsEcole[ecole]||'🪄'} ${ecole}</p>`;
+            sortsParEcole[ecole].forEach(data => {
+                const nomSafe = data.nom.replace(/'/g, "\\'");
+                html += _sortHtml(data, ftSource, buildOnclick(nomSafe), couleurBord, couleurFond);
+            });
+            html += `</div>`;
+        }
+        return html;
+    };
+
+    // --- SORTS DU JOUEUR (groupés par école) ---
     let mesSorts = getSortsConnus();
-    if (mesSorts.length > 0) {
-        container.innerHTML += `<p style="color:#9575cd; font-weight:bold; margin: 4px 0 8px;">✨ Vos sorts</p>`;
-        mesSorts.forEach(nomSort => {
-            const data = trouverSort(nomSort);
-            if (!data) return;
-            const nomSafe = data.nom.replace(/'/g, "\\'");
-            container.innerHTML += _sortHtml(data, perso.ftActuel, `preparerEtLancerSort('${nomSafe}')`, '#673ab7', '#2a1a3a');
-        });
+    if (mesSorts.length > 0 && typeof magieData !== 'undefined') {
+        // Sorts rapides (dernier + plus lancé)
+        const dernierSort = perso.stats_partie?.dernier_sort;
+        const sortsParNom = perso.stats_partie?.sorts_par_nom || {};
+        const bestEntry   = Object.entries(sortsParNom)
+            .filter(([nom]) => { const s = (typeof trouverSort === 'function') ? trouverSort(nom) : null; return s && !!(s.soin || s.resurrection || s.curePoison || s.degats || s.estFamilier); })
+            .sort((a, b) => b[1] - a[1])[0];
+        const plusLance   = bestEntry ? bestEntry[0] : null;
+        const plusLanceCnt = bestEntry ? bestEntry[1] : 0;
+
+        const _raccourciSort = (label, nomSort, extra) => {
+            if (!nomSort) return '';
+            const s = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+            const cout = s ? (parseInt(s.cout, 10) || 0) : 0;
+            const peut = s && (perso.ftActuel >= cout)
+                && !!(s.soin || s.resurrection || s.curePoison || s.degats || s.estFamilier);
+            const nomSafe = nomSort.replace(/'/g, "\\'");
+            return `<div style="background:#1a1a2a;border:1px solid #7c4dff;border-radius:6px;padding:7px 10px;margin-bottom:6px;font-size:0.85em;display:flex;justify-content:space-between;align-items:center;">
+                <span>${label} <strong style="color:#ce93d8;">${nomSort}</strong>${extra ? `<span style="color:#666;font-size:0.8em;"> ${extra}</span>` : ''}</span>
+                ${peut
+                    ? `<button onclick="preparerEtLancerSort('${nomSafe}')" style="background:#673ab7;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:0.82em;">✨ Relancer</button>`
+                    : `<span style="color:#555;font-size:0.8em;">${s ? (perso.ftActuel < cout ? '❌ Épuisé' : '⚔ Combat') : '—'}</span>`}
+            </div>`;
+        };
+
+        if (dernierSort || plusLance) {
+            container.innerHTML += _raccourciSort('🕐', dernierSort, '');
+            if (plusLance && plusLance !== dernierSort) {
+                container.innerHTML += _raccourciSort('🏆', plusLance, `×${plusLanceCnt}`);
+            }
+        }
+        const ecolesSorts = {};
+        for (const ecole in magieData) {
+            magieData[ecole].sorts.forEach(s => {
+                if (!mesSorts.includes(s.nom)) return;
+                if (!ecolesSorts[ecole]) ecolesSorts[ecole] = [];
+                ecolesSorts[ecole].push(s);
+            });
+        }
+        container.innerHTML += _renderGrilleEcoles('✨ Vos sorts', ecolesSorts, perso.ftActuel,
+            nomSafe => `preparerEtLancerSort('${nomSafe}')`, '#673ab7', '#2a1a3a', 'grim_joueur');
     }
 
     // --- SORTS DES COMPAGNONS ---
@@ -432,13 +522,19 @@ function ouvrirMagieAccueil() {
         if (sortComp.length === 0) return;
         const ftMaxComp = (comp.statsBase?.CN || 5) * 2 + (comp.statsBase?.IN || 5) + (comp.boostFT || 0);
         const ftComp = comp.ftActuel !== undefined ? comp.ftActuel : ftMaxComp;
-        container.innerHTML += `<p style="color:#a5d6a7; font-weight:bold; margin: 12px 0 6px; border-top: 1px solid #333; padding-top: 8px;">🤝 ${comp.nom} <small style="color:#888; font-weight:normal;">FT : ${ftComp}/${ftMaxComp}</small></p>`;
-        sortComp.forEach(nomSort => {
-            const data = trouverSort(nomSort);
-            if (!data) return;
-            const nomSafe = data.nom.replace(/'/g, "\\'");
-            container.innerHTML += _sortHtml(data, ftComp, `preparerEtLancerSort('${nomSafe}', ${i})`, '#4caf50', '#1a2a1a');
-        });
+        const ecolesComp = {};
+        if (typeof magieData !== 'undefined') {
+            for (const ecole in magieData) {
+                magieData[ecole].sorts.forEach(s => {
+                    if (!sortComp.includes(s.nom)) return;
+                    if (!ecolesComp[ecole]) ecolesComp[ecole] = [];
+                    ecolesComp[ecole].push(s);
+                });
+            }
+        }
+        container.innerHTML += `<hr style="border:0;border-top:1px solid #333;margin:8px 0;">`;
+        container.innerHTML += _renderGrilleEcoles(`🤝 ${comp.nom} — FT ${ftComp}/${ftMaxComp}`, ecolesComp, ftComp,
+            nomSafe => `preparerEtLancerSort('${nomSafe}', ${i})`, '#4caf50', '#1a2a1a', 'grim_comp' + i);
     });
 
     if (mesSorts.length === 0 && comps.every(c => _getSortsConnus_comp(c).length === 0)) {
@@ -535,6 +631,43 @@ function preparerEtLancerSort(nomSort, compIdx) {
         return;
     }
 
+    // --- Identification d'objet ---
+    if (data.nom === 'Identification') {
+        const nonIdent = (perso.inventaire || []).map((it, i) => ({ it, i })).filter(({ it }) => it.identifie === false);
+        if (nonIdent.length === 0) {
+            alert("✨ Vous n'avez aucun objet non identifié.");
+            return;
+        }
+        const liste = document.getElementById('liste-destinataires');
+        const titre = document.querySelector('#modal-transfert h3') || document.querySelector('#modal-transfert .titre');
+        if (titre) titre.innerText = "Identifier quel objet ?";
+        liste.innerHTML = '';
+        nonIdent.forEach(({ it, i }) => {
+            const def = itemsData[it.id];
+            const btn = document.createElement('button');
+            btn.style.cssText = 'background:#2e1f4d;color:#ce93d8;border:1px solid #7c4dff;padding:10px;border-radius:5px;cursor:pointer;margin-bottom:5px;width:100%;';
+            btn.textContent = '🔮 ' + (def?.nom || it.id);
+            btn.onclick = () => {
+                perso.inventaire[i].identifie = true;
+                perso.ftActuel -= coutReel;
+                if (typeof _incStatPartie === 'function') {
+                    _incStatPartie('sorts_lances', 1);
+                    if (!perso.stats_partie) perso.stats_partie = {};
+                    perso.stats_partie.dernier_sort = data.nom;
+                    if (!perso.stats_partie.sorts_par_nom) perso.stats_partie.sorts_par_nom = {};
+                    perso.stats_partie.sorts_par_nom[data.nom] = (perso.stats_partie.sorts_par_nom[data.nom] || 0) + 1;
+                }
+                if (typeof autoSave === 'function') autoSave();
+                if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                document.getElementById('modal-transfert').style.display = 'none';
+                alert("✨ " + (def?.nom || it.id) + " identifié ! " + _descStatsItem(def));
+            };
+            liste.appendChild(btn);
+        });
+        document.getElementById('modal-transfert').style.display = 'flex';
+        return;
+    }
+
     // --- Invocations hors combat ---
     if (data.estFamilier) {
         _lancerFamilierHorsCombat(coutReel, sortSourceCompIdx);
@@ -619,6 +752,14 @@ function finaliserMagieCible(cibleID, nomCible) {
         } else {
             perso.ftActuel -= coutReel;
         }
+        // Tracking stats
+        if (sortSourceCompIdx === null && typeof _incStatPartie === 'function') {
+            _incStatPartie('sorts_lances', 1);
+            if (!perso.stats_partie) perso.stats_partie = {};
+            perso.stats_partie.dernier_sort = data.nom;
+            if (!perso.stats_partie.sorts_par_nom) perso.stats_partie.sorts_par_nom = {};
+            perso.stats_partie.sorts_par_nom[data.nom] = (perso.stats_partie.sorts_par_nom[data.nom] || 0) + 1;
+        }
     };
 
     // Vérification commune : fatigue
@@ -684,6 +825,7 @@ function finaliserMagieCible(cibleID, nomCible) {
             const soin = _calcSoin(data.soin);
             const pvMax = (comp.statsBase?.FO || 3) * 2 + (comp.statsBase?.IN || 3);
             comp.pvActuel = Math.min(pvMax, (comp.pvActuel || 0) + soin);
+            if (typeof _incStatPartie === 'function') _incStatPartie('soins_donnes', soin);
         }
         if (data.degats) {
             comp.pvActuel = Math.max(0, (comp.pvActuel || 0) - _calcDegats(data.degats));
@@ -722,9 +864,17 @@ function finaliserMagieCible(cibleID, nomCible) {
 
         if (soinVal > 0) {
             statRef.set({ stat: 'PV', valeur: soinVal, timestamp: Date.now() });
+            if (typeof _incStatPartie === 'function') {
+                if (cibleID === moiID) _incStatPartie('soins_soi', soinVal);
+                else _incStatPartie('soins_donnes', soinVal);
+            }
         }
         if (degatsVal > 0) {
             statRef.set({ stat: 'PV', valeur: -degatsVal, timestamp: Date.now() });
+            // Succès traître : attaque un joueur allié
+            if (cibleID !== moiID && typeof _incStatPartie === 'function') {
+                _incStatPartie('attaques_allies', 1);
+            }
         }
 
         // Cure poison (indépendant du critique — effet magique garanti)
@@ -742,6 +892,24 @@ function finaliserMagieCible(cibleID, nomCible) {
         alert(`🔮 Sort ${data.nom}${critLabel} lancé sur ${nomCible} !`);
         fermerModaleEtUpdate();
     });
+}
+
+function _descStatsItem(def) {
+    if (!def?.stats) return '';
+    const parts = [];
+    const s = def.stats;
+    if (s.resMagie)  parts.push(`RM+${s.resMagie}`);
+    if (s.resPhys)   parts.push(`RPhys+${s.resPhys}`);
+    if (s.resFeu)    parts.push(`RFeu+${s.resFeu}`);
+    if (s.resElec)   parts.push(`RElec+${s.resElec}`);
+    if (s.FT)        parts.push(`FT+${s.FT}`);
+    if (s.FO)        parts.push(`FO+${s.FO}`);
+    if (s.DX)        parts.push(`DX+${s.DX}`);
+    if (s.IN)        parts.push(`IN+${s.IN}`);
+    if (s.CN)        parts.push(`CN+${s.CN}`);
+    if (s.CH)        parts.push(`CH+${s.CH}`);
+    if (s.bonusComp) Object.entries(s.bonusComp).forEach(([k, v]) => parts.push(`${k}+${v}`));
+    return parts.length ? '\n\nPropriétés : ' + parts.join(', ') : '';
 }
 
 // Petite fonction utilitaire pour éviter de répéter le code de fermeture

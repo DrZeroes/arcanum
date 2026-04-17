@@ -137,6 +137,8 @@ function cacherTout() {
         ].map(id => document.getElementById(id)).filter(Boolean);
     }
     _ecransCache.forEach(el => el.style.display = 'none');
+    const btnPN = document.getElementById('btn-patch-notes');
+    if (btnPN) btnPN.style.display = 'none';
 }
 
 function allerAccueil() {
@@ -144,6 +146,8 @@ function allerAccueil() {
     cacherTout();
     const ecran = document.getElementById('ecran-accueil');
     if (ecran) ecran.style.display = 'block';
+    const btnPN = document.getElementById('btn-patch-notes');
+    if (btnPN) btnPN.style.display = 'flex';
     rafraichirAccueil();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 }
@@ -174,14 +178,23 @@ function afficherEcranCompagnons() {
     const container = document.getElementById('compagnons-liste');
     if (!container) return;
     const comps = window.perso?.compagnons || [];
+    const uid   = (window.perso?.nom || '').replace(/\s+/g, '_');
 
-    if (comps.length === 0) {
+    // Lire le familier depuis Firebase puis afficher
+    if (typeof db !== 'undefined' && sessionActuelle) {
+        db.ref('parties/' + sessionActuelle + '/familiers/' + uid).once('value', function(snap) {
+            _afficherEcranCompagnons_suite(container, comps, snap.val());
+        });
+    } else {
+        _afficherEcranCompagnons_suite(container, comps, null);
+    }
+}
+
+function _afficherEcranCompagnons_suite(container, comps, familier) {
+    if (comps.length === 0 && !familier) {
         container.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">Aucun compagnon pour l\'instant.</p>';
         return;
     }
-
-    const statCH = (window.perso.statsBase?.CH || 0) + (window.perso.statsInvesties?.CH || 0);
-    const maxComps = Math.max(1, Math.floor(statCH / 4));
 
     const fragments = [];
     comps.forEach((c) => {
@@ -257,8 +270,50 @@ function afficherEcranCompagnons() {
         `);
     });
 
-    const enTete = `<div class="compagnons-max-info">Compagnons : ${comps.length} / ${maxComps} (CH ${statCH})</div>`;
-    container.innerHTML = enTete + fragments.join('');
+    // Carte familier
+    let familierHtml = '';
+    if (familier && (familier.pvActuel === undefined || familier.pvActuel > 0)) {
+        const fPV    = familier.pvActuel ?? familier.pv ?? 30;
+        const fPVMax = familier.pvMax    ?? familier.pv ?? 30;
+        const fFT    = familier.ftActuel ?? familier.ft ?? 20;
+        const fFTMax = familier.ftMax    ?? familier.ft ?? 20;
+        const fStats = familier.stats || {};
+        const pvPctF = fPVMax > 0 ? Math.round((fPV / fPVMax) * 100) : 0;
+        const ftPctF = fFTMax > 0 ? Math.round((fFT / fFTMax) * 100) : 0;
+        const sortsF = (familier.sortsConnus || []).join(' · ') || '—';
+        familierHtml = `
+            <div class="compagnon-card" style="border-color:#7c4dff;background:#1a0f2a;">
+                <div class="compagnon-header">
+                    <span class="compagnon-nom">🐾 ${familier.nom || 'Familier'}</span>
+                    <span class="compagnon-niveau" style="color:#ce93d8;">Familier · Niv. ${familier.niveau || 1}</span>
+                </div>
+                <div class="compagnon-identite" style="color:#9575cd;">${familier.race || 'familier'}</div>
+                <div class="compagnon-bars">
+                    <div class="compagnon-bar-label"><span>❤ PV</span><span>${fPV} / ${fPVMax}</span></div>
+                    <div class="compagnon-bar-track"><div class="compagnon-bar-fill pv" style="width:${pvPctF}%"></div></div>
+                    <div class="compagnon-bar-label"><span>⚡ FT</span><span>${fFT} / ${fFTMax}</span></div>
+                    <div class="compagnon-bar-track"><div class="compagnon-bar-fill ft" style="width:${ftPctF}%"></div></div>
+                </div>
+                <div class="compagnon-stats-grid">
+                    <div class="compagnon-stat"><span class="cs-label">FO</span><span class="cs-val">${fStats.FO||'?'}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">IN</span><span class="cs-val">${fStats.IN||'?'}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CN</span><span class="cs-val">${fStats.CN||'?'}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">DX</span><span class="cs-val">${fStats.DX||'?'}</span></div>
+                    <div class="compagnon-stat"><span class="cs-label">CH</span><span class="cs-val">${fStats.CH||'?'}</span></div>
+                </div>
+                ${sortsF !== '—' ? `<div class="compagnon-spells">✨ ${sortsF}</div>` : ''}
+            </div>`;
+    } else if (familier && familier.pvActuel <= 0) {
+        familierHtml = `<div class="compagnon-card" style="border-color:#444;opacity:0.5;">
+            <div class="compagnon-header"><span class="compagnon-nom">🐾 ${familier.nom || 'Familier'}</span><span style="color:#f44336;">💀 Mort</span></div>
+            <p style="color:#666;font-size:0.85em;margin:4px 0;">Votre familier est mort. Relancez Invocation d'un familier pour en invoquer un nouveau (Niv. 1).</p>
+        </div>`;
+    }
+
+    const statCHVal = (window.perso?.statsBase?.CH || 0) + (window.perso?.statsInvesties?.CH || 0);
+    const maxCompsVal = Math.max(1, Math.floor(statCHVal / 4));
+    const enTete = `<div class="compagnons-max-info">Compagnons : ${comps.length} / ${maxCompsVal} (CH ${statCHVal})</div>`;
+    container.innerHTML = enTete + fragments.join('') + familierHtml;
 }
 
 function _compagnon_sortsHtml(c) {
@@ -641,6 +696,16 @@ function ouvrirPatchNotes(onglet) {
 
     contenu.innerHTML = `
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.9 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Système de Succès, refonte Codex objets</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#ffd700;">🏆 Succès</strong> — 5ᵉ onglet du journal ; 57 succès en 13 catégories (Combat, Magie, Survie, Exploration, Richesse, Équipe, Vol, Artisan, Maîtrise…) ; cartes colorées + date au déblocage ; accordéon par catégorie</li>
+                <li><strong style="color:#ffd700;">🏆 Maîtrise</strong> — 45 succès de maîtrise vérifiés au level-up : stats à 20, toutes les écoles de magie/tech complètes, tous les skills à 20</li>
+                <li><strong style="color:#ffd700;">🏆 MJ</strong> — débloquer / révoquer les succès par joueur depuis le Codex ; sync Firebase temps réel</li>
+                <li><strong style="color:#ef9a9a;">💣 Codex objets</strong> — Explosifs/grenades/pièges → type <em>explosif</em> (TEC) ; Énergie/Carburant → type <em>munition</em> (MUN) ; Bijoux → section Armures ; TEC14 donne +15 désamorçage</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.8 — Avril 2026</h3>
             <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Refonte sorts de combat (Cat. 1→4), buffs de groupe, initiative avancée</p>
             <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
@@ -713,7 +778,7 @@ function ouvrirJournal(onglet) {
     if (!modal || !contenu) return;
 
     // Surligner l'onglet actif
-    ['quetes', 'effets', 'antecedent', 'stats'].forEach(id => {
+    ['quetes', 'effets', 'antecedent', 'stats', 'succes'].forEach(id => {
         const btn = document.getElementById('jt-' + id);
         if (!btn) return;
         const actif = id === onglet;
@@ -875,17 +940,100 @@ function ouvrirJournal(onglet) {
                 <span style="color:#888;">${icone} ${label}</span>
                 <span style="color:${couleur || '#d4af37'};font-weight:bold;">${valeur}</span>
             </div>`;
+        const bestSort = (()=>{ const sn = sp.sorts_par_nom || {}; const best = Object.entries(sn).sort((a,b)=>b[1]-a[1])[0]; return best ? best[0] + ' ×' + best[1] : '—'; })();
         contenu.innerHTML = `
             <div style="border:1px solid #2a1a4a;border-radius:8px;overflow:hidden;background:#0a0a14;font-size:0.88em;">
-                ${ligne('⚔️', 'Ennemis vaincus',       sp.ennemis_tues   || 0, '#ff6b6b')}
-                ${ligne('❤️', 'Points de vie perdus',   sp.pv_perdus      || 0, '#e57373')}
-                ${ligne('💰', 'Or total accumulé',      sp.or_cumule      || 0, '#ffd700')}
-                ${ligne('🔮', 'Sorts lancés',           sp.sorts_lances   || 0, '#ce93d8')}
-                ${ligne('🗡️', 'Attaques portées',       sp.attaques       || 0, '#ff9800')}
-                ${ligne('🧪', 'Potions utilisées',      sp.potions        || 0, '#4caf50')}
-                ${ligne('🚶', 'Cases parcourues',       sp.cases_parcourues || 0, '#80cbc4')}
-                ${ligne('💀', 'Fois mort(e)',           sp.morts          || 0, '#888')}
+                ${ligne('💰', 'Or total accumulé',                sp.or_cumule      || 0, '#ffd700')}
+                ${ligne('🚶', 'Cases parcourues',                 sp.cases_parcourues || 0, '#80cbc4')}
+                ${ligne('❤️', 'Points de vie perdus',             sp.pv_perdus      || 0, '#e57373')}
+                ${ligne('🩹', 'Soins appliqués à soi-même',       sp.soins_soi      || 0, '#4caf50')}
+                ${ligne('💚', 'Soins reçus (autres)',             sp.soins_recus    || 0, '#66bb6a')}
+                ${ligne('💙', 'Soins donnés (à d\'autres)',       sp.soins_donnes   || 0, '#42a5f5')}
+                ${ligne('💀', 'Fois mort(e)',                     sp.morts          || 0, '#888')}
+                ${ligne('⚔️', 'Ennemis vaincus',                  sp.ennemis_tues   || 0, '#ff6b6b')}
+                ${ligne('🗡️', 'Attaques portées',                 sp.attaques       || 0, '#ff9800')}
+                ${ligne('🩸', 'PV retirés aux ennemis',           sp.degats_ennemis || 0, '#ef5350')}
+                ${ligne('🔮', 'Sorts lancés',                     sp.sorts_lances   || 0, '#ce93d8')}
+                ${ligne('🏆', 'Sort le plus lancé',               bestSort,              '#ce93d8')}
             </div>`;
+
+    } else if (onglet === 'succes') {
+        contenu.innerHTML = '';
+        const mesSucces = window.perso?.succes || {};
+        if (typeof succesData === 'undefined' || succesData.length === 0) {
+            contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Aucun succès disponible.</p>`;
+        } else {
+            const cats = [...new Set(succesData.map(s => s.categorie))];
+            const debloquesCount = succesData.filter(s => mesSucces[s.id]).length;
+
+            // Compteur global
+            const counter = document.createElement('div');
+            counter.style.cssText = 'text-align:center;margin-bottom:12px;color:#d4af37;font-size:0.85em;';
+            counter.textContent = `${debloquesCount} / ${succesData.length} succès débloqués`;
+            contenu.appendChild(counter);
+
+            // Grille de pills de catégories
+            const catGrid = document.createElement('div');
+            catGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;';
+
+            // Panneau de détail (mis à jour au clic)
+            const panel = document.createElement('div');
+            let activeCat = null;
+
+            const renderCat = (cat) => {
+                if (activeCat === cat) {
+                    panel.innerHTML = '';
+                    activeCat = null;
+                    catGrid.querySelectorAll('button').forEach(b => {
+                        b.style.background = '#0d0d18';
+                        b.style.borderColor = '#1a1a2a';
+                        b.style.color = '#888';
+                    });
+                    return;
+                }
+                activeCat = cat;
+                catGrid.querySelectorAll('button').forEach(b => {
+                    const sel = b.dataset.cat === cat;
+                    b.style.background = sel ? 'rgba(212,175,55,0.12)' : '#0d0d18';
+                    b.style.borderColor = sel ? '#d4af37' : '#1a1a2a';
+                    b.style.color = sel ? '#d4af37' : '#888';
+                });
+                panel.innerHTML = '';
+                succesData.filter(s => s.categorie === cat).forEach(s => {
+                    const data = mesSucces[s.id];
+                    const card = document.createElement('div');
+                    if (data) {
+                        const dateStr = data.date ? new Date(data.date).toLocaleDateString('fr-FR') : '—';
+                        card.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:9px 10px;margin-top:4px;border:1px solid #4a3a00;border-radius:7px;background:rgba(212,175,55,0.08);';
+                        card.innerHTML = `<span style="font-size:1.3em;flex-shrink:0;">${s.icone}</span>
+                            <div>
+                                <div style="color:#d4af37;font-weight:bold;font-size:0.88em;">${s.nom}</div>
+                                <div style="color:#aaa;font-size:0.78em;margin-top:2px;">${s.desc}</div>
+                                <div style="color:#666;font-size:0.72em;margin-top:3px;">🗓 ${dateStr}</div>
+                            </div>`;
+                    } else {
+                        card.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 10px;margin-top:4px;border:1px solid #1a1a1a;border-radius:7px;background:#0a0a0a;opacity:0.55;';
+                        card.innerHTML = `<span style="font-size:1.3em;flex-shrink:0;filter:grayscale(1);">🔒</span>
+                            <div style="color:#555;font-size:0.88em;">${s.nom}</div>`;
+                    }
+                    panel.appendChild(card);
+                });
+            };
+
+            cats.forEach(cat => {
+                const items = succesData.filter(s => s.categorie === cat);
+                const catDeb = items.filter(s => mesSucces[s.id]).length;
+                const btn = document.createElement('button');
+                btn.dataset.cat = cat;
+                btn.style.cssText = 'padding:4px 10px;border:1px solid #1a1a2a;border-radius:20px;background:#0d0d18;color:#888;font-size:0.78em;font-variant:small-caps;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;';
+                btn.innerHTML = `${cat} <span style="opacity:0.5;font-size:0.85em;">${catDeb}/${items.length}</span>`;
+                btn.addEventListener('click', () => renderCat(cat));
+                catGrid.appendChild(btn);
+            });
+
+            contenu.appendChild(catGrid);
+            contenu.appendChild(panel);
+        }
     }
 
     modal.style.display = 'flex';
@@ -1056,11 +1204,21 @@ if (statsBox && window.perso) {
             btnMagie.style.display = (mesSorts.length > 0 || compOntSorts) ? 'block' : 'none';
         }
 
-        // Bouton Compagnons : visible si le joueur a au moins un compagnon
+        // Bouton Compagnons : visible si au moins un compagnon OU un familier actif
         const btnCompagnons = document.getElementById('btn-menu-compagnons');
         if (btnCompagnons) {
             const nbComps = (window.perso.compagnons || []).length;
-            btnCompagnons.style.display = nbComps > 0 ? 'inline-block' : 'none';
+            if (nbComps > 0) {
+                btnCompagnons.style.display = 'inline-block';
+            } else if (typeof db !== 'undefined' && sessionActuelle) {
+                const _uid = (window.perso.nom || '').replace(/\s+/g, '_');
+                db.ref('parties/' + sessionActuelle + '/familiers/' + _uid).once('value', function(s) {
+                    const fam = s.val();
+                    btnCompagnons.style.display = (fam && (fam.pvActuel === undefined || fam.pvActuel > 0)) ? 'inline-block' : 'none';
+                });
+            } else {
+                btnCompagnons.style.display = 'none';
+            }
         }
 
         // Bouton Groupe : visible si au moins un autre joueur est dans la session
@@ -1314,6 +1472,7 @@ function _incStatPartie(cle, delta = 1) {
     if (!window.perso) return;
     if (!window.perso.stats_partie) window.perso.stats_partie = {};
     window.perso.stats_partie[cle] = (window.perso.stats_partie[cle] || 0) + delta;
+    if (typeof _verifierSucces === 'function') _verifierSucces(cle);
 }
 
 let _autoSaveTimer = null;

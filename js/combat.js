@@ -515,7 +515,7 @@ function _afficherPanneauActions(data) {
         </button>`;
     }
 
-    // ── Sorts connus (filtrés par élément si forme élémentaire) ──
+    // ── Sorts connus — groupés par école (accordion) ──
     const sorts = _getSortsDisponibles();
     const ftActuel = perso?.ftActuel ?? 0;
     let sortsHtml = '';
@@ -528,31 +528,46 @@ function _afficherPanneauActions(data) {
         </button>`;
     }
 
-    if (sorts.length > 0) {
-        sortsHtml += sorts.map(nom => {
-            const s = (typeof trouverSort === 'function') ? trouverSort(nom) : null;
-            if (!s) return '';
-            // Si forme élémentaire : filtrer par école de l'élément uniquement
-            if (_elemInc) {
-                let ecoleSort = null;
-                if (typeof magieData !== 'undefined') {
-                    for (const ecole in magieData) {
-                        if (magieData[ecole].sorts.some(ss => ss.nom === nom)) { ecoleSort = ecole; break; }
-                    }
-                }
-                if (ecoleSort !== _elemInc) return '';
-            }
-            const cout = parseInt(s.cout, 10) || 0;
-            const peut = ftActuel >= cout;
-            const meta = s.degats ? `⚔ ${s.degats} dég.` : s.soin ? `💚 Soin` : `✨ Effet`;
-            const nomSafe = nom.replace(/'/g, "\\'");
-            return `<button class="combat-sort-btn${peut ? '' : ' epuise'}"
-                onclick="${peut ? `ouvrirCiblesSortCombat('${nomSafe}')` : ''}"
-                ${peut ? '' : 'disabled'}>
-                <span class="sort-nom">${s.nom}</span>
-                <span class="sort-meta">${meta} · ${cout} FT</span>
-            </button>`;
-        }).filter(Boolean).join('');
+    if (sorts.length > 0 && typeof magieData !== 'undefined') {
+        const _iconsEcole = {"Déplacement":"🌀","Divination":"👁️","Air":"💨","Terre":"🪨","Feu":"🔥","Eau":"💧","Energie":"⚡","Mental":"🧠","Méta":"💠","Transformation":"🦋","Nature":"🌿","Nécromancie noire":"💀","Nécromancie blanche":"🕊️","Illusion":"🎭","Invocation":"👹","Temporel":"⏳"};
+        const _ecolesSorts = {};
+        for (const ecole in magieData) {
+            if (_elemInc && ecole !== _elemInc) continue;
+            magieData[ecole].sorts.forEach(s => {
+                if (!sorts.includes(s.nom)) return;
+                const utilisable = s.degats || s.soin || s.resurrection || s.curePoison
+                    || s.buffStat || s.buffGroupe || s.buffPersistant || s.aoeEnnemi
+                    || s.invocation || s.nueeDInsectes || s.creationMortVivant || s.implemente;
+                if (!utilisable) return;
+                if (!_ecolesSorts[ecole]) _ecolesSorts[ecole] = [];
+                _ecolesSorts[ecole].push(s);
+            });
+        }
+        for (const ecole in _ecolesSorts) {
+            const icon  = _iconsEcole[ecole] || '🪄';
+            const eid   = 'cbt-ecole-' + ecole.replace(/[^a-zA-Z0-9]/g, '_');
+            const spells = _ecolesSorts[ecole];
+            let spellesHtml = '';
+            spells.forEach(s => {
+                const cout   = parseInt(s.cout, 10) || 0;
+                const peut   = ftActuel >= cout;
+                const meta   = s.degats ? `⚔ ${s.degats} dég.` : s.soin ? `💚 Soin` : `✨ Effet`;
+                const nomSafe = s.nom.replace(/'/g, "\\'");
+                spellesHtml += `<button class="combat-sort-btn${peut ? '' : ' epuise'}" style="margin-left:8px;"
+                    onclick="${peut ? `ouvrirCiblesSortCombat('${nomSafe}')` : ''}"
+                    ${peut ? '' : 'disabled'}>
+                    <span class="sort-nom">${s.nom}</span>
+                    <span class="sort-meta">${meta} · ${cout} FT</span>
+                </button>`;
+            });
+            sortsHtml += `
+            <button class="combat-sort-btn" style="border-color:#4a3a6a;background:#1a0f2a;"
+                onclick="var d=document.getElementById('${eid}');d.style.display=d.style.display==='none'?'block':'none';">
+                <span class="sort-nom">${icon} ${ecole}</span>
+                <span class="sort-meta">${spells.length} sort(s) ▾</span>
+            </button>
+            <div id="${eid}" style="display:none;">${spellesHtml}</div>`;
+        }
     }
     if (sortsHtml) html += `<div class="combat-actions-titre" style="margin-top:8px;">Sorts${_elemInc ? ` (${_ELEM_ICONES[_elemInc]} ${_elemInc})` : ''}</div>` + sortsHtml;
 
@@ -808,6 +823,10 @@ function utiliserObjetCombat(cibleId) {
             db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/modif_stat').set({
                 stat: 'PV', valeur: soinPV, timestamp: Date.now()
             });
+            if (typeof _incStatPartie === 'function') {
+                if (estSurMoi) _incStatPartie('soins_soi', soinPV);
+                else _incStatPartie('soins_donnes', soinPV);
+            }
         }
         if (soinFT > 0) {
             db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleId + '/modif_stat').set({
@@ -1001,7 +1020,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             html += `<div class="combat-cibles-label allie">💚 Alliés</div>`;
             const moiId = (window.perso?.nom || '').replace(/\s+/g, '_');
             const moiPV = window.perso?.pvActuel ?? 0, moiPVMax = window.perso?.pvMax ?? 0;
-            if (s.resurrection || s.buffStat || moiPV < moiPVMax) {
+            if (s.resurrection || s.buffStat || s.buffPersistant || moiPV < moiPVMax) {
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortCombat('${moiId}', 'joueur')">Vous-même</button>`;
                 nbCibles++;
@@ -1059,7 +1078,13 @@ function finaliserSortCombat(cibleId, typeCible) {
     }
 
     window.perso.ftActuel -= cout;
-    if (typeof _incStatPartie === 'function') _incStatPartie('sorts_lances', 1);
+    if (typeof _incStatPartie === 'function') {
+        _incStatPartie('sorts_lances', 1);
+        if (!window.perso.stats_partie) window.perso.stats_partie = {};
+        window.perso.stats_partie.dernier_sort = s.nom;
+        if (!window.perso.stats_partie.sorts_par_nom) window.perso.stats_partie.sorts_par_nom = {};
+        window.perso.stats_partie.sorts_par_nom[s.nom] = (window.perso.stats_partie.sorts_par_nom[s.nom] || 0) + 1;
+    }
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 
@@ -1102,7 +1127,10 @@ function finaliserSortCombat(cibleId, typeCible) {
                 degats = Math.round(degats * ennemisMAJ[idx].effets.retrecissement.facteur);
             }
             ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degats);
-            if (degats > 0) _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
+            if (degats > 0) {
+                _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
+                if (typeof _incStatPartie === 'function') _incStatPartie('degats_ennemis', degats);
+            }
             msg = sortResiste
                 ? `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom} — ⛔ Sort résisté !`
                 : `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
@@ -3100,6 +3128,7 @@ function lancerAttaqueMelee(instanceId) {
     _gagnerXP(_ennemiTue ? 6 : 1);
     if (typeof _incStatPartie === 'function') {
         _incStatPartie('attaques', 1);
+        if (degatsFinaux > 0) _incStatPartie('degats_ennemis', degatsFinaux);
         if (_ennemiTue) _incStatPartie('ennemis_tues', 1);
     }
     const armInfo  = armEnnemi > 0 ? ` [armure -${armEnnemi}]` : '';
@@ -3216,7 +3245,10 @@ function lancerAttaqueElementaire(instanceId, element) {
 
     ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degatsFinaux);
     _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
-    if (typeof _incStatPartie === 'function') _incStatPartie('attaques', 1);
+    if (typeof _incStatPartie === 'function') {
+        _incStatPartie('attaques', 1);
+        if (degatsFinaux > 0) _incStatPartie('degats_ennemis', degatsFinaux);
+    }
 
     const elemLabel = element === 'Feu' ? ' [🔥Feu]' : element === 'Eau' ? ' [🌊Eau]' : ` [${element}]`;
     const splashNote = element === 'Feu' && ennemisMAJ.filter((e,i) => i!==idx && e.pvActuel>0).length > 0 ? ' + splash 50%' : '';

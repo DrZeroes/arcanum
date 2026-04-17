@@ -38,7 +38,7 @@ const marchandsData = {
         argent: 500,
         inventaire: [
             { id: "AM06", qte: 1 }, { id: "DEF05", qte: 1 }, 
-            { id: "MUN01", qte: 100 }, { id: "CONS02", qte: 2 }
+            { id: "MUN01", qte: 100 }, { id: "TEC02", qte: 2 }
         ]
     },
     "marchand_tuto": {
@@ -87,13 +87,27 @@ const marchandsData = {
         argent: 350,
         phrase: "De tout et de rien, mais surtout pour votre or !",
         inventaire: [
-            { id: "AM07", qte: 2 },    
-            { id: "DEF06", qte: 2 },    
-            { id: "DIV12", qte: 1 },    
-            { id: "COMP08", qte: 10 },  
-            { id: "MUN01", qte: 30 },   
-            { id: "BIJ02", qte: 1 },    
-            { id: "COMP65", qte: 5 }    
+            { id: "AM07", qte: 2 },
+            { id: "DEF06", qte: 2 },
+            { id: "DIV12", qte: 1 },
+            { id: "COMP08", qte: 10 },
+            { id: "MUN01", qte: 30 },
+            { id: "BIJ02", qte: 1 },
+            { id: "COMP65", qte: 5 }
+        ]
+    },
+    "mage_identif": {
+        nom: "Elara la Déchiffreuse",
+        argent: 2000,
+        phrase: "Aucun secret ne résiste à mon regard.",
+        estMarchandMagique: true,
+        prixIdentification: 150,
+        inventaire: [
+            { id: "AM03", qte: 1 },
+            { id: "AD04", qte: 1 },
+            { id: "DEF03", qte: 1 },
+            { id: "DEF12", qte: 1 },
+            { id: "AM05", qte: 1 }
         ]
     }
 }; 
@@ -133,27 +147,27 @@ function genererLootAleatoire(niveauRareteMax = 10, nombreObjets = 5) {
 
 
 const lieuxDecouverts = {
-    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",fond: "tarante.jpg", desc: "La cité industrielle." },
-    "tris": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",fond: "trist_coll.jpg", desc: "Un petit village minier." },
+    "tarante": { nom: "Tarante", x: 51.5, y: 51.1, musique: "Tarant.mp3",fond: "tarante.jpg", desc: "La cité industrielle.", estVille: true },
+    "tris": { nom: "Triste Colline", x: 30.5, y: 65.4, musique: "Villages.mp3",fond: "trist_coll.jpg", desc: "Un petit village minier.", estVille: true },
     "crash": { nom: "Site du Crash", x: 27.3, y: 62.8, musique: "Interlude.mp3",fond: "crash.jpg",desc: "Le Zephyr est tombé ici." },
     "arba": { nom: "Demeure d'Arbalah", x: 28.1, y: 64.1, musique: "Wilderness.mp3",fond: "arbalah.jpg",desc: "Maison d'un vieil ermite." },
     "simon": { nom: "Maison de Simon", x: 27.1, y: 65.9, musique: "Wilderness.mp3",fond: "simon.jpg", desc: "Domicile de Simon" },
-	"cendre": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse." },
-	"caladon": { nom: "Caladon", x: 20.3, y: 90.1, musique: "Caladon.mp3",fond: "simon.jpg", desc: "Grande Ville" },
-	"dern": { nom: "Dernholm", x: 38.6, y: 81.4, musique: "Cities.mp3",fond: "dernholm.jpg", desc: " Ville" },
-	"roue": { nom: "Clan de la roue", x: 51.2, y: 34.1, musique: "DwarvenMusic.mp3",fond: "roue.jpg", desc: " Mine de Nains" },
-	"mnoir": { nom: "Mines du Mont Noir", x: 35.2, y: 38.4, musique: "DwarvenMusic.mp3",fond: "montnoir.jpg", desc: " Mine de Nains" },
-	"rnoir": { nom: "Racine noir", x: 45.0, y: 71.5, musique: "Towns.mp3",fond: "racinenoir.jpg", desc: " petite ville" },
-	"eaud": { nom: "Eau Dormante", x: 41.2, y: 38.0, musique: "Villages.mp3",fond: "eaudor.jpg", desc: "Charmant Village" },
-	"quin": { nom: "Quintara", x: 21.8, y: 35.8, musique: "Qintara.mp3",fond: "quintara.jpg", desc: "Village caché des elfes" },
-	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Qintara.mp3",fond: "tsenang.jpg", desc: "Village caché des elfes noires" },
-	"tulla": { nom: "Tulla", x: 77.0, y: 24.7, musique: "Tulla.mp3",fond: "tulla.jpg", desc: "Cité de la magie" },
+	"cendre": { nom: "Cendrebourg", x: 74.3, y: 55.2, musique: "Cities.mp3",fond: "cendrebourg.jpg",desc: "Une ville sombre et mystérieuse.", estVille: true },
+	"caladon": { nom: "Caladon", x: 20.3, y: 90.1, musique: "Caladon.mp3",fond: "simon.jpg", desc: "Grande Ville", estVille: true },
+	"dern": { nom: "Dernholm", x: 38.6, y: 81.4, musique: "Cities.mp3",fond: "dernholm.jpg", desc: "Ville", estVille: true },
+	"roue": { nom: "Clan de la roue", x: 51.2, y: 34.1, musique: "DwarvenMusic.mp3",fond: "roue.jpg", desc: "Mine de Nains" },
+	"mnoir": { nom: "Mines du Mont Noir", x: 35.2, y: 38.4, musique: "DwarvenMusic.mp3",fond: "montnoir.jpg", desc: "Mine de Nains" },
+	"rnoir": { nom: "Racine noir", x: 45.0, y: 71.5, musique: "Towns.mp3",fond: "racinenoir.jpg", desc: "Petite ville", estVille: true },
+	"eaud": { nom: "Eau Dormante", x: 41.2, y: 38.0, musique: "Villages.mp3",fond: "eaudor.jpg", desc: "Charmant Village", estVille: true },
+	"quin": { nom: "Quintara", x: 21.8, y: 35.8, musique: "Qintara.mp3",fond: "quintara.jpg", desc: "Village caché des elfes", estVille: true },
+	"tsen": { nom: "T'sen-Ang", x: 25.4, y: 15.3, musique: "Qintara.mp3",fond: "tsenang.jpg", desc: "Village caché des elfes noires", estVille: true },
+	"tulla": { nom: "Tulla", x: 77.0, y: 24.7, musique: "Tulla.mp3",fond: "tulla.jpg", desc: "Cité de la magie", estVille: true },
 	"dese": { nom: "Ile du désespoir", x: 83.2, y: 43.0, musique: "Isle_of_Despair.mp3",fond: "desespoir.jpg", desc: "Ile bannis" },
 	"demogre": { nom: "Ile des demi-ogres", x: 54.5, y: 84.1, musique: "Isle_of_Despair.mp3",fond: "demogre.jpg", desc: "étrange île" },
-	"rose": { nom: "Rosebourg", x: 13.6, y: 74.5, musique: "Towns.mp3",fond: "_placeholder.jpg", desc: "Petite ville" },
+	"rose": { nom: "Rosebourg", x: 13.6, y: 74.5, musique: "Towns.mp3",fond: "_placeholder.jpg", desc: "Petite ville", estVille: true },
 	"naz": { nom: "Cabane sur Thanatos", x: 63.2, y: 92.3, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille maison au bout de Thanathos" },
 	"vend": { nom: "Ruines de Vendigroth", x: 84.3, y: 29.2, musique: "Vendegoth.mp3",fond: "_placeholder.jpg", desc: "Ancienens ruines" },
-	"bedo": { nom: "Village bédokien", x: 41.2, y: 17.1, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "un village primitif" },
+	"bedo": { nom: "Village bédokien", x: 41.2, y: 17.1, musique: "Villages.mp3",fond: "_placeholder.jpg", desc: "un village primitif", estVille: true },
 	"cmpF": { nom: "Camp des femmes", x: 84.1, y: 40.5, musique: "Isle_of_Despair.mp3",fond: "_placeholder.jpg", desc: "camp d'amazone" },
 	"max": { nom: "Demeure de Maximilien", x: 81.1, y: 42.6, musique: "Isle_of_Despair.mp3",fond: "_placeholder.jpg", desc: "Maison au milieu de nulle part" },	
 	"crik": { nom: "Crique de Pierre latige", x: 68.1, y: 65.8, musique: "Wilderness.mp3",fond: "_placeholder.jpg", desc: "Vieille crique" },
@@ -642,7 +656,7 @@ const ennemisData = {
             main_droite:null, main_gauche:null
         },
         pvActuel: 20, ftActuel: 18, boostPV:0, boostFT:0, argent: 0,
-        lootDrop: [ { id:"COMP06", qte:2 }, { id:"CONS02", qte:1 } ]
+        lootDrop: [ { id:"COMP06", qte:2 }, { id:"TEC02", qte:1 } ]
     },
 
     "mineur_revolte": {

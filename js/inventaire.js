@@ -372,20 +372,25 @@ function updateInventaireUI() {
                     ? `<button onclick="reparerInventaire(${index})" style="background:#795548; color:#fff; border:none; padding:5px 8px; cursor:pointer; border-radius:3px; font-size:0.8em;">🔧 Réparer</button>`
                     : '';
 
+                const nonIdentifie = item.identifie === false;
+                const nomAffiche   = nonIdentifie ? `❓ ${_nomInconnu(data)}` : `${data.nom} (x${item.quantite || 1})`;
+                const descAffiche  = nonIdentifie ? '<em style="color:#7c4dff;">Identifiez cet objet pour révéler ses propriétés.</em>' : `<div style="font-size:0.8em;color:#888;font-style:italic;">${data.desc}</div>`;
+                const statsAffiche = nonIdentifie ? '' : getStatsHtml(data, item);
+                const borderColor  = nonIdentifie ? '#7c4dff' : '#444';
                 htmlInv += `
-                    <div style="background: #251b14; padding: 10px; border: 1px solid #444; border-radius: 4px; margin-bottom: 8px;">
+                    <div style="background: #251b14; padding: 10px; border: 1px solid ${borderColor}; border-radius: 4px; margin-bottom: 8px;">
                         <div style="display:flex; justify-content: space-between;">
-                            <strong style="color:#dcdcdc;">${data.nom} (x${item.quantite || 1})</strong>
+                            <strong style="color:${nonIdentifie ? '#ce93d8' : '#dcdcdc'};">${nomAffiche}</strong>
                             <div style="text-align: right; min-width: 80px;">
                                 <span style="color:#aaa; display:block; font-size:0.9em;">⚖️ ${data.poids} kg</span>
-                                <span style="color:#d4af37; display:block; font-size:0.9em;">💰 ${prixVente} Or</span>
+                                ${nonIdentifie ? '' : `<span style="color:#d4af37; display:block; font-size:0.9em;">💰 ${prixVente} Or</span>`}
                             </div>
                         </div>
-                        <div style="font-size: 0.8em; color: #888; font-style: italic;">${data.desc}</div>
-                        ${getStatsHtml(data, item)}
+                        ${descAffiche}
+                        ${statsAffiche}
                         <div style="display:flex; gap: 5px; margin-top: 8px; flex-wrap:wrap;">
-                            ${btnEquiper} ${btnConsommer} ${btnReparerInv}
-                            <button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>
+                            ${nonIdentifie ? '' : btnEquiper} ${nonIdentifie ? '' : btnConsommer} ${nonIdentifie ? '' : btnReparerInv}
+                            ${nonIdentifie ? '' : `<button onclick="preparerDonObjet(${index})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">🤝 Donner</button>`}
                             <button onclick="jeterItem(${index})" style="background:#8b0000; color:#fff; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Jeter</button>
                         </div>
                     </div>`;
@@ -523,6 +528,11 @@ function finaliserActionObjet(cibleID, nomCible) {
             envoyerStat('PV', pvEffectif);
         } else if (ftEffectif > 0) {
             envoyerStat('FT', ftEffectif);
+        }
+        if (pvEffectif > 0 && typeof _incStatPartie === 'function') {
+            const moiIDCheck = window.perso?.nom?.replace(/\s+/g, '_') || '';
+            if (cibleID === moiIDCheck) _incStatPartie('soins_soi', pvEffectif);
+            else _incStatPartie('soins_donnes', pvEffectif);
         }
 
         // Cure poison (sur soi-même, nettoyer directement ; sur autrui, envoyer via Firebase)

@@ -150,6 +150,10 @@ function _handleClavierDonjon(e) {
 }
 
 function fermerEcranDonjon() {
+    if (!window.estMJ) {
+        if (typeof _toast === 'function') _toast('⛔ Seul le MJ peut terminer le donjon.', 'error');
+        return;
+    }
     _desactiverClavierDonjon();
     window.donjonActif = null;
     if (typeof allerAccueil === 'function') allerAccueil();
@@ -484,20 +488,22 @@ function _afficherGrilleDonjon(data) {
                     if (cell.event.type === 'porte') {
                         const etatPorte = data.etats_portes?.[key];
                         if (etatPorte?.statut === 'ouverte') {
-                            div.innerHTML = '🟫'; // porte ouverte
+                            div.innerHTML = '🟫';
                         } else if (etatPorte?.statut === 'cassee') {
-                            div.innerHTML = '💥'; // porte détruite
+                            div.innerHTML = '💥';
                         } else {
-                            div.innerHTML = '🚪'; // porte fermée ou verrouillée
+                            div.innerHTML = '🚪';
+                        }
+                        if (cell.event.data?.piege && !cell.event.data.piege.declenche && data.pieges_detectes?.[key]?.[myID]) {
+                            div.innerHTML += '<span style="font-size:0.55em;vertical-align:top;">⚠️</span>';
                         }
                     } else if (cell.event.type === 'coffre') {
                         const etatCoffre = data.etats_coffres?.[key];
                         if (!etatCoffre) {
-                            div.innerHTML = '📦'; // coffre intact, jamais ouvert
+                            div.innerHTML = '📦';
                         } else if (etatCoffre.statut === 'casse') {
                             div.innerHTML = '💥';
                         } else if (etatCoffre.statut === 'ouvert' || etatCoffre.statut === 'verrouille') {
-                            // 📭 seulement si tous les slots pris ET l'or pris
                             const slots = Object.values(etatCoffre.loot?.slots || {});
                             const toutSlotsPris = slots.length === 0 || slots.every(s => !!s.pris_par);
                             const orVal = etatCoffre.loot?.or || 0;
@@ -506,6 +512,9 @@ function _afficherGrilleDonjon(data) {
                         } else {
                             div.innerHTML = '📦';
                         }
+                        if (cell.event.data?.piege && !cell.event.data.piege.declenche && data.pieges_detectes?.[key]?.[myID]) {
+                            div.innerHTML += '<span style="font-size:0.55em;vertical-align:top;">⚠️</span>';
+                        }
                     }
                     // Pièges : visibles seulement si détecté par ce joueur ou partagé
                     else if (cell.event.type === 'piege' && !cell.event.declenche) {
@@ -513,7 +522,11 @@ function _afficherGrilleDonjon(data) {
                         const partage = data.pieges_partages?.[key];
                         if (detecte || partage) div.innerHTML = '🪤';
                     }
-                    // Rencontres, découvertes : cachés jusqu'au déclenchement
+                    // Rencontres : visibles si détectées via Détection de l'invisible
+                    else if (cell.event.type === 'rencontre' && !cell.event.declenche) {
+                        if (data.rencontres_detectees?.[key]?.[myID]) div.innerHTML = '👹';
+                    }
+                    // Découvertes : cachées jusqu'au déclenchement
                 }
             }
 
@@ -963,7 +976,7 @@ function _detectionInvisibleDonjon() {
     const grille = data.grille || {};
     const rayon  = 3;
     const updates = {};
-    let nbTrouves = 0;
+    let nbPieges = 0, nbMonstres = 0;
 
     for (let dx = -rayon; dx <= rayon; dx++) {
         for (let dy = -rayon; dy <= rayon; dy++) {
@@ -975,20 +988,27 @@ function _detectionInvisibleDonjon() {
             if (cell.event?.type === 'piege' && !cell.event.declenche) {
                 if (!data.pieges_detectes?.[key]?.[myID]) {
                     updates['pieges_detectes/' + key + '/' + myID] = true;
-                    nbTrouves++;
+                    nbPieges++;
+                }
+            } else if (cell.event?.type === 'rencontre' && !cell.event.declenche) {
+                if (!data.rencontres_detectees?.[key]?.[myID]) {
+                    updates['rencontres_detectees/' + key + '/' + myID] = true;
+                    nbMonstres++;
                 }
             }
         }
     }
+    const nbTrouves = nbPieges + nbMonstres;
 
     perso.ftActuel -= coutFT;
     if (typeof autoSave === 'function') autoSave();
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
 
     if (nbTrouves > 0) {
+        const _details = [nbPieges > 0 ? nbPieges + ' piège(s)' : '', nbMonstres > 0 ? nbMonstres + ' rencontre(s)' : ''].filter(Boolean).join(' et ');
         db.ref('parties/' + sessionActuelle + '/donjon_actif').update(updates, function() {
-            if (typeof _toast === 'function') _toast('👁 ' + nbTrouves + ' piège(s) détecté(s) dans un rayon de ' + rayon + ' cases !', 'success');
-            _logDonjon('👁 ' + perso.nom + ' détecte ' + nbTrouves + ' piège(s) (Détection de l\'invisible).');
+            if (typeof _toast === 'function') _toast('👁 Détecté : ' + _details + ' !', 'success');
+            _logDonjon('👁 ' + perso.nom + ' détecte ' + _details + ' (Détection de l\'invisible).');
             _avancerTourDonjon(data);
         });
     } else {
@@ -1123,15 +1143,21 @@ function _avancerTourDonjon(data) {
 function _verifierDetectionPieges(data, myID) {
     if (!data || !window.perso) return;
     const p         = window.perso;
-    const detection = p.compInvesties?.detection_pieges || 0;
+    const detection = p.compInvesties?.detection_piege || 0;
+    if (detection <= 0) return; // compétence requise pour détection passive
     const grille  = data.grille || {};
     const maPos   = data.positions?.[myID] || { x: 1, y: 1 };
     const visible = _calculerVisibilite(grille, data.largeur || 10, data.hauteur || 8, maPos.x, maPos.y, data.etats_portes);
-    const range   = detection > 0 ? detection * 2 : 1; // sans compétence : cases adjacentes seulement
+    const range   = 4;
 
     visible.forEach(key => {
         const cell = grille[key];
-        if (!cell?.event || cell.event.type !== 'piege' || cell.event.declenche) return;
+        if (!cell?.event) return;
+        // Piège au sol OU piège sur porte/coffre
+        const estPiegesSol    = cell.event.type === 'piege' && !cell.event.declenche;
+        const estPiegeObjet   = (cell.event.type === 'porte' || cell.event.type === 'coffre')
+                                && cell.event.data?.piege && !cell.event.data.piege.declenche;
+        if (!estPiegesSol && !estPiegeObjet) return;
         if (data.pieges_detectes?.[key]?.[myID]) return; // déjà détecté
 
         // Vérifier portée
@@ -1139,10 +1165,10 @@ function _verifierDetectionPieges(data, myID) {
         const dist = Math.abs(cx - maPos.x) + Math.abs(cy - maPos.y);
         if (dist > range) return;
 
-        // Calcul de détection : niveau * 15 + 10, modifié par la difficulté du piège
-        const difficulte   = cell.event.data?.difficulte ?? 50;
-        const chanceBase   = detection > 0 ? Math.min(95, detection * 15 + 10) : 10;
-        const chanceFinale = Math.max(detection > 0 ? 5 : 10, chanceBase - Math.floor((difficulte - 50) / 2));
+        const piegeData    = estPiegesSol ? cell.event.data : cell.event.data.piege;
+        const difficulte   = piegeData?.difficulte ?? 50;
+        const chanceBase   = Math.min(95, detection * 5 + 10);
+        const chanceFinale = Math.max(5, chanceBase - Math.floor((difficulte - 50) / 2));
         const roll         = Math.floor(Math.random() * 100) + 1;
 
         if (roll <= chanceFinale) {
@@ -1163,8 +1189,9 @@ function _afficherModalPiegeDetecte(cellKey, event, moveParams, myID, data) {
         document.body.appendChild(modal);
     }
     const desc       = event.data?.description || 'Piège !';
-    const desarm     = window.perso?.compInvesties?.desarmorcage || 0;
-    const chanceDesarm = Math.min(95, desarm * 15 + 10);
+    const desarm     = window.perso?.compInvesties?.desamorcage || 0;
+    const aDeclencheurModal = (window.perso?.inventaire || []).some(i => i.id === 'TEC14');
+    const chanceDesarm = Math.min(95, desarm * 15 + 10 + (aDeclencheurModal ? 15 : 0));
     const partage    = !!(data.pieges_partages?.[cellKey]);
 
     modal.innerHTML = `
@@ -1172,10 +1199,10 @@ function _afficherModalPiegeDetecte(cellKey, event, moveParams, myID, data) {
             <h3 style="color:#ff4444;margin:0 0 8px;">🪤 Piège détecté !</h3>
             <p style="color:#ccc;font-size:0.85em;margin:0 0 12px;">${desc}</p>
             <div style="display:flex;flex-direction:column;gap:8px;">
-                ${desarm > 0 ? `<button onclick="_desarmorcer('${cellKey}')" style="background:#0d1a0d;color:#4caf50;border:1px solid #2a5a2a;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;">
+                <button onclick="_desarmorcer('${cellKey}')" style="background:#0d1a0d;color:#4caf50;border:1px solid #2a5a2a;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;">
                     🔧 Tenter de désamorcer
-                    <span style="color:#666;font-size:0.8em;display:block;">Chance : ${chanceDesarm}% · Éch. crit. : explosion !</span>
-                </button>` : ''}
+                    <span style="color:#666;font-size:0.8em;display:block;">Chance : ${chanceDesarm}%${desarm === 0 ? ' (sans compétence)' : ''}${aDeclencheurModal ? ' · 🔩 +15 (déclencheur)' : ''} · Éch. crit. : explosion !</span>
+                </button>
                 <button onclick="_passerSurPiege('${cellKey}',${moveParams.nx},${moveParams.ny},'${myID}')" style="background:#2a0d0d;color:#ff9800;border:1px solid #5a2a0d;padding:9px 12px;border-radius:5px;cursor:pointer;text-align:left;">
                     ⚡ Traverser quand même
                     <span style="color:#666;font-size:0.8em;display:block;">Le piège se déclenchera !</span>
@@ -1210,10 +1237,12 @@ function _desarmorcer(cellKey) {
     const data = window.donjonActif;
     if (!data || !p) return;
 
-    const desarm      = p.compInvesties?.desarmorcage || 0;
+    const desarm      = p.compInvesties?.desamorcage || 0;
+    const aDeclencheur = (p.inventaire || []).some(i => i.id === 'TEC14');
+    const bonusTEC14   = aDeclencheur ? 15 : 0;
     const cell        = data.grille?.[cellKey];
     const difficulte  = cell?.event?.data?.difficulte ?? 50;
-    const chanceBase  = Math.min(95, desarm * 15 + 10);
+    const chanceBase  = Math.min(95, desarm * 15 + 10 + bonusTEC14);
     const chanceFinale = Math.max(5, chanceBase - Math.floor((difficulte - 50) / 2));
     const roll        = Math.floor(Math.random() * 100) + 1;
 
@@ -1223,10 +1252,13 @@ function _desarmorcer(cellKey) {
         _logDonjon(`💥 ${nom} : échec critique lors du désarmorcage — piège déclenché !`);
         if (cell?.event) _declencherEvenementDonjon(cellKey, cell.event, myID);
     } else if (roll <= Math.max(1, Math.floor(chanceFinale / 5))) {
-        // Succès critique : items récupérés
-        const itemsGagnes = ['ressort', 'morceau_de_fer', 'rouage'].filter(() => Math.random() > 0.4);
+        // Succès critique : composants récupérés (réels IDs)
+        const POOL_COMPOSANTS = ['COMP01','COMP26','COMP27'];
+        if (aDeclencheur) POOL_COMPOSANTS.push('COMP26','COMP27'); // plus de chances avec déclencheur
+        const itemsGagnes = POOL_COMPOSANTS.filter(() => Math.random() > 0.4);
         if (typeof _toast === 'function') _toast(`🌟 Désarmorcage parfait ! Vous récupérez des composants.`, 'success');
         _logDonjon(`🌟 ${nom} désamorce parfaitement le piège et récupère des composants.`);
+        if (typeof _incStatPartie === 'function') _incStatPartie('pieges_desamorces', 1);
         itemsGagnes.forEach(id => {
             if (typeof itemsData !== 'undefined' && itemsData[id] && p.inventaire) {
                 const idx = p.inventaire.findIndex(i => i.id === id);
@@ -1240,6 +1272,7 @@ function _desarmorcer(cellKey) {
         // Succès : piège désarmorcé
         if (typeof _toast === 'function') _toast(`✅ Piège désarmorcé ! (${roll}/${chanceFinale}%)`, 'success');
         _logDonjon(`✅ ${nom} désamorce le piège (${roll}/${chanceFinale}%).`);
+        if (typeof _incStatPartie === 'function') _incStatPartie('pieges_desamorces', 1);
         db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
     } else {
         // Échec : rien ne se passe, tour perdu
@@ -1356,20 +1389,22 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
 function _verifierPiegeObjet(cellKey, piege, targetLabel, onContinue) {
     const p      = window.perso;
     const myID   = (p?.nom || '').replace(/\s+/g, '_');
-    const desarm = p?.compInvesties?.desarmorcage || 0;
-    const detect = p?.compInvesties?.detection_pieges || 0;
+    const desarm = p?.compInvesties?.desamorcage || 0;
+    const detect = p?.compInvesties?.detection_piege || 0;
 
-    // Détection automatique : jet avant l'interaction (10% de base, plus avec la compétence)
-    const chanceDetect = detect > 0
-        ? Math.max(10, Math.min(95, detect * 15 + 10) - Math.floor((piege.difficulte - 50) / 2))
-        : 10;
-    const detecte = (Math.floor(Math.random() * 100) + 1) <= chanceDetect;
-
-    if (!detecte) {
-        // Pas détecté → piège se déclenche immédiatement
-        _declencherPiegeObjet(cellKey, piege, myID);
-        onContinue();
-        return;
+    // Si déjà détecté passivement → aller directement au modal
+    const dejaDetecte = !!(window.donjonActif?.pieges_detectes?.[cellKey]?.[myID]);
+    if (!dejaDetecte) {
+        // Roll au moment de l'interaction si pas déjà détecté
+        const chanceDetect = detect > 0
+            ? Math.max(5, Math.min(95, detect * 5 + 10) - Math.floor((piege.difficulte - 50) / 2))
+            : 10;
+        const detecte = (Math.floor(Math.random() * 100) + 1) <= chanceDetect;
+        if (!detecte) {
+            _declencherPiegeObjet(cellKey, piege, myID);
+            onContinue();
+            return;
+        }
     }
 
     // Détecté → modal
@@ -1447,7 +1482,7 @@ function _desarmorcer_objet(cellKey) {
     if (!ctx) return;
     const p    = window.perso;
     const myID = (p?.nom || '').replace(/\s+/g, '_');
-    const desarm = p?.compInvesties?.desarmorcage || 0;
+    const desarm = p?.compInvesties?.desamorcage || 0;
     const piege  = ctx.piege;
     const chanceBase   = Math.min(95, desarm * 15 + 10);
     const chanceFinale = Math.max(5, chanceBase - Math.floor((piege.difficulte - 50) / 2));
@@ -1637,8 +1672,9 @@ function _getSortsOffensifsInvestis() {
  * targetType : 'coffre' | 'porte'
  */
 function _ouvrirModalExplosifSurTarget(cellKey, targetType) {
+    const SORTS_DESTRUCTEURS = ['Projectile de pierre', 'Boule de feu', 'Fureur de glace', 'Désintégration'];
     const items = _getItemsExplosifsDonjon();
-    const sorts = _getSortsOffensifsInvestis();
+    const sorts = _getSortsOffensifsInvestis().filter(s => SORTS_DESTRUCTEURS.includes(s.nom));
     if (items.length === 0 && sorts.length === 0) {
         if (typeof _toast === 'function') _toast('Aucun item ou sort offensif disponible.', 'error');
         return;

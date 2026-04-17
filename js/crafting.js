@@ -145,6 +145,7 @@ function fabriquerObjetCombine(nomResultat, idCompo1, idCompo2) {
     }
 
     alert(`Succès ! Vous avez fabriqué : ${nomResultat}`);
+    if (typeof _incStatPartie === 'function') _incStatPartie('objets_craftes', 1);
     if (typeof autoSave === 'function') autoSave();
     if (typeof updateFicheUI === 'function') updateFicheUI();
     ouvrirEcranCraft();
@@ -210,7 +211,8 @@ function fabriquerObjet(nomResultat, idCompo1, idCompo2) {
     }
 
     alert(`Succès ! Vous avez fabriqué : ${nomResultat}`);
-    
+    if (typeof _incStatPartie === 'function') _incStatPartie('objets_craftes', 1);
+
     // --- ETAPE 4 : RAFRAICHISSEMENT GLOBAL ---
     if (typeof autoSave === "function") autoSave();
     if (typeof updateFicheUI === "function") updateFicheUI(); 

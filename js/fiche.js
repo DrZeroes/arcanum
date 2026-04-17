@@ -152,7 +152,7 @@ photoContainer.innerHTML = `
         if (itemEq && itemsData[itemEq.id]) {
             let data = itemsData[itemEq.id];
             if (data.armure) bonusArmure += data.armure;
-            if (data.stats) {
+            if (data.stats && itemEq.identifie !== false) {
                 bonusResMagie += (data.stats.resMagie || 0);
                 bonusResPhys += (data.stats.resPhys || 0);
                 bonusFT += (data.stats.FT || 0);
@@ -259,7 +259,7 @@ photoContainer.innerHTML = `
                 // On parcourt l'équipement pour trouver des bonusComp
                 for (let slot in perso.equipement) {
                     let itemEq = perso.equipement[slot];
-                    if (itemEq && itemsData[itemEq.id] && itemsData[itemEq.id].stats?.bonusComp) {
+                    if (itemEq && itemEq.identifie !== false && itemsData[itemEq.id] && itemsData[itemEq.id].stats?.bonusComp) {
                         let b = itemsData[itemEq.id].stats.bonusComp[id];
                         if (b) bonusEquip += b;
                     }
@@ -410,8 +410,11 @@ function validerChangements() {
         localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
         if (typeof autoSave === "function") autoSave();
 
-        // 5. MISE À JOUR ET RETOUR
-        updateFicheUI(); 
+        // 5. VÉRIFICATION SUCCÈS DE MAÎTRISE
+        if (typeof _verifierSuccesLevelUp === 'function') _verifierSuccesLevelUp();
+
+        // 6. MISE À JOUR ET RETOUR
+        updateFicheUI();
         allerAccueil(); 
         
         //alert("✨ Progression enregistrée !");

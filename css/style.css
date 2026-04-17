@@ -111,6 +111,7 @@ input[type="text"]:focus, select:focus { border-color: #d4af37; outline: none; }
     text-transform: uppercase;
     cursor: pointer;
     transition: 0.3s;
+    text-align: center;
 }
 .next-btn:hover { background: #fff; transform: translateY(-2px); }
 

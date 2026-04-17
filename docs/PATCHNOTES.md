@@ -2,6 +2,46 @@
 
 ---
 
+## v0.9 — Avril 2026
+
+### Système de Succès (Steam-like)
+
+- Nouvel onglet **🏆 Succès** dans le journal joueur
+- Succès verrouillé : nom seul affiché ; débloqué : carte colorée avec description et date
+- Accordéon par catégorie (replié par défaut)
+- Toast à chaque déblocage, file d'attente pour éviter les empilements simultanés
+- Vérification automatique scoped par clé stat (`_verifierSucces(cle)`) pour éviter les faux déclenchements croisés
+- Vérification au level-up (`_verifierSuccesLevelUp`) pour les succès de maîtrise
+- MJ : bouton "🏆 Gérer les Succès" par joueur dans le Codex → débloquer / révoquer par catégorie
+- Sync Firebase temps réel : déblocage MJ → notification toast joueur instantanée
+
+#### Catégories & succès disponibles (57 au total)
+- **Combat** (6) : Premier Sang, Combattant, Tueur, Massacreur, Exterminateur, Berserker
+- **Magie** (3) : Apprenti Mage, Mage Confirmé, Archimage
+- **Soins** (2) : Aidant, Médecin de campagne
+- **Survie** (3) : Résilient, Première Mort, 9 Vies
+- **Exploration** (5) : Explorateur, Grand Explorateur, Premier Voyage, Voyageur, Globe-Trotteur
+- **Richesse** (6) : Argent de poche → Homme d'Affaires (or cumulé) + Client Fidèle → Mécène (or dépensé)
+- **Compagnons** (2) : Pas Seul, Chef de Groupe
+- **Donjon** (2) : Dépiégeur, Sapeur
+- **Histoire** (4) : Survivant du Crash, Héros, Diplomate, Collectionneur (tous manuels MJ)
+- **Équipe** (5) : Traître, Généreux, Bienfaiteur, Bien Entouré, Chouchou
+- **Vol** (2) : Voleur, Filou
+- **Artisan** (2) : Artisan, Maître Artisan
+- **Maîtrise** (45) : 5 stats à 20 · 16 écoles de magie complètes · 8 écoles de tech complètes · 16 skills à 20
+
+#### Stats de partie trackées (nouvelles clés)
+`attaques_allies` · `villes_decouvertes` · `compagnons_debloques` · `or_depense` · `vols_reussis` · `objets_craftes` · `objets_donnes` · `objets_recus` · `pieges_desamorces`
+
+### Refonte Codex — catégories d'objets
+
+- Explosifs, grenades, pièges, cocktails, acide → nouveau type `explosif` (préfixe TEC), icône 💣
+- Énergie (DIV11) + Carburant (CONS20) → type `munition` (préfixe MUN)
+- Bijoux (BIJ01–04) → intégrés dans la section Armures
+- **Déclencheur de piège (TEC14)** : bonus +15 au skill Désamorçage quand équipé
+
+---
+
 ## v0.8 — Avril 2026
 
 ### Refonte complète des sorts de combat

@@ -118,10 +118,60 @@ function genererContenuCodexMJ(type) {
     tbody.innerHTML = '';
 
     if (type === 'items') {
+        const LABELS_TYPE = {
+            arme_melee:    '⚔️ Armes de mêlée',
+            arme_distance: '🏹 Armes à distance',
+            arme_feu:      '🔫 Armes à feu',
+            armure:        '🛡️ Armures, bijoux & équipements',
+            consommable:   '🧪 Consommables',
+            munition:      '🔋 Munitions & carburant',
+            explosif:      '💣 Explosifs, grenades & pièges',
+            divers:        '🔧 Divers',
+            objet_quete:   '📜 Objets de quête',
+            argent:        '💰 Argent',
+        };
+        // Grouper par type
+        const groupes = {};
         for (let id in itemsData) {
-            ajouterLigneCodexMJ(id, itemsData[id].nom, `mjDonnerObjetDirect('${id}')`, "🎁 Donner");
+            const t = itemsData[id].type || 'divers';
+            if (!groupes[t]) groupes[t] = [];
+            groupes[t].push({ id, data: itemsData[id] });
         }
-    } 
+        const ordre = ['arme_melee','arme_distance','arme_feu','armure','consommable','explosif','munition','divers','objet_quete','argent'];
+        const typesSorted = [...new Set([...ordre, ...Object.keys(groupes)])].filter(t => groupes[t]);
+        typesSorted.forEach(t => {
+            const items = groupes[t];
+            const label = LABELS_TYPE[t] || t;
+            const safeType = t.replace(/[^a-z0-9_]/g, '_');
+            const trHeader = document.createElement('tr');
+            trHeader.style.cssText = 'cursor:pointer;background:#1a1200;border-bottom:1px solid #3a2a00;';
+            trHeader.innerHTML = `<td colspan="3" style="padding:8px 12px;color:#d4af37;font-weight:bold;font-size:0.85em;">
+                ${label} <span style="color:#888;font-size:0.8em;">(${items.length})</span>
+                <span style="float:right;color:#666;">▼</span></td>`;
+            trHeader.addEventListener('click', () => {
+                tbody.querySelectorAll('tr[data-item-type="' + safeType + '"]').forEach(r => {
+                    r.style.display = r.style.display === 'none' ? '' : 'none';
+                });
+            });
+            tbody.appendChild(trHeader);
+            items.forEach(({ id, data }) => {
+                const tr = document.createElement('tr');
+                tr.dataset.itemType = safeType;
+                tr.style.cssText = 'display:none;border-bottom:1px solid #1a1a1a;';
+                tr.innerHTML = `
+                    <td style="padding:8px 10px;color:#ffb74d;font-family:monospace;font-size:0.8em;width:80px;">${id}</td>
+                    <td style="padding:8px 10px;color:#fff;">${data.nom}</td>
+                    <td style="padding:8px 10px;text-align:right;">
+                        <button style="background:#444;color:#ff9800;border:1px solid #ff9800;padding:5px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">🎁 Donner</button>
+                    </td>`;
+                tr.querySelector('button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    mjDonnerObjetDirect(id);
+                });
+                tbody.appendChild(tr);
+            });
+        });
+    }
     else if (type === 'marchands') {
         for (let id in marchandsData) {
             ajouterLigneCodexMJ(id, marchandsData[id].nom, `forcerOuvertureMarchand('${id}')`, "💰 Ouvrir");
@@ -323,7 +373,10 @@ function rafraichirListeJoueursMJ() {
                         <button onclick="mjDonnerCompagnon('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a2e1a; color:#4caf50; border:1px solid #4caf50; padding:4px; cursor:pointer; font-size:11px;">🤝 Donner Compagnon</button>
                         <button onclick="mjKickJoueur('${id}', '${j.nom}')" style="grid-column: span 2; background:#5a0000; color:#ff6b6b; border:1px solid #8b0000; padding:4px; cursor:pointer; font-size:11px;">🚫 Expulser de la session</button>
                         <button onclick="mjAutoriserVolATire('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1030; color:#b39ddb; border:1px solid #7c4dff; padding:4px; cursor:pointer; font-size:11px;">🤏 Autoriser Vol à la tire</button>
+                        <button onclick="mjOuvrirMarchand('${id}', '${j.nom}')" style="grid-column: span 2; background:#2a1800; color:#ff9800; border:1px solid #795548; padding:4px; cursor:pointer; font-size:11px;">⚖️ Ouvrir un marchand</button>
+                        <button onclick="mjOuvrirFouille('${id}', '${j.nom}')" style="grid-column: span 2; background:#0d1a0d; color:#4caf50; border:1px solid #2a5a2a; padding:4px; cursor:pointer; font-size:11px;">🔍 Ouvrir une fouille</button>
                         <button onclick="mjGererEffets('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1008; color:#ffd700; border:1px solid #7a6000; padding:4px; cursor:pointer; font-size:11px;">✨ Bénédictions / Malédictions</button>
+                        <button onclick="mjGererSucces('${id}', '${j.nom}')" style="grid-column: span 2; background:#0a1a0a; color:#d4af37; border:1px solid #4a3a00; padding:4px; cursor:pointer; font-size:11px;">🏆 Gérer les Succès</button>
                     </div>
 
                     <div style="margin-top:6px; border-top:1px solid #333; padding-top:5px;">
@@ -915,11 +968,12 @@ const _VOL_TYPE_LABELS = {
     arme_melee:    '⚔️ Armes de mêlée',
     arme_distance: '🏹 Armes à distance',
     arme_feu:      '🔫 Armes à feu',
-    armure:        '🛡️ Armures',
+    armure:        '🛡️ Armures & bijoux',
     consommable:   '🧪 Consommables',
-    munition:      '🔮 Munitions',
+    munition:      '🔋 Munitions',
+    explosif:      '💣 Explosifs & pièges',
     composant:     '🔩 Composants',
-    divers:        '📦 Divers',
+    divers:        '🔧 Divers',
     objet_quete:   '⭐ Objets de quête',
 };
 
@@ -1138,6 +1192,113 @@ function _mjConfirmerVolATire(playerID, playerNom) {
     window._volObjetSelectionne = null;
     window._volCatActive = null;
     if (typeof _toast === 'function') _toast(`🤏 Vol à la tire autorisé pour ${playerNom}.`, 'success');
+}
+
+// ── Marchand MJ ─────────────────────────────────────────────────────────────
+
+function mjOuvrirMarchand(playerID, playerNom) {
+    let modal = document.getElementById('modal-mj-marchand');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-mj-marchand';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    const options = Object.entries(marchandsData).map(([id, m]) =>
+        `<option value="${id}">${m.nom}</option>`).join('');
+    modal.innerHTML = `
+        <div style="background:#1a120a;border:2px solid #795548;border-radius:8px;padding:24px;max-width:400px;width:90%;">
+            <h3 style="color:#ff9800;margin:0 0 16px;">⚖️ Ouvrir un marchand — ${playerNom}</h3>
+            <select id="mj-marchand-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;margin-bottom:16px;">
+                ${options}
+            </select>
+            <div style="display:flex;gap:8px;">
+                <button onclick="_mjConfirmerMarchand('${playerID}','${playerNom}')"
+                    style="flex:1;background:#795548;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    ✅ Ouvrir pour ce joueur
+                </button>
+                <button onclick="document.getElementById('modal-mj-marchand').style.display='none'"
+                    style="background:#333;color:#aaa;border:1px solid #555;padding:10px;border-radius:4px;cursor:pointer;">
+                    Annuler
+                </button>
+            </div>
+        </div>`;
+    modal.style.display = 'flex';
+}
+
+function _mjConfirmerMarchand(playerID, playerNom) {
+    const marchandId = document.getElementById('mj-marchand-select').value;
+    if (!marchandId) return;
+    db.ref('parties/' + sessionActuelle + '/marchand_actif/' + playerID).set({ actif: true, marchandId, timestamp: Date.now() });
+    document.getElementById('modal-mj-marchand').style.display = 'none';
+    if (typeof _toast === 'function') _toast('⚖️ Marchand ouvert pour ' + playerNom + '.', 'success');
+}
+
+// ── Fouille MJ ───────────────────────────────────────────────────────────────
+
+function mjOuvrirFouille(playerID, playerNom) {
+    let modal = document.getElementById('modal-mj-fouille');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-mj-fouille';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    const coffresOptions = Object.entries(coffresFixes || {}).map(([id, c]) =>
+        `<option value="${id}">${c.nom || id}</option>`).join('');
+    const raretesOptions = [1,2,3,4,5,6,7,8,9,10].map(r => `<option value="${r}">Rareté ${r}</option>`).join('');
+    modal.innerHTML = `
+        <div style="background:#0d1a0d;border:2px solid #2a5a2a;border-radius:8px;padding:24px;max-width:420px;width:90%;">
+            <h3 style="color:#4caf50;margin:0 0 16px;">🔍 Ouvrir une fouille — ${playerNom}</h3>
+
+            <div style="margin-bottom:14px;padding:10px;background:rgba(76,175,80,0.07);border:1px solid #2a5a2a;border-radius:6px;">
+                <label style="color:#ccc;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                    <input type="radio" name="fouille-type" value="predefini" checked style="accent-color:#4caf50;">
+                    <strong>Coffre prédéfini</strong>
+                </label>
+                <select id="mj-fouille-coffre-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;">
+                    ${coffresOptions || '<option value="">Aucun coffre prédéfini</option>'}
+                </select>
+            </div>
+
+            <div style="margin-bottom:18px;padding:10px;background:rgba(76,175,80,0.07);border:1px solid #2a5a2a;border-radius:6px;">
+                <label style="color:#ccc;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                    <input type="radio" name="fouille-type" value="aleatoire" style="accent-color:#4caf50;">
+                    <strong>Coffre aléatoire</strong>
+                </label>
+                <select id="mj-fouille-rarete-select" style="width:100%;background:#111;color:#eee;border:1px solid #555;padding:8px;border-radius:4px;">
+                    ${raretesOptions}
+                </select>
+            </div>
+
+            <div style="display:flex;gap:8px;">
+                <button onclick="_mjConfirmerFouille('${playerID}','${playerNom}')"
+                    style="flex:1;background:#2e7d32;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:bold;">
+                    ✅ Ouvrir pour ce joueur
+                </button>
+                <button onclick="document.getElementById('modal-mj-fouille').style.display='none'"
+                    style="background:#333;color:#aaa;border:1px solid #555;padding:10px;border-radius:4px;cursor:pointer;">
+                    Annuler
+                </button>
+            </div>
+        </div>`;
+    modal.style.display = 'flex';
+}
+
+function _mjConfirmerFouille(playerID, playerNom) {
+    const type = document.querySelector('input[name="fouille-type"]:checked')?.value;
+    let config;
+    if (type === 'predefini') {
+        const id = document.getElementById('mj-fouille-coffre-select').value;
+        if (!id) { if (typeof _toast === 'function') _toast('Aucun coffre prédéfini disponible.', 'error'); return; }
+        config = { actif: true, type: 'predefini', id, timestamp: Date.now() };
+    } else {
+        const rarete = parseInt(document.getElementById('mj-fouille-rarete-select').value);
+        config = { actif: true, type: 'aleatoire', rarete, timestamp: Date.now() };
+    }
+    db.ref('parties/' + sessionActuelle + '/fouille_active/' + playerID).set(config);
+    document.getElementById('modal-mj-fouille').style.display = 'none';
+    if (typeof _toast === 'function') _toast('🔍 Fouille ouverte pour ' + playerNom + '.', 'success');
 }
 
 // ── Bénédictions / Malédictions ─────────────────────────────────────────────
@@ -1564,6 +1725,133 @@ function mjSupprimerQuete(fbKey) {
     db.ref('parties/' + sessionActuelle + '/quetes/' + fbKey).remove().then(() => {
         mjGererQuetes();
     });
+}
+
+// ── Succès MJ ────────────────────────────────────────────────────────────────
+
+function mjGererSucces(playerID, playerNom) {
+    let modal = document.getElementById('modal-mj-succes');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-mj-succes';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const render = () => {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/succes').once('value', snap => {
+            const debloquesDB = snap.val() || {};
+
+            if (typeof succesData === 'undefined') {
+                modal.innerHTML = `<div style="background:#1a120a;border:2px solid #4a3a00;border-radius:8px;padding:24px;color:#888;">succesData non chargé.</div>`;
+                modal.style.display = 'flex';
+                return;
+            }
+
+            // Construire la boîte avec createElement (évite les problèmes de guillemets)
+            const box = document.createElement('div');
+            box.style.cssText = 'background:#0d0a18;border:2px solid #4a3a00;border-radius:10px;padding:20px;max-width:480px;width:92%;max-height:85vh;overflow-y:auto;';
+
+            // En-tête
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;';
+            const titre = document.createElement('h3');
+            titre.style.cssText = 'color:#d4af37;margin:0;';
+            titre.textContent = '🏆 Succès — ' + playerNom;
+            const btnFermer = document.createElement('button');
+            btnFermer.style.cssText = 'background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;';
+            btnFermer.textContent = '✕';
+            btnFermer.onclick = () => { modal.style.display = 'none'; };
+            header.appendChild(titre);
+            header.appendChild(btnFermer);
+            box.appendChild(header);
+
+            const cats = [...new Set(succesData.map(s => s.categorie))];
+
+            // Grille de pills
+            const catGrid = document.createElement('div');
+            catGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;';
+
+            // Panneau de détail
+            const panel = document.createElement('div');
+            let activeCat = null;
+
+            const renderCat = (cat) => {
+                if (activeCat === cat) {
+                    panel.innerHTML = '';
+                    activeCat = null;
+                    catGrid.querySelectorAll('button').forEach(b => {
+                        b.style.background = '#0d0d18';
+                        b.style.borderColor = '#1a1a2a';
+                        b.style.color = '#888';
+                    });
+                    return;
+                }
+                activeCat = cat;
+                catGrid.querySelectorAll('button').forEach(b => {
+                    const sel = b.dataset.cat === cat;
+                    b.style.background = sel ? 'rgba(212,175,55,0.12)' : '#0d0d18';
+                    b.style.borderColor = sel ? '#d4af37' : '#1a1a2a';
+                    b.style.color = sel ? '#d4af37' : '#888';
+                });
+                panel.innerHTML = '';
+                succesData.filter(s => s.categorie === cat).forEach(s => {
+                    const debloque = !!debloquesDB[s.id];
+                    const dateStr  = debloque && debloquesDB[s.id]?.date
+                        ? new Date(debloquesDB[s.id].date).toLocaleDateString('fr-FR') : '';
+
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #111;';
+
+                    const ico = document.createElement('span');
+                    ico.style.fontSize = '1.1em';
+                    ico.textContent = s.icone;
+
+                    const info = document.createElement('div');
+                    info.style.flex = '1';
+                    info.innerHTML = `<span style="color:${debloque ? '#d4af37' : '#555'};font-size:0.83em;font-weight:${debloque ? 'bold' : 'normal'};">${s.nom}</span>`
+                        + (dateStr ? `<span style="color:#666;font-size:0.72em;margin-left:6px;">🗓 ${dateStr}</span>` : '')
+                        + `<div style="color:#666;font-size:0.75em;">${s.desc}</div>`;
+
+                    const btn = document.createElement('button');
+                    if (debloque) {
+                        btn.style.cssText = 'background:#2a0a0a;color:#e57373;border:1px solid #5a1a1a;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:0.75em;white-space:nowrap;';
+                        btn.textContent = '✕ Révoquer';
+                        btn.addEventListener('click', () => { mjRevoquerSucces(playerID, s.id); setTimeout(render, 500); });
+                    } else {
+                        btn.style.cssText = 'background:#0a1a0a;color:#d4af37;border:1px solid #4a3a00;padding:3px 7px;border-radius:4px;cursor:pointer;font-size:0.75em;white-space:nowrap;';
+                        btn.textContent = '🏆 Débloquer';
+                        btn.addEventListener('click', () => { mjDebloquerSucces(playerID, s.id); setTimeout(render, 500); });
+                    }
+
+                    row.appendChild(ico);
+                    row.appendChild(info);
+                    row.appendChild(btn);
+                    panel.appendChild(row);
+                });
+            };
+
+            cats.forEach(cat => {
+                const items = succesData.filter(s => s.categorie === cat);
+                const catDeb = items.filter(s => debloquesDB[s.id]).length;
+                const btn = document.createElement('button');
+                btn.dataset.cat = cat;
+                btn.style.cssText = 'padding:4px 10px;border:1px solid #1a1a2a;border-radius:20px;background:#0d0d18;color:#888;font-size:0.75em;font-variant:small-caps;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;';
+                btn.innerHTML = `${cat} <span style="opacity:0.5;font-size:0.85em;">${catDeb}/${items.length}</span>`;
+                btn.addEventListener('click', () => renderCat(cat));
+                catGrid.appendChild(btn);
+            });
+
+            box.appendChild(catGrid);
+            box.appendChild(panel);
+
+            modal.innerHTML = '';
+            modal.appendChild(box);
+            modal.style.display = 'flex';
+        });
+    };
+
+    render();
 }
 
 // ============================================================

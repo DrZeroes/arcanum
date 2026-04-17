@@ -1,6 +1,7 @@
 // ================= DICTIONNAIRE DES OBJETS =================
-// Préfixes : AM (Mêlée), AD (Distance), AF (Feu), DEF (Armure), 
-// CONS (Consommable), MUN (Munition), COMP (Composant), DIV (Divers), XXX (Quête/Unique)
+// Préfixes : AM (Mêlée), AD (Distance), AF (Feu), DEF (Armure/Bijoux), BIJ (Bijoux),
+// CONS (Consommable), MUN (Munition/Carburant/Énergie), TEC (Explosifs/Grenades/Pièges),
+// COMP (Composant), DIV (Divers), XXX (Quête/Unique)
 
 const itemsData = {
 	
@@ -388,13 +389,13 @@ const itemsData = {
     // ---------------- BIJOUX & ACCESSOIRES (BIJ) ----------------
     "BIJ01": {
         nom: "Anneau électroactif", desc: "Anneau de cuivre boostant la puissance et les réflexes.",
-        type: "divers", rarete: "6", poids: 0.1, prix: 500,
+        type: "armure", rarete: "6", poids: 0.1, prix: 500,
         equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: { align: -15, DX:2, FO:2 }, prerequis: {}, lootable: false, nbUsages: null // Bonus à coder
     },
-	    "BIJ02": { nom: "Anneau de cuivre", desc: "Bijou brillant.", type: "divers", rarete: "2", poids: 0.1, prix: 45, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-	    "BIJ03": { nom: "Anneau de argent", desc: "Bijou brillant.", type: "divers", rarete: "4", poids: 0.1, prix: 145, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
-	    "BIJ04": { nom: "Anneau en or", desc: "Bijou brillant.", type: "divers", rarete: "6", poids: 0.1, prix: 345, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "BIJ02": { nom: "Anneau de cuivre", desc: "Bijou brillant.", type: "armure", rarete: "2", poids: 0.1, prix: 45, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "BIJ03": { nom: "Anneau de argent", desc: "Bijou brillant.", type: "armure", rarete: "4", poids: 0.1, prix: 145, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
+	    "BIJ04": { nom: "Anneau en or", desc: "Bijou brillant.", type: "armure", rarete: "6", poids: 0.1, prix: 345, equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
 
     
     // ---------------- MUNITIONS (MUN) ----------------
@@ -413,15 +414,15 @@ const itemsData = {
 
 
     // ---------------- CONSOMMABLES & EXPLOSIFS (CONS) ----------------
-    "CONS01": {
+    "TEC01": {
         nom: "Cocktail Molotov", desc: "Bouteille inflammable. Explose à l'impact.",
-        type: "consommable", rarete: "6", poids: 0.5, prix: 100,
+        type: "explosif", rarete: "6", poids: 0.5, prix: 100,
         equipable: "main_droite", stackable: true, degats: "4-16", armure: 0, vitesse: 8, portee: 8,
         stats: {  }, prerequis: { DX: 6 }, lootable: true, nbUsages: 1
     },
-    "CONS02": {
+    "TEC02": {
         nom: "Dynamite", desc: "Bâton explosif puissant. Ne restez pas à côté.",
-        type: "consommable", rarete: "7", poids: 1.0, prix: 150,
+        type: "explosif", rarete: "7", poids: 1.0, prix: 150,
         equipable: "main_droite", stackable: true, degats: "10-30", armure: 0, vitesse: 5, portee: 6,
         stats: { }, prerequis: {}, lootable: true, nbUsages: 1
     },
@@ -523,69 +524,69 @@ const itemsData = {
         stats: { soinPV: 100, soinFT: 100 }, prerequis: {}, lootable: false, nbUsages: 1
     },
     // --- Explosifs & Chimie (Craft) ---
-    "CONS19": {
+    "TEC03": {
         nom: "Poison virulent", desc: "Substance toxique pouvant être appliquée sur des armes.",
-        type: "consommable", rarete: "5", poids: 0.2, prix: 150,
+        type: "explosif", rarete: "5", poids: 0.2, prix: 150,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS20": {
+    "MUN04": {
         nom: "Carburant", desc: "Liquide inflammable utilisé pour divers engins technologiques.",
-        type: "consommable", rarete: "4", poids: 1.0, prix: 50,
+        type: "munition", rarete: "4", poids: 1.0, prix: 50,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Sert souvent de composant
     },
-    "CONS21": {
+    "TEC04": {
         nom: "Hallucinite", desc: "Produit chimique provoquant des hallucinations chez la victime.",
-        type: "consommable", rarete: "6", poids: 0.2, prix: 180,
+        type: "explosif", rarete: "6", poids: 0.2, prix: 180,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 10, portee: 5,
         stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS22": {
+    "TEC05": {
         nom: "Acide corrosif", desc: "Composé qui ronge immédiatement les surfaces et armures.",
-        type: "consommable", rarete: "7", poids: 0.5, prix: 250,
+        type: "explosif", rarete: "7", poids: 0.5, prix: 250,
         equipable: "main_droite", stackable: true, degats: "5-25", armure: 0, vitesse: 8, portee: 6,
         stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS23": {
+    "TEC06": {
         nom: "Senteur animale", desc: "Mélange permettant de circuler parmi les bêtes sans être attaqué.",
-        type: "consommable", rarete: "6", poids: 0.2, prix: 200,
+        type: "explosif", rarete: "6", poids: 0.2, prix: 200,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS24": {
+    "TEC07": {
         nom: "Paralysant", desc: "Liquide rendant l'ennemi impuissant temporairement.",
-        type: "consommable", rarete: "8", poids: 0.2, prix: 350,
+        type: "explosif", rarete: "8", poids: 0.2, prix: 350,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 10, portee: 5,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS25": {
+    "TEC08": {
         nom: "Grenade aveuglante", desc: "Gadget au magnésium pour désorienter les adversaires.",
-        type: "consommable", rarete: "5", poids: 0.5, prix: 150,
+        type: "explosif", rarete: "5", poids: 0.5, prix: 150,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 12, portee: 8,
         stats: { align: -2 }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS26": {
+    "TEC09": {
         nom: "Grenade fumigène", desc: "Mixture générant un nuage de fumée pour couvrir une fuite.",
-        type: "consommable", rarete: "5", poids: 0.5, prix: 150,
+        type: "explosif", rarete: "5", poids: 0.5, prix: 150,
         equipable: "main_droite", stackable: true, degats: "0", armure: 0, vitesse: 12, portee: 8,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS27": {
+    "TEC10": {
         nom: "Grenade étourdissante", desc: "Explosion de salpêtre étourdissant temporairement les ennemis.",
-        type: "consommable", rarete: "6", poids: 0.5, prix: 200,
+        type: "explosif", rarete: "6", poids: 0.5, prix: 200,
         equipable: "main_droite", stackable: true, degats: "2-8", armure: 0, vitesse: 12, portee: 8,
         stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS28": {
+    "TEC11": {
         nom: "Grenade offensive", desc: "Arme de destruction puissante utilisant du TNT et de la poudre.",
-        type: "consommable", rarete: "7", poids: 0.8, prix: 300,
+        type: "explosif", rarete: "7", poids: 0.8, prix: 300,
         equipable: "main_droite", stackable: true, degats: "15-35", armure: 0, vitesse: 10, portee: 8,
         stats: { }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "CONS29": {
+    "TEC12": {
         nom: "Ecran de feu", desc: "Mixture inflammable créant un mur de flammes défensif.",
-        type: "consommable", rarete: "8", poids: 1.0, prix: 400,
+        type: "explosif", rarete: "8", poids: 1.0, prix: 400,
         equipable: "main_droite", stackable: true, degats: "10-20", armure: 0, vitesse: 8, portee: 5,
         stats: {}, prerequis: {}, lootable: false, nbUsages: 1
     },
@@ -602,13 +603,13 @@ const itemsData = {
     // ---------------- OBJETS DE QUÊTE / UNIQUES (XXX) ----------------
     "XXX01": {
         nom: "Chevalière 'G.B.'", desc: "Une bague donnée par un vieux gnome avant de mourir.",
-        type: "divers", rarete: "10", poids: 0.05, prix: 5,
+        type: "objet_quete", rarete: "10", poids: 0.05, prix: 5,
         equipable: "anneau", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {}, prerequis: {}, lootable: false, nbUsages: null
     },
     "XXX02": {
         nom: "Appareil photo", desc: "Un vieil appareil trouvé sur le lieu du crash.",
-        type: "divers", rarete: "10", poids: 0.1, prix: 5,
+        type: "objet_quete", rarete: "10", poids: 0.1, prix: 5,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {}, prerequis: {}, lootable: false, nbUsages: null
     },
@@ -633,9 +634,9 @@ const itemsData = {
         stats: {  }, prerequis: { DX: 8 }, lootable: true, nbUsages: null
     },
     // --- Mécanique (Craft) ---
-    "DIV02": {
+    "TEC13": {
         nom: "Piège à piques", desc: "Dispositif simple blessant quiconque marche dessus.",
-        type: "divers", rarete: "4", poids: 2.0, prix: 150,
+        type: "explosif", rarete: "4", poids: 2.0, prix: 150,
         equipable: "aucun", stackable: true, degats: "10-20", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
@@ -645,28 +646,28 @@ const itemsData = {
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: { }, prerequis: {}, lootable: false, nbUsages: null // Bonus crochetage à coder
     },
-    "DIV04": {
-        nom: "Déclencheur de piège", desc: "Boîtier à ressort pour activer les pièges à distance.",
-        type: "divers", rarete: "5", poids: 0.5, prix: 200,
+    "TEC14": {
+        nom: "Déclencheur de piège", desc: "Boîtier à ressort pour activer les pièges à distance. Améliore le désamorçage.",
+        type: "explosif", rarete: "5", poids: 0.5, prix: 200,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { }, prerequis: {}, lootable: false, nbUsages: null
+        stats: { bonusComp: { desamorcage: 15 } }, prerequis: {}, lootable: false, nbUsages: null
     },
-    "DIV05": {
+    "TEC15": {
         nom: "Piège à ours", desc: "Pince métallique immobilisant et blessant la proie.",
-        type: "divers", rarete: "6", poids: 3.0, prix: 250,
+        type: "explosif", rarete: "6", poids: 3.0, prix: 250,
         equipable: "aucun", stackable: true, degats: "15-30", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
-    "DIV06": {
+    "TEC16": {
         nom: "Leurre mécanique", desc: "Dispositif à ressort créant une diversion sonore.",
-        type: "divers", rarete: "7", poids: 1.0, prix: 350,
+        type: "explosif", rarete: "7", poids: 1.0, prix: 350,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: 1
     },
 
-    "DIV08": {
+    "TEC17": {
         nom: "Méca-arachnide", desc: "Automate de combat hydraulique à vapeur avec griffes.",
-        type: "divers", rarete: "10", poids: 15.0, prix: 1500,
+        type: "explosif", rarete: "10", poids: 15.0, prix: 1500,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Invocation à coder
     },
@@ -674,9 +675,9 @@ const itemsData = {
 
 
     // --- Chimie (Craft) ---
-    "DIV11": {
+    "MUN03": {
         nom: "Energie", desc: "Source énergétique portable (Batterie).",
-        type: "divers", rarete: "4", poids: 1.0, prix: 80,
+        type: "munition", rarete: "4", poids: 1.0, prix: 80,
         equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0,
         stats: {  }, prerequis: {}, lootable: false, nbUsages: null // Souvent composant
     },
@@ -804,4 +805,114 @@ const itemsData = {
     "COMP78": { nom: "Savon liquide", desc: "Produit glissant.", type: "composant", rarete: "2", poids: 0.5, prix: 5, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null },
     "COMP79": { nom: "Nitroglycérine", desc: "Liquide extrêmement instable.", type: "composant", rarete: "8", poids: 0.5, prix: 200, equipable: "aucun", stackable: true, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: {}, prerequis: {}, lootable: true, nbUsages: null }
 };
+
+const _LABELS_SOUSTYPE_INCONNU = {
+    epee:    "Épée non identifiée",
+    masse:   "Masse non identifiée",
+    hache:   "Hache non identifiée",
+    marteau: "Grand marteau non identifié",
+    arc:     "Arc non identifié",
+};
+const _LABELS_SLOT_INCONNU = {
+    main_droite: { arme_melee: "Arme de mêlée non identifiée", arme_distance: "Arme à distance non identifiée", _default: "Arme non identifiée" },
+    deux_mains:  { arme_melee: "Arme à deux mains non identifiée", _default: "Arme non identifiée" },
+    main_gauche: { armure: "Bouclier non identifié", _default: "Objet non identifié" },
+    torse:       "Armure non identifiée",
+    tete:        "Casque non identifié",
+    gants:       "Gants non identifiés",
+    bottes:      "Bottes non identifiées",
+    anneau:      "Anneau non identifié",
+    amulette:    "Amulette non identifiée",
+};
+function _nomInconnu(def) {
+    if (!def) return "Objet non identifié";
+    if (def.soustype && _LABELS_SOUSTYPE_INCONNU[def.soustype]) return _LABELS_SOUSTYPE_INCONNU[def.soustype];
+    const slot = def.equipable;
+    const label = _LABELS_SLOT_INCONNU[slot];
+    if (!label) return "Objet non identifié";
+    if (typeof label === "string") return label;
+    return label[def.type] || label._default || "Objet non identifié";
+}
+
+const _STATS_MAGIQUES = ['resMagie','resPhys','resFeu','resElec','resPoison','FO','DX','IN','CN','CH','FT','PV','bonusComp'];
+function _estItemMagique(def) {
+    if (!def || !def.stats) return false;
+    return _STATS_MAGIQUES.some(k => def.stats[k] !== undefined && def.stats[k] !== null && def.stats[k] !== 0);
+}
+
+// ── Objets des Arcanes (non identifiés jusqu'à identification) ────────────────
+Object.assign(itemsData, {
+    "AM_ARC1": {
+        nom: "Épée des Arcanes", soustype: "epee",
+        desc: "Une épée imprégnée d'énergie arcanique pure.",
+        type: "arme_melee", rarete: "10", poids: 2.0, prix: 2500,
+        equipable: "main_droite", stackable: false, degats: "8-18", armure: 0, vitesse: 14, portee: 1, degatsFT: 2,
+        stats: { resMagie: 15, FO: 3, FT: 10 }, prerequis: { FO: 8 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "AM_ARC2": {
+        nom: "Masse des Arcanes", soustype: "masse",
+        desc: "Une masse lourde qui vibre d'une énergie mystérieuse.",
+        type: "arme_melee", rarete: "10", poids: 3.5, prix: 2200,
+        equipable: "main_droite", stackable: false, degats: "10-22", armure: 0, vitesse: 10, portee: 1, degatsFT: 3,
+        stats: { resPhys: 10, FO: 5, CN: 2 }, prerequis: { FO: 10 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "AM_ARC3": {
+        nom: "Hache des Arcanes", soustype: "hache",
+        desc: "Une hache dont le tranchant est renforcé par des runes arcanes.",
+        type: "arme_melee", rarete: "10", poids: 4.0, prix: 2300,
+        equipable: "main_droite", stackable: false, degats: "9-20", armure: 0, vitesse: 11, portee: 1, degatsFT: 3,
+        stats: { resFeu: 15, FO: 4, resPhys: 8 }, prerequis: { FO: 9 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "AM_ARC4": {
+        nom: "Marteau à deux mains des Arcanes", soustype: "marteau",
+        desc: "Un marteau de guerre colossal gravé de runes de destruction.",
+        type: "arme_melee", rarete: "10", poids: 7.0, prix: 2800,
+        equipable: "deux_mains", stackable: false, degats: "14-28", armure: 0, vitesse: 8, portee: 1, degatsFT: 4,
+        stats: { resPhys: 12, FO: 6, CN: 3 }, prerequis: { FO: 12 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "DEF_ARC1": {
+        nom: "Armure des Arcanes",
+        desc: "Une armure couverte de runes protectrices.",
+        type: "armure", rarete: "10", poids: 7.0, prix: 3000,
+        equipable: "torse", stackable: false, degats: "0", armure: 12, vitesse: 0, portee: 0,
+        stats: { resPhys: 20, resMagie: 20, resFeu: 10 }, prerequis: { FO: 9 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "DEF_ARC2": {
+        nom: "Casque des Arcanes",
+        desc: "Un casque qui aiguise l'esprit et renforce la volonté.",
+        type: "armure", rarete: "10", poids: 2.0, prix: 1800,
+        equipable: "tete", stackable: false, degats: "0", armure: 6, vitesse: 0, portee: 0,
+        stats: { IN: 3, resMagie: 15, bonusComp: { detection_piege: 3 } }, prerequis: {}, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "DEF_ARC3": {
+        nom: "Gants des Arcanes",
+        desc: "Des gants qui amplifient la précision et la magie.",
+        type: "armure", rarete: "10", poids: 0.8, prix: 1500,
+        equipable: "gants", stackable: false, degats: "0", armure: 4, vitesse: 0, portee: 0,
+        stats: { DX: 3, FT: 15, bonusComp: { crochetage: 2 } }, prerequis: {}, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "DEF_ARC4": {
+        nom: "Bottes des Arcanes",
+        desc: "Des bottes légères qui semblent ne jamais toucher le sol.",
+        type: "armure", rarete: "10", poids: 1.2, prix: 1600,
+        equipable: "bottes", stackable: false, degats: "0", armure: 4, vitesse: 0, portee: 0,
+        stats: { DX: 2, resPoison: 20, bonusComp: { discretion: 4 } }, prerequis: {}, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    },
+    "DEF_ARC5": {
+        nom: "Bouclier des Arcanes",
+        desc: "Un bouclier qui absorbe les énergies magiques et physiques.",
+        type: "armure", rarete: "10", poids: 4.0, prix: 2800,
+        equipable: "main_gauche", stackable: false, degats: "0", armure: 10, vitesse: 0, portee: 0,
+        stats: { resPhys: 15, resMagie: 25, resElec: 15, resFeu: 15 }, prerequis: { FO: 7 }, lootable: true, nbUsages: null,
+        demandeIdentification: true
+    }
+});
 

@@ -1,14 +1,22 @@
 // --- FOUILLE ---
 function ouvrirPromptFouille() {
-    let id = prompt("Entrez l'ID du coffre");
-if (!id) return;
-    
+    const config = window._fouilleActiveConfig;
+    if (!config || !config.actif) {
+        if (typeof _toast === 'function') _toast('⛔ Aucune fouille disponible actuellement.', 'error');
+        return;
+    }
+    // Consommer l'autorisation Firebase
+    const playerID = window.perso?.nom?.replace(/\s+/g, '_');
+    if (playerID && typeof db !== 'undefined') {
+        db.ref('parties/' + sessionActuelle + '/fouille_active/' + playerID).remove();
+    }
     cacherTout();
     document.getElementById('ecran-fouille').style.display = 'block';
-    
-    // Chargement du contenu
-    contenuCoffreActuel = coffresFixes[id] ? [...coffresFixes[id].items] : genererLootAleatoire(parseInt(id) || 3);
-    
+    if (config.type === 'predefini' && coffresFixes[config.id]) {
+        contenuCoffreActuel = [...coffresFixes[config.id].items];
+    } else {
+        contenuCoffreActuel = genererLootAleatoire(config.rarete || 3);
+    }
     actualiserVisuelFouille();
 }
 
@@ -35,10 +43,11 @@ function actualiserVisuelFouille() {
         div.style = "background:#3e2d20; padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #222;";
         
         // Affichage des dégâts ou armure pour aider au choix
-        let infoStats = data.degats && data.degats !== "0" ? ` (⚔️${data.degats})` : (data.armure > 0 ? ` (🛡️${data.armure})` : "");
+        const nomFouille  = data.demandeIdentification ? `❓ ${typeof _nomInconnu === 'function' ? _nomInconnu(data) : 'Objet mystérieux'}` : data.nom;
+        let infoStats     = (!data.demandeIdentification && data.degats && data.degats !== "0") ? ` (⚔️${data.degats})` : ((!data.demandeIdentification && data.armure > 0) ? ` (🛡️${data.armure})` : "");
 
         div.innerHTML = `
-            <span>${data.nom}${infoStats} x${item.qte}</span>
+            <span>${nomFouille}${infoStats} x${item.qte}</span>
             <button onclick="prendreUnObjet(${idx})" style="background:#4caf50; border:none; color:white; padding:5px 10px; cursor:pointer;">Prendre</button>
         `;
         list.appendChild(div);
@@ -46,7 +55,7 @@ function actualiserVisuelFouille() {
 }
 
 
-function ramasserItem(id, qteAjoutee) {
+function ramasserItem(id, qteAjoutee, identifie = true) {
     if (id === "OR_PIECES") {
         if (perso.argent === undefined) perso.argent = 400;
         perso.argent += qteAjoutee;
@@ -57,16 +66,16 @@ function ramasserItem(id, qteAjoutee) {
 
     if (!perso.inventaire) perso.inventaire = [];
     let data = itemsData[id];
-    let existant = perso.inventaire.find(i => i.id === id);
-    
-    if (existant && data.stackable) {
-        // Sécurité anti-NaN avec prise en compte des deux mots
+    // Seuls les items avec demandeIdentification:true (et non arme_feu) arrivent non identifiés
+    const identifieVal = (!identifie && data?.demandeIdentification && data?.type !== 'arme_feu') ? false : true;
+    let existant = perso.inventaire.find(i => i.id === id && i.identifie !== false);
+
+    if (existant && data.stackable && identifieVal) {
         let q = parseInt(existant.qte) || parseInt(existant.quantite) || 1;
         existant.qte = q + qteAjoutee;
-        existant.quantite = existant.qte; 
+        existant.quantite = existant.qte;
     } else {
-        // Ajout au sac avec les DEUX mots
-        perso.inventaire.push({ id: id, qte: qteAjoutee, quantite: qteAjoutee, durabilite: 100, durabiliteMax: 100 });
+        perso.inventaire.push({ id, qte: qteAjoutee, quantite: qteAjoutee, durabilite: 100, durabiliteMax: 100, identifie: identifieVal });
     }
     autoSave();
 }
@@ -76,9 +85,17 @@ function ramasserItem(id, qteAjoutee) {
 let marchandActuel = null;
 
 function ouvrirPromptMarchand() {
-    let nom = prompt("Nom du marchand (ex: marchand_tuto) :");
-    if (!marchandsData[nom]) return alert("Ce marchand n'existe pas.");
-    marchandActuel = marchandsData[nom];
+    const id = window._marchandActifId;
+    if (!id || !marchandsData[id]) {
+        if (typeof _toast === 'function') _toast('⛔ Aucun marchand disponible actuellement.', 'error');
+        return;
+    }
+    // Consommer l'autorisation Firebase
+    const playerID = window.perso?.nom?.replace(/\s+/g, '_');
+    if (playerID && typeof db !== 'undefined') {
+        db.ref('parties/' + sessionActuelle + '/marchand_actif/' + playerID).remove();
+    }
+    marchandActuel = marchandsData[id];
     cacherTout();
     document.getElementById('ecran-marchand').style.display = 'block';
     updateMarchandUI();
@@ -133,6 +150,33 @@ function updateMarchandUI() {
             </div>`;
     });
 
+    // --- SERVICE IDENTIFICATION (marchand magique) ---
+    if (marchandActuel.estMarchandMagique) {
+        const prixIdent = marchandActuel.prixIdentification || 150;
+        const nonIdent  = (perso.inventaire || []).filter(it => it.identifie === false);
+        let sectionIdent = document.getElementById('section-identification-marchand');
+        if (!sectionIdent) {
+            sectionIdent = document.createElement('div');
+            sectionIdent.id = 'section-identification-marchand';
+            sectionIdent.style.cssText = 'border:1px solid #7c4dff;border-radius:6px;padding:12px;margin:12px 0;background:#1a0d2e;';
+            document.getElementById('ecran-marchand').querySelector('.skill-row')?.before(sectionIdent)
+                || document.getElementById('inventaire-marchand').after(sectionIdent);
+        }
+        if (nonIdent.length === 0) {
+            sectionIdent.innerHTML = `<div style="color:#888;font-style:italic;">🔮 Identification — Aucun objet non identifié dans votre sac.</div>`;
+        } else {
+            let btns = nonIdent.map((it, idx) => {
+                const realIdx = perso.inventaire.indexOf(it);
+                const def = itemsData[it.id];
+                return `<button onclick="marchandIdentifierObjet(${realIdx}, ${prixIdent})"
+                    style="background:#2e1f4d;color:#ce93d8;border:1px solid #7c4dff;padding:7px 10px;border-radius:4px;cursor:pointer;font-size:0.85em;margin:3px;">
+                    ❓ ${def?.nom || it.id} — ${prixIdent} Or
+                </button>`;
+            }).join('');
+            sectionIdent.innerHTML = `<div style="color:#ce93d8;font-weight:bold;margin-bottom:8px;">🔮 Service d'identification (${prixIdent} Or / objet)</div>${btns}`;
+        }
+    }
+
     // --- VOTRE INVENTAIRE (VENTE) ---
     let listV = document.getElementById('votre-inventaire-vente');
     listV.innerHTML = "";
@@ -177,7 +221,7 @@ function updateMarchandUI() {
 
 function prendreUnObjet(index) {
     let item = contenuCoffreActuel[index];
-    ramasserItem(item.id, item.qte); // Utilise ta fonction existante qui save et alerte
+    ramasserItem(item.id, item.qte, false); // false = peut être non identifié si magique
     
     // Retirer l'objet de la liste locale
     contenuCoffreActuel.splice(index, 1);
@@ -190,7 +234,7 @@ function toutPrendre() {
     if (contenuCoffreActuel.length === 0) return;
     
     contenuCoffreActuel.forEach(item => {
-        ramasserItem(item.id, item.qte);
+        ramasserItem(item.id, item.qte, false);
     });
     
     contenuCoffreActuel = [];
@@ -217,12 +261,30 @@ function acheterItem(idx, prixUnitaire) {
 
     perso.argent -= prixTotal;
     marchandActuel.argent += prixTotal;
-    ramasserItem(itemEnVente.id, qteAAcheter); 
+    if (typeof _incStatPartie === 'function') _incStatPartie('or_depense', prixTotal);
+    ramasserItem(itemEnVente.id, qteAAcheter);
     itemEnVente.qte -= qteAAcheter;
 
     if (itemEnVente.qte <= 0) marchandActuel.inventaire.splice(idx, 1);
 
     autoSave();
+    updateMarchandUI();
+}
+
+function marchandIdentifierObjet(idx, prix) {
+    const item = perso.inventaire[idx];
+    if (!item || item.identifie !== false) return;
+    if (perso.argent < prix) {
+        alert("Vous n'avez pas assez d'or ! (" + prix + " Or requis)");
+        return;
+    }
+    perso.argent -= prix;
+    if (marchandActuel) marchandActuel.argent += prix;
+    item.identifie = true;
+    const def = itemsData[item.id];
+    autoSave();
+    const props = (typeof _descStatsItem === 'function') ? _descStatsItem(def) : '';
+    alert("✨ " + (def?.nom || item.id) + " identifié !" + props);
     updateMarchandUI();
 }
 

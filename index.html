@@ -9,9 +9,9 @@
 <body>
 
 <button onclick="toggleMute()" id="btn-audio" style="position:fixed; top:10px; right:10px; z-index:1000;">🔊</button>
-<button onclick="ouvrirPatchNotes()" style="position:fixed;top:10px;left:10px;z-index:1000;background:rgba(30,20,10,0.85);color:#d4af37;border:1px solid #d4af37;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;" title="Notes de mise à jour">ℹ</button>
+<button id="btn-patch-notes" onclick="ouvrirPatchNotes()" style="position:fixed;top:10px;left:10px;z-index:1000;background:rgba(30,20,10,0.85);color:#d4af37;border:1px solid #d4af37;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;" title="Notes de mise à jour">ℹ</button>
 
-<!-- Modal Journal (4 onglets) -->
+<!-- Modal Journal (5 onglets) -->
 <div id="modal-journal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#0d0d14;border:2px solid #5c3a9d;border-radius:10px;padding:0;max-width:540px;width:94%;max-height:88vh;overflow:hidden;position:relative;display:flex;flex-direction:column;">
         <!-- En-tête -->
@@ -26,6 +26,7 @@
             <button onclick="ouvrirJournal('effets')"   id="jt-effets"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">✨ Bénédictions</button>
             <button onclick="ouvrirJournal('antecedent')" id="jt-antecedent" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Antécédent</button>
             <button onclick="ouvrirJournal('stats')"    id="jt-stats"     style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📊 Statistiques</button>
+            <button onclick="ouvrirJournal('succes')"   id="jt-succes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">🏆 Succès</button>
         </div>
         <!-- Contenu -->
         <div id="journal-contenu" style="overflow-y:auto;padding:16px;color:#ccc;font-size:0.88em;line-height:1.6;flex:1;"></div>
@@ -92,13 +93,13 @@
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; width: 90%; margin-left: auto; margin-right: auto; flex-wrap: wrap;">
-            <button class="next-btn" style="background:#607d8b; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
-            <button class="next-btn" style="background:#795548; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
-            <button class="next-btn" style="background:#443322; border: 1px solid #d4af37; color: #d4af37; font-size: 0.8em; flex: 1; min-width: 80px;" onclick="allerInventaire()">🎒 Sac à dos</button>
-            <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px;">⚙️ Artisanat</button>
-            <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px;">🔮 Magie</button>
-            <button id="btn-menu-groupe" onclick="ouvrirEcranGroupe()" style="display: none; background: #2e4d23; color: #4caf50; border: 1px solid #4caf50; flex: 1; min-width: 80px;">👥 Groupe</button>
-            <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px;">🤝 Compagnons</button>
+            <button id="btn-menu-fouiller" class="next-btn" style="display:none; background:#607d8b; font-size: 0.8em; flex: 1; min-width: 80px; flex-direction:column; align-items:center; justify-content:center;" onclick="ouvrirPromptFouille()">🔍 Fouiller</button>
+            <button id="btn-menu-marchander" class="next-btn" style="display:none; background:#795548; font-size: 0.8em; flex: 1; min-width: 80px; flex-direction:column; align-items:center; justify-content:center;" onclick="ouvrirPromptMarchand()">⚖️ Marchander</button>
+            <button class="next-btn" style="background:#443322; border: 1px solid #d4af37; color: #d4af37; font-size: 0.8em; flex: 1; min-width: 80px; display:flex; flex-direction:column; align-items:center; justify-content:center;" onclick="allerInventaire()">🎒 Sac à dos</button>
+            <button id="btn-menu-craft" onclick="ouvrirEcranCraft()" style="display: none; background: #ff9800; color: white; flex: 1; min-width: 80px; text-align:center;">⚙️ Artisanat</button>
+            <button id="btn-menu-magie" onclick="ouvrirMagieAccueil()" style="display: none; background: #673ab7; color: white; flex: 1; min-width: 80px; text-align:center;">🔮 Magie</button>
+            <button id="btn-menu-groupe" onclick="ouvrirEcranGroupe()" style="display: none; background: #2e4d23; color: #4caf50; border: 1px solid #4caf50; flex: 1; min-width: 80px; text-align:center;">👥 Groupe</button>
+            <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px; text-align:center;">🤝 Compagnons</button>
         </div>
 
         <div style="margin-top:10px; width:90%; margin-left:auto; margin-right:auto;">
@@ -766,6 +767,7 @@
 <script src="js/carte.js"></script>
 <script src="js/donjon.js"></script>
 <script src="js/codex.js"></script>
+<script src="js/succes.js"></script>
 <script src="js/main.js"></script>
 <script src="js/combat.js"></script>
 

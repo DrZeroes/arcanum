@@ -225,7 +225,8 @@ if (snapshot.val()) {
 
             // Notifications et Sauvegardes
             if (typeof _toast === 'function') _toast(`🎁 ${data.expediteur || "Le MJ"} vous a donné : ${quantiteRecue}x ${nomObjet}`, 'gold');
-            
+            if (data.expediteur && data.expediteur !== 'Le Maître du Jeu' && typeof _incStatPartie === 'function') _incStatPartie('objets_recus', 1);
+
             if (typeof autoSave === "function") autoSave();
             if (typeof updateInventaireUI === "function") updateInventaireUI();
             
@@ -394,6 +395,69 @@ function activerEcouteurVolATire() {
     });
 }
 
+function activerEcouteurMarchand() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/marchand_actif/' + playerID);
+    ref.off();
+    ref.on('value', (snap) => {
+        const data = snap.val();
+        const btn = document.getElementById('btn-menu-marchander');
+        if (!btn) return;
+        if (data && data.actif) {
+            window._marchandActifId = data.marchandId;
+            btn.style.display = 'flex';
+        } else {
+            window._marchandActifId = null;
+            btn.style.display = 'none';
+        }
+    });
+}
+
+function activerEcouteurSucces() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/succes');
+    ref.off();
+    ref.on('value', (snap) => {
+        const succes = snap.val() || {};
+        const avant  = JSON.stringify(window.perso.succes || {});
+        // Détecter les nouveaux succès (déblocage MJ)
+        if (window.perso.succes) {
+            Object.keys(succes).forEach(id => {
+                if (!window.perso.succes[id]) {
+                    // Nouveau succès reçu du MJ
+                    const def = (typeof succesData !== 'undefined') ? succesData.find(s => s.id === id) : null;
+                    if (def && typeof _toast === 'function') {
+                        _toast(`🏆 Succès débloqué : ${def.icone} ${def.nom}`, 'gold');
+                    }
+                }
+            });
+        }
+        window.perso.succes = succes;
+        if (JSON.stringify(succes) !== avant && typeof autoSave === 'function') autoSave();
+    });
+}
+
+function activerEcouteurFouille() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/fouille_active/' + playerID);
+    ref.off();
+    ref.on('value', (snap) => {
+        const data = snap.val();
+        const btn = document.getElementById('btn-menu-fouiller');
+        if (!btn) return;
+        if (data && data.actif) {
+            window._fouilleActiveConfig = data;
+            btn.style.display = 'flex';
+        } else {
+            window._fouilleActiveConfig = null;
+            btn.style.display = 'none';
+        }
+    });
+}
+
 /**
  * Effectue le jet de vol à la tire et applique le résultat.
  * Appelée par le bouton "Tenter le vol" sur l'accueil.
@@ -434,6 +498,7 @@ function tenterVolATire() {
             if (typeof autoSave === 'function') autoSave();
             if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
             if (typeof _toast === 'function') _toast(`🤏 Vol réussi ! (${roll}/${chance}%) Subtilisé : ${qte} pièces d'or !`, 'success');
+            if (typeof _incStatPartie === 'function') _incStatPartie('vols_reussis', 1);
             return;
         }
 
@@ -450,6 +515,8 @@ function tenterVolATire() {
                 objetGagne = candidats[Math.floor(Math.random() * candidats.length)];
             }
         }
+
+        if (typeof _incStatPartie === 'function') _incStatPartie('vols_reussis', 1);
 
         if (objetGagne && typeof itemsData !== 'undefined') {
             const data = itemsData[objetGagne];
@@ -766,9 +833,11 @@ function activerEcouteurStats() {
         // --- STATS DE PARTIE ---
         if (typeof _incStatPartie === 'function') {
             if (data.stat === 'PV' && data.valeur < 0) {
-                // PV vraiment perdus (après armure/esquive — valeurEffective est négatif si dégâts)
                 const perdu = Math.abs(Math.min(0, valeurEffective ?? data.valeur));
                 if (perdu > 0) _incStatPartie('pv_perdus', perdu);
+            }
+            if (data.stat === 'PV' && data.valeur > 0) {
+                _incStatPartie('soins_recus', data.valeur);
             }
         }
 
@@ -1045,6 +1114,9 @@ function activerEcouteurCompagnons() {
                 npc.inventaire     = mem.inventaire     ? JSON.parse(JSON.stringify(mem.inventaire))     : npc.inventaire;
             }
             comps.push(npc);
+            if (!npcBase.estFamilier && typeof _incStatPartie === 'function') {
+                _incStatPartie('compagnons_debloques', 1);
+            }
             if (typeof _toast === 'function') _toast(`🤝 ${npc.nom} rejoint votre groupe !`, 'success');
         }
         else if (data.type === 'levelup') {
@@ -1162,7 +1234,19 @@ function activerEcouteurCompagnons() {
         }
         // Affiche/masque le bouton accueil
         const btnComp = document.getElementById('btn-menu-compagnons');
-        if (btnComp) btnComp.style.display = comps.length > 0 ? 'inline-block' : 'none';
+        if (btnComp) {
+            if (comps.length > 0) {
+                btnComp.style.display = 'inline-block';
+            } else if (typeof db !== 'undefined' && typeof sessionActuelle !== 'undefined') {
+                const _uidC = (window.perso?.nom || '').replace(/\s+/g, '_');
+                db.ref('parties/' + sessionActuelle + '/familiers/' + _uidC).once('value', function(sf) {
+                    const fam = sf.val();
+                    btnComp.style.display = (fam && (fam.pvActuel === undefined || fam.pvActuel > 0)) ? 'inline-block' : 'none';
+                });
+            } else {
+                btnComp.style.display = 'none';
+            }
+        }
     });
 }
 
@@ -1399,6 +1483,11 @@ function activerEcouteurPartageLieux() {
         if (!window.perso.lieuxConnus.includes(idLieu)) {
             window.perso.lieuxConnus.push(idLieu);
             if (typeof rafraichirPointsCarte === "function") rafraichirPointsCarte();
+            // Succès villes
+            const lieuDef = (typeof lieuxDecouverts !== 'undefined') ? lieuxDecouverts[idLieu] : null;
+            if (lieuDef?.estVille && typeof _incStatPartie === 'function') {
+                _incStatPartie('villes_decouvertes', 1);
+            }
         }
     });
 }
@@ -1591,6 +1680,7 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
             if (typeof updateInventaireUI === "function") updateInventaireUI();
             
             if (typeof _toast === 'function') _toast(`🎁 ${nomObjet} envoyé !`, 'success');
+            if (typeof _incStatPartie === 'function') _incStatPartie('objets_donnes', 1);
         }
     });
 }
@@ -1639,6 +1729,9 @@ function demarrerMoteurMulti() {
     activerEcouteurCompagnons();
     _syncCompagnonsSummary();
     activerEcouteurVolATire();
+    activerEcouteurMarchand();
+    activerEcouteurFouille();
+    activerEcouteurSucces();
     activerEcouteurQuetes();
     activerEcouteurDonjon();
     activerRadarGroupeAccueil();

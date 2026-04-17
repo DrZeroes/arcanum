@@ -414,7 +414,7 @@ const backgrounds = [
         rest: {races:["Humain", "Gnome", "Demi-Orque"]}, 
         mod: {FO:-1, CN:-1, resFeu:30, bonusComp: { lancer : 2}, techInit: { "Explosifs": 1 },
 		items: [
-                { id: "CONS01", qte: 1 }
+                { id: "TEC01", qte: 1 }
             ]
 			}, 
         desc: "Tu aimes le feu. Non, tu aimes le feu ! Feu ! Feu ! FEU ! Enfant, on vous harcelait toujours parce que vous étiez maigre et que vous receviez des pénalités en Force et Constitution, mais tu leur as montré ! Tu as étudié Explosifs et vous avez brûlé leurs maisons ! Je les ai brûlés jusqu'au sol ! Ha ha! Ensuite, vous vous êtes enfui de chez vous et vous êtes faufilé à bord de l'IFS Zephyr, qui semblait hautement inflammable et une excellente cible. Vous auriez probablement incendié le zeppelin s'il n'avait pas été abattu.",

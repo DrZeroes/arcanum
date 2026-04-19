@@ -205,7 +205,21 @@ function _afficherOrdreTour(data) {
                       : 'tour-ennemi';
         const estMoi = p.type === 'joueur' && p.nom === moiNom;
         const cls = `combat-tour-pill ${typeCls}${estActuel ? ' actuel' : ''}${estMoi ? ' tour-moi' : ''}`;
-        return `<div class="${cls}">${estActuel ? '▶ ' : ''}${p.nom}<span class="tour-vitesse">⚡${p.vitesse}</span></div>`;
+
+        let portraitUrl = null;
+        if (p.type === 'joueur') {
+            portraitUrl = (typeof getPortraitJoueur === 'function') ? getPortraitJoueur(window.perso) : null;
+        } else if (p.type === 'compagnon' || p.type === 'invoque') {
+            const cmpEntry = typeof compagnonsData !== 'undefined'
+                ? Object.values(compagnonsData).find(c => c.nom === p.nom)
+                : null;
+            portraitUrl = cmpEntry?.portrait || null;
+        }
+        const imgHtml = portraitUrl
+            ? `<img src="${portraitUrl}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:3px;display:block;margin:0 auto 2px;">`
+            : '';
+
+        return `<div class="${cls}" style="flex-direction:column;align-items:center;min-width:52px;">${imgHtml}${estActuel ? '▶ ' : ''}${p.nom}<span class="tour-vitesse">⚡${p.vitesse}</span></div>`;
     });
     bar.innerHTML = frags.join('<span class="tour-fleche">›</span>');
 

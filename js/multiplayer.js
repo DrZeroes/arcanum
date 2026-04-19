@@ -1083,26 +1083,38 @@ function activerEcouteurCompagnons() {
         const comps = window.perso.compagnons;
 
         if (data.type === 'don') {
-            const npcBase = (typeof personnagesNPC !== 'undefined') ? personnagesNPC[data.npcId] : null;
-            if (!npcBase) { if (typeof _toast === 'function') _toast('⚠️ PNJ introuvable.', 'error'); return; }
+            // Résolution : compagnonsData en priorité, fallback sur personnagesNPC
+            let npcBase = null;
+            let sourceId = null;
+            if (data.compagnonId && typeof compagnonsData !== 'undefined' && compagnonsData[data.compagnonId]) {
+                npcBase  = compagnonsData[data.compagnonId];
+                sourceId = data.compagnonId;
+            } else if (data.npcId && typeof personnagesNPC !== 'undefined' && personnagesNPC[data.npcId]) {
+                npcBase  = personnagesNPC[data.npcId];
+                sourceId = data.npcId;
+            }
+            if (!npcBase) { if (typeof _toast === 'function') _toast('⚠️ Compagnon introuvable.', 'error'); return; }
+
+            // Compagnons prndSlot:false (Barnabé, Arronax…) ne comptent pas dans le max
             const statCH = (window.perso.statsBase?.CH || 0) + (window.perso.statsInvesties?.CH || 0);
             const maxComps = Math.max(1, Math.floor(statCH / 4));
-            if (comps.length >= maxComps) {
+            const compsSlot = comps.filter(c => c.prndSlot !== false);
+            if (npcBase.prndSlot !== false && compsSlot.length >= maxComps) {
                 if (typeof _toast === 'function') _toast(`⚠️ Limite atteinte (${maxComps} max selon CH).`, 'error');
                 return;
             }
-            // Un seul exemplaire du même compagnon par groupe (check npcId ET nom)
-            if (comps.some(c => c.npcId === data.npcId || c.nom === npcBase.nom)) {
+            // Un seul exemplaire du même compagnon par groupe
+            if (comps.some(c => (c.compagnonId && c.compagnonId === sourceId) || c.nom === npcBase.nom)) {
                 if (typeof _toast === 'function') _toast(`⚠️ ${npcBase.nom} est déjà dans votre groupe.`, 'error');
                 return;
             }
             // Repart toujours de la définition fraîche (npcBase) pour avoir tous les champs à jour
             // puis réapplique la progression sauvegardée si elle existe
             const npc = JSON.parse(JSON.stringify(npcBase));
-            npc.npcId = data.npcId;
+            npc.compagnonId = sourceId;
             const memoire = window.perso.compagnonsMemoire || {};
-            if (memoire[data.npcId]) {
-                const mem = memoire[data.npcId];
+            if (memoire[sourceId]) {
+                const mem = memoire[sourceId];
                 // Réapplique uniquement la progression (pas les champs de base)
                 npc.niveau         = mem.niveau || npc.niveau;
                 npc.xp             = mem.xp || 0;
@@ -1112,6 +1124,14 @@ function activerEcouteurCompagnons() {
                 npc.magieInvesties = mem.magieInvesties ? JSON.parse(JSON.stringify(mem.magieInvesties)) : (npc.magieInvesties || {});
                 npc.compInvesties  = mem.compInvesties  ? JSON.parse(JSON.stringify(mem.compInvesties))  : npc.compInvesties;
                 npc.inventaire     = mem.inventaire     ? JSON.parse(JSON.stringify(mem.inventaire))     : npc.inventaire;
+            }
+            // Initialise pvActuel/ftActuel si le compagnon n'a pas de mémoire
+            if (npc.pvActuel === undefined || npc.pvActuel === null) {
+                const fo  = (npc.statsBase?.FO || 3) + (npc.statsInvesties?.FO || 0);
+                const ini = (npc.statsBase?.IN || 3) + (npc.statsInvesties?.IN || 0);
+                const cn  = (npc.statsBase?.CN || 3) + (npc.statsInvesties?.CN || 0);
+                npc.pvActuel = (fo * 2) + ini + (npc.boostPV || 0);
+                npc.ftActuel = (cn * 2) + ini + (npc.boostFT || 0);
             }
             comps.push(npc);
             if (!npcBase.estFamilier && typeof _incStatPartie === 'function') {
@@ -1411,7 +1431,11 @@ function _syncCompagnonsSummary() {
             idx: i,
             nom: c.nom,
             niveau: c.niveau || 1,
+            compagnonId: c.compagnonId || null,
             npcId: c.npcId || null,
+            portrait: c.portrait || null,
+            race: c.race || null,
+            sexe: c.sexe || null,
             xp: c.xp || 0,
             pvActuel: c.pvActuel ?? cPvMax,
             pvMax: cPvMax,
@@ -1419,10 +1443,17 @@ function _syncCompagnonsSummary() {
             ftMax: cFtMax,
             statsBase: c.statsBase || null,
             statsInvesties: c.statsInvesties || null,
+            rangsComp: c.rangsComp || null,
             magieInvesties: c.magieInvesties || null,
+            techInvesties: c.techInvesties || null,
             compInvesties: c.compInvesties || null,
             inventaire: c.inventaire || null,
             equipement: c.equipement || null,
+            notes: c.notes || null,
+            contrainte: c.contrainte || null,
+            lieu: c.lieu || null,
+            prndSlot: c.prndSlot,
+            temporaire: c.temporaire || false,
             estMort: c.estMort || false
         };
     });

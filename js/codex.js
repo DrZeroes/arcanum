@@ -344,6 +344,7 @@ function rafraichirListeJoueursMJ() {
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:#d4af37; font-size:11px;">🤝 ${c.nom} <span style="color:#888;">Niv.${c.niveau}</span></span>
                             <span style="display:flex; gap:3px;">
+                                <button onclick="mjOuvrirFicheCompagnon('${id}', ${c.idx})" style="background:#1a1a2e; color:#9575cd; border:1px solid #4a3a7a; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">📋 Fiche</button>
                                 <button onclick="mjLevelUpCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🌟 LvUp</button>
                                 <button onclick="mjAjouterItemCompagnon('${id}', ${c.idx})" style="background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🎒 Item</button>
                                 <button onclick="mjRenvoyerCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#3a1010; color:#ff6b6b; border:1px solid #8b0000; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">✕</button>
@@ -435,27 +436,111 @@ function mjKickJoueur(playerID, nomJoueur) {
 // ── GESTION DES COMPAGNONS (MJ) ────────────────────────────────────────────
 
 /**
- * Le MJ assigne un PNJ de personnagesNPC comme compagnon à un joueur.
- * Vérifie côté joueur si le max CH est atteint.
+ * Le MJ assigne un compagnon (depuis compagnonsData) à un joueur.
+ * Affiche une modal avec portraits, nom, niveau, race, contrainte.
  */
 function mjDonnerCompagnon(playerID, playerNom) {
-    if (typeof personnagesNPC === 'undefined') return;
-    const liste = Object.entries(personnagesNPC)
-        .map(([id, npc]) => `${id}  →  ${npc.nom} (Niv.${npc.niveau}, ${npc.race})`)
-        .join('\n');
-    const choixId = prompt(`Compagnon à attribuer à ${playerNom} :\n\n${liste}\n\nID :`);
-    if (!choixId) return;
-    if (!personnagesNPC[choixId]) { if (typeof _toast === 'function') _toast('ID introuvable.', 'error'); return; }
+    if (typeof compagnonsData === 'undefined') return;
+    document.getElementById('mj-modal-compagnon')?.remove();
 
-    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
-        type: 'don',
-        npcId: choixId.trim(),
-        timestamp: Date.now()
+    // Lit tous les compagnons actifs de tous les joueurs pour griser les déjà assignés
+    db.ref('parties/' + sessionActuelle + '/compagnons').once('value', snapComps => {
+        const tousComps = snapComps.val() || {};
+        // Ensemble des compagnonId déjà dans n'importe quel groupe
+        const dejaAssignes = new Set();
+        for (const uid in tousComps) {
+            const liste = tousComps[uid];
+            if (Array.isArray(liste)) {
+                liste.forEach(c => { if (c?.compagnonId) dejaAssignes.add(c.compagnonId); });
+            }
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'mj-modal-compagnon';
+        overlay.style.cssText = `
+            position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);
+            display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+            padding:24px 12px;overflow-y:auto;
+        `;
+
+        const _fermer = () => overlay.remove();
+        overlay.addEventListener('click', e => { if (e.target === overlay) _fermer(); });
+
+        const _assigner = (id) => {
+            if (dejaAssignes.has(id)) return; // sécurité côté client
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
+                type: 'don', compagnonId: id, timestamp: Date.now()
+            });
+            if (typeof _toast === 'function') _toast(`🤝 Compagnon envoyé à ${playerNom} !`, 'success');
+            _fermer();
+        };
+
+        let html = `
+            <div style="width:100%;max-width:860px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <span style="color:#d4af37;font-size:1.1em;font-weight:bold;">🤝 Donner un compagnon à <em style="color:#fff;">${playerNom}</em></span>
+                    <button onclick="document.getElementById('mj-modal-compagnon')?.remove()"
+                        style="background:#3a1010;color:#ff6b6b;border:1px solid #8b0000;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.9em;">✕ Fermer</button>
+                </div>
+                <input id="mj-cmp-search" type="text" placeholder="Rechercher…"
+                    style="width:100%;box-sizing:border-box;padding:7px 10px;background:#111;border:1px solid #444;color:#eee;border-radius:4px;margin-bottom:12px;font-size:0.9em;">
+                <div id="mj-cmp-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
+        `;
+
+        for (const [id, cmp] of Object.entries(compagnonsData)) {
+            const pris = dejaAssignes.has(id);
+            const badgeTemp = cmp.temporaire    ? `<span style="color:#e57373;font-size:0.7em;"> [temp]</span>` : '';
+            const badgeSlot = cmp.prndSlot === false ? `<span style="color:#9575cd;font-size:0.7em;"> [hors-slot]</span>` : '';
+            const badgePris = pris               ? `<div style="color:#ef9a9a;font-size:0.7em;margin-top:2px;">✗ déjà assigné</div>` : '';
+            html += `
+                <div class="mj-cmp-card" data-nom="${cmp.nom.toLowerCase()}"
+                    onclick="(function(){ document.getElementById('mj-modal-compagnon').__assign('${id}'); })()"
+                    style="background:${pris ? '#111' : '#1a1a1a'};border:1px solid ${pris ? '#3a1010' : '#333'};
+                           border-radius:6px;padding:8px;text-align:center;transition:border-color 0.15s;
+                           cursor:${pris ? 'not-allowed' : 'pointer'};opacity:${pris ? '0.45' : '1'};"
+                    ${!pris ? `onmouseover="this.style.borderColor='#d4af37'" onmouseout="this.style.borderColor='#333'"` : ''}>
+                    <img src="${cmp.portrait}" alt="${cmp.nom}"
+                        style="width:80px;height:80px;object-fit:cover;border-radius:4px;margin-bottom:5px;display:block;margin-left:auto;margin-right:auto;"
+                        onerror="this.style.display='none'">
+                    <div style="color:${pris ? '#666' : '#eee'};font-size:0.82em;font-weight:bold;line-height:1.2;">${cmp.nom}${badgeTemp}${badgeSlot}</div>
+                    <div style="color:#888;font-size:0.72em;margin-top:2px;">Niv.${cmp.niveau} · ${cmp.race}</div>
+                    <div style="color:#666;font-size:0.68em;margin-top:3px;line-height:1.2;">${cmp.lieu}</div>
+                    ${badgePris}
+                </div>
+            `;
+        }
+
+        html += '</div></div>';
+        overlay.innerHTML = html;
+        overlay.__assign = _assigner;
+
+        overlay.querySelector('#mj-cmp-search').addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            overlay.querySelectorAll('.mj-cmp-card').forEach(card => {
+                card.style.display = card.dataset.nom.includes(q) ? '' : 'none';
+            });
+        });
+
+        document.body.appendChild(overlay);
+        overlay.querySelector('#mj-cmp-search').focus();
+    });
+}
+
+/** Ouvre la fiche complète d'un compagnon depuis le codex MJ (lecture Firebase). */
+function mjOuvrirFicheCompagnon(playerID, compIdx) {
+    db.ref('parties/' + sessionActuelle + '/compagnons/' + playerID).once('value', snap => {
+        const liste = snap.val();
+        const arr = Array.isArray(liste) ? liste : (liste ? Object.values(liste) : []);
+        const cmp = arr.find(c => c.idx === compIdx) || arr[compIdx];
+        if (!cmp) return;
+        if (typeof ouvrirFicheCompagnon === 'function') ouvrirFicheCompagnon(cmp);
     });
 }
 
 /**
- * Panel de level-up compagnon (MJ) — stats, compétences, tech, magie.
+ * Panel de level-up compagnon (MJ) — lit Firebase, affiche les valeurs actuelles,
+ * désactive les boutons quand le cap est atteint.
+ * Caps : stats investies ≤ 10, compétences ≤ 20, magie ≤ 5, tech ≤ 5.
  */
 function mjLevelUpCompagnon(playerID, compIdx, compNom) {
     const containerId = 'lvup-panel-' + playerID + '-' + compIdx;
@@ -465,61 +550,98 @@ function mjLevelUpCompagnon(playerID, compIdx, compNom) {
     const parent = document.querySelector(`[data-comp-key="${playerID}-${compIdx}"]`);
     if (!parent) return;
 
-    const _envoyer = (payload) => {
-        payload.type = 'levelup';
-        payload.compIdx = compIdx;
-        payload.timestamp = Date.now();
-        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set(payload);
-        document.getElementById(containerId)?.remove();
-        if (typeof _toast === 'function') _toast('🌟 Level-up envoyé à ' + compNom + ' !', 'gold');
-    };
+    // Lit les données actuelles du compagnon pour afficher les valeurs et vérifier les caps
+    db.ref('parties/' + sessionActuelle + '/compagnons/' + playerID).once('value', snap => {
+        const liste = snap.val();
+        const arr = Array.isArray(liste) ? liste : (liste ? Object.values(liste) : []);
+        const comp = arr.find(c => c.idx === compIdx) || arr[compIdx] || {};
 
-    // --- Stats ---
-    let html = '<div class="lvup-titre">🌟 ' + compNom + ' — Améliorer :</div>';
-    html += '<div class="lvup-section-titre">📊 Stats</div>';
-    html += ['FO','IN','CN','DX','CH'].map(s =>
-        `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:s})}'>+1 ${s}</button>`
-    ).join('');
+        const statsInv  = comp.statsInvesties  || {};
+        const compInv   = comp.compInvesties   || {};
+        const magieInv  = comp.magieInvesties  || {};
+        const techInv   = comp.techInvesties   || {};
 
-    // --- Compétences ---
-    html += '<div class="lvup-section-titre">⚔ Compétences</div>';
-    if (typeof competencesData !== 'undefined') {
-        for (let cat in competencesData) {
-            competencesData[cat].forEach(c => {
-                html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'comp', competence:c.id})}'>${c.nom}</button>`;
+        const CAP_STAT  = 10;
+        const CAP_COMP  = 20;
+        const CAP_MAGIE = 5;
+        const CAP_TECH  = 5;
+
+        const _envoyer = (payload) => {
+            payload.type = 'levelup';
+            payload.compIdx = compIdx;
+            payload.timestamp = Date.now();
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set(payload);
+            document.getElementById(containerId)?.remove();
+            if (typeof _toast === 'function') _toast('🌟 Level-up envoyé à ' + compNom + ' !', 'gold');
+        };
+
+        const _btn = (label, val, cap, action, extra = '') => {
+            const atCap = val >= cap;
+            const pct   = cap > 0 ? Math.round((val / cap) * 100) : 0;
+            return `<button class="comp-levelup-btn${atCap ? ' lvup-disabled' : ''}"
+                ${atCap ? 'disabled title="Maximum atteint"' : `data-action='${JSON.stringify(action)}'`}
+                style="${atCap ? 'opacity:0.35;cursor:not-allowed;' : ''}">
+                ${label} <span style="color:${atCap ? '#e57373' : '#4caf50'};font-size:0.8em;">${val}/${cap}</span>${extra}
+            </button>`;
+        };
+
+        let html = `<div class="lvup-titre">🌟 ${compNom} — Améliorer :</div>`;
+
+        // --- Stats ---
+        html += '<div class="lvup-section-titre">📊 Stats</div>';
+        ['FO','IN','CN','DX','CH'].forEach(s => {
+            html += _btn(`+1 ${s}`, statsInv[s] || 0, CAP_STAT, { stat: s });
+        });
+
+        // --- Compétences ---
+        html += '<div class="lvup-section-titre">⚔ Compétences</div>';
+        if (typeof competencesData !== 'undefined') {
+            for (const cat in competencesData) {
+                competencesData[cat].forEach(skill => {
+                    const cur = compInv[skill.id] || 0;
+                    // Prérequis stat : la stat gouvernante doit être ≥ 7 (total base+investie)
+                    const statTotale = (comp.statsBase?.[skill.stat] || 0) + (statsInv[skill.stat] || 0);
+                    const prereqOk = statTotale >= 7;
+                    const note = !prereqOk ? ` <span style="color:#ef9a9a;font-size:0.72em;">${skill.stat}&lt;7</span>` : '';
+                    const atCap = cur >= CAP_COMP || !prereqOk;
+                    html += `<button class="comp-levelup-btn${atCap ? ' lvup-disabled' : ''}"
+                        ${atCap ? 'disabled' : `data-action='${JSON.stringify({stat:'comp', competence:skill.id})}'`}
+                        style="${atCap ? 'opacity:0.35;cursor:not-allowed;' : ''}">
+                        ${skill.nom}${note} <span style="color:${cur >= CAP_COMP ? '#e57373' : '#4caf50'};font-size:0.8em;">${cur}/${CAP_COMP}</span>
+                    </button>`;
+                });
+            }
+        }
+
+        // --- Magie ---
+        html += '<div class="lvup-section-titre">✨ Magie</div>';
+        if (typeof magieData !== 'undefined') {
+            Object.keys(magieData).forEach(ecole => {
+                html += _btn(ecole, magieInv[ecole] || 0, CAP_MAGIE, { stat: 'magie', ecole });
             });
         }
-    }
 
-    // --- Technologie ---
-    html += '<div class="lvup-section-titre">⚙ Technologie</div>';
-    if (typeof techData !== 'undefined') {
-        Object.keys(techData).forEach(d => {
-            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'tech', discipline:d})}'>${d}</button>`;
+        // --- Technologie ---
+        html += '<div class="lvup-section-titre">⚙ Technologie</div>';
+        if (typeof techData !== 'undefined') {
+            Object.keys(techData).forEach(disc => {
+                html += _btn(disc, techInv[disc] || 0, CAP_TECH, { stat: 'tech', discipline: disc });
+            });
+        }
+
+        const panel = document.createElement('div');
+        panel.id = containerId;
+        panel.className = 'comp-levelup-panel';
+        panel.innerHTML = html;
+
+        panel.addEventListener('click', e => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            _envoyer(JSON.parse(btn.dataset.action));
         });
-    }
 
-    // --- Magie ---
-    html += '<div class="lvup-section-titre">✨ Magie</div>';
-    if (typeof magieData !== 'undefined') {
-        Object.keys(magieData).forEach(e => {
-            html += `<button class="comp-levelup-btn" data-action='${JSON.stringify({stat:'magie', ecole:e})}'>${e}</button>`;
-        });
-    }
-
-    const panel = document.createElement('div');
-    panel.id = containerId;
-    panel.className = 'comp-levelup-panel';
-    panel.innerHTML = html;
-
-    // Délégation d'événement unique
-    panel.addEventListener('click', e => {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-        _envoyer(JSON.parse(btn.dataset.action));
+        parent.after(panel);
     });
-
-    parent.after(panel);
 }
 
 /**
@@ -2409,7 +2531,7 @@ function mjLancerDonjon() {
             positions,
             ordre_joueurs: ordre,
             tour_actuel:   0,
-            log:           {}
+            log:           {},
         };
 
         db.ref('parties/' + sessionActuelle + '/donjon_actif').set(payload).then(() => {

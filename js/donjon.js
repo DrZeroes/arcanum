@@ -67,6 +67,80 @@ const DONJON_PRESETS = {
             '#X.............#',
             '################',
         ]
+    },
+    cave_crash: {
+        nom: '💀 Cave du Crash',
+        carte: [
+            '###############',
+            '###.C.#CX...###',
+            '###...##.....##',
+            '###..........##',
+            '###...R......##',
+            '######.########',
+            '######...######',
+            '###S....C######',
+            '###############',
+        ],
+        events: {
+            '8_1': { type: 'decouverte', visible: true, declenche: false, data: { emoji: '🌫', texte: 'Un esprit translucide surgit des ténèbres.\n"Voyageurs… ce lieu a englouti bien des âmes. Méfiez-vous de ce qui rôde dans l\'obscurité."' } },
+            '4_1': { type: 'coffre', declenche: false, data: { probVerrou: 0, durabilite: 20 } },
+            '7_1': { type: 'coffre', declenche: false, data: { probVerrou: 0, durabilite: 20 } },
+            '8_7': { type: 'coffre', declenche: false, data: { probVerrou: 0, durabilite: 20 } }
+        }
+    },
+    mine_elisa: {
+        nom: '⛏ Mine d\'Elisa Pionnier',
+        carte: [
+            '##########################',
+            '##.6...R....##.....4..5..#',
+            '##D#########.##D##########',
+            '##....8#.3...R...D..2....#',
+            '#V..7..D.R####.######.####',
+            '#########...##.#####.S.###',
+            '##########################',
+        ],
+        events: {
+            '3_1':  { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'magique', or: 225, items: [
+                { id: 'MUN02', nom: 'Flèches', quantite: 10 },
+                { id: 'CONS03', nom: 'Potion de soin' },
+                { id: 'CONS04', nom: 'Potion d\'énergie' },
+                { id: 'AM16', nom: 'Petite dague magique' },
+            ]}},
+            '19_1': { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'tonneau', items: [
+                { id: 'COMP26', nom: 'Vieux mécanisme' },
+                { id: 'MUN01', nom: 'Dynamite' },
+            ]}},
+            '22_1': { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'tonneau', piege: { declenche: false, degats: 12, type_degat: 'normal', description: 'Piège à ressort !', difficulte: 50 }, items: [
+                { id: 'AM15', nom: 'Barre de fer' },
+                { id: 'COMP05', nom: 'Racine de ginka' },
+                { id: 'COMP28', nom: 'Petit tube en métal' },
+                { id: 'COMP55', nom: 'Flacon de Camphre' },
+                { id: 'COMP19', nom: 'Gros ressort' },
+                { id: 'COMP20', nom: 'Petit ressort' },
+                { id: 'COMP29', nom: 'Chambre de revolver' },
+            ]}},
+            '9_3':  { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'tonneau', or: 21, items: [
+                { id: 'CONS03', nom: 'Élixir de soins légers' },
+            ]}},
+            '20_3': { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'tonneau', items: [
+                { id: 'DEF25', nom: 'Lanterne' },
+            ]}},
+            '4_4':  { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'coffre', items: [
+                { id: 'XXX06', nom: 'Botte de Elisa Pionnier' },
+            ]}},
+            '6_3':  { type: 'coffre', declenche: false, data: { probVerrou: 0, variante: 'tonneau', items: [
+                { id: 'COMP47', nom: 'Condensateur' },
+                { id: 'COMP49', nom: 'Feuilles de tabac' },
+            ]}},
+            '2_2':  { type: 'porte', declenche: false, data: { probVerrou: 0, durabilite: 30, cleRequise: null, ouverteParDefaut: true } },
+            '15_2': { type: 'porte', declenche: false, data: { probVerrou: 0, durabilite: 30, cleRequise: null, ouverteParDefaut: true } },
+            '17_3': { type: 'porte', declenche: false, data: { probVerrou: 0, durabilite: 30, cleRequise: null, ouverteParDefaut: true } },
+            '7_4':  { type: 'porte', declenche: false, data: { probVerrou: 0, durabilite: 30, cleRequise: null, ouverteParDefaut: true } },
+            '1_4':  { type: 'decouverte', visible: true, declenche: false, data: {
+                emoji: '👻',
+                texte: 'L\'esprit d\'Elisa Pionnier vous apparaît, les traits rongés par la fatigue et le remords.\n"Ces galeries étaient les miennes. Je les ai creusées de mes propres mains… et elles m\'ont engloutie.\nPrenez ce que vous trouvez — vous l\'avez bien mérité."'
+            }},
+        }
     }
 };
 
@@ -98,10 +172,17 @@ function _parseDonjonPreset(preset) {
                 grille[key] = { type: 'sol', event: { type: 'porte', declenche: false, data: { probVerrou: 40, durabilite: 30, cleRequise: null } } };
             } else if (ch === 'X') {
                 grille[key] = { type: 'sol', event: { type: 'decouverte', declenche: false, data: { texte: 'Une inscription mystérieuse…' } } };
+            } else if (ch === 'V') {
+                grille[key] = { type: 'sol', event: { type: 'decouverte', visible: true, declenche: false, data: { texte: '', emoji: '👻' } } };
             } else {
                 grille[key] = { type: 'sol' };
             }
         }
+    }
+    if (preset.events) {
+        Object.entries(preset.events).forEach(([key, eventData]) => {
+            if (grille[key]) grille[key].event = eventData;
+        });
     }
     return { largeur, hauteur, grille, depart };
 }
@@ -146,6 +227,7 @@ function _handleClavierDonjon(e) {
     const dir = map[e.key];
     if (!dir) return;
     e.preventDefault();
+    if (!_estMonTourDonjon()) return;
     deplacerJoueur(dir[0], dir[1]);
 }
 
@@ -206,17 +288,29 @@ function _afficherOrdreDonjon(data) {
         const actif  = i === tourIdx;
         const isMe   = id === myID;
         const isCmp  = id.startsWith('cmp_');
-        const label  = isCmp
-            ? `🐾 ${id.replace('cmp_', '').replace(/_/g, ' ')}`
-            : id.replace(/_/g, ' ');
+        const nomBrut = isCmp ? id.replace('cmp_', '').replace(/_/g, ' ') : id.replace(/_/g, ' ');
+        const label  = isCmp ? `🐾 ${nomBrut}` : nomBrut;
+
+        let portraitUrl = null;
+        if (isCmp && typeof compagnonsData !== 'undefined') {
+            const cmpEntry = Object.values(compagnonsData).find(c => c.nom === nomBrut);
+            portraitUrl = cmpEntry?.portrait || null;
+        } else if (isMe) {
+            portraitUrl = (typeof getPortraitJoueur === 'function') ? getPortraitJoueur(window.perso) : null;
+        }
+        const imgHtml = portraitUrl
+            ? `<img src="${portraitUrl}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:3px;display:block;margin:0 auto 2px;">`
+            : '';
+
         return `<div style="
-            display:inline-flex;align-items:center;padding:3px 9px;border-radius:4px;
+            display:inline-flex;flex-direction:column;align-items:center;
+            padding:4px 8px;border-radius:4px;min-width:52px;
             white-space:nowrap;font-size:0.74em;
             background:${actif ? '#1a3a1a' : '#111'};
             border:1px solid ${actif ? '#4caf50' : '#2a2010'};
             color:${actif ? '#4caf50' : isMe ? '#d4af37' : '#666'};
             font-weight:${actif ? 'bold' : 'normal'};
-        ">${actif ? '▶ ' : ''}${label}</div>`;
+        ">${imgHtml}${actif ? '▶ ' : ''}${label}</div>`;
     }).join('');
 }
 
@@ -231,9 +325,18 @@ function _afficherStatsDonjon() {
                 + (p.statsInvesties?.FO || 0) * 2 + (p.statsInvesties?.IN || 0)
                 + (p.boostPV || 0);
     const ftAct = p.ftActuel ?? 0;
+    let bonusFTEquipDonjon = 0;
+    if (p.equipement && typeof itemsData !== 'undefined') {
+        for (const slot in p.equipement) {
+            const itemEq = p.equipement[slot];
+            if (itemEq?.identifie !== false && itemsData[itemEq?.id]?.stats?.FT) {
+                bonusFTEquipDonjon += itemsData[itemEq.id].stats.FT;
+            }
+        }
+    }
     const ftMax = (p.statsBase?.CN || 0) * 2 + (p.statsBase?.IN || 0)
                 + (p.statsInvesties?.CN || 0) * 2 + (p.statsInvesties?.IN || 0)
-                + (p.boostFT || 0);
+                + (p.boostFT || 0) + bonusFTEquipDonjon;
     const pvPct = pvMax > 0 ? Math.round(pvAct / pvMax * 100) : 0;
     const ftPct = ftMax > 0 ? Math.round(ftAct / ftMax * 100) : 0;
     const pvCol = pvPct > 50 ? '#4caf50' : pvPct > 20 ? '#f0b429' : '#ff4444';
@@ -453,6 +556,7 @@ function _afficherGrilleDonjon(data) {
     // Les portes fermées/verrouillées bloquent la propagation
     const visible = _calculerVisibilite(grille, largeur, hauteur, maPos.x, maPos.y, data.etats_portes);
 
+
     // Taille des cases : max 36px, adapté à la largeur
     const cellPx = Math.max(22, Math.min(36, Math.floor(340 / largeur)));
     container.style.cssText = `
@@ -487,7 +591,7 @@ function _afficherGrilleDonjon(data) {
                 if (cell.event) {
                     if (cell.event.type === 'porte') {
                         const etatPorte = data.etats_portes?.[key];
-                        if (etatPorte?.statut === 'ouverte') {
+                        if (etatPorte?.statut === 'ouverte' || cell.event.data?.ouverteParDefaut) {
                             div.innerHTML = '🟫';
                         } else if (etatPorte?.statut === 'cassee') {
                             div.innerHTML = '💥';
@@ -499,8 +603,9 @@ function _afficherGrilleDonjon(data) {
                         }
                     } else if (cell.event.type === 'coffre') {
                         const etatCoffre = data.etats_coffres?.[key];
+                        const varianteEmoji = _emojicoffre(cell.event.data?.variante, false);
                         if (!etatCoffre) {
-                            div.innerHTML = '📦';
+                            div.innerHTML = varianteEmoji;
                         } else if (etatCoffre.statut === 'casse') {
                             div.innerHTML = '💥';
                         } else if (etatCoffre.statut === 'ouvert' || etatCoffre.statut === 'verrouille') {
@@ -508,9 +613,9 @@ function _afficherGrilleDonjon(data) {
                             const toutSlotsPris = slots.length === 0 || slots.every(s => !!s.pris_par);
                             const orVal = etatCoffre.loot?.or || 0;
                             const orPris = orVal === 0 || Object.keys(etatCoffre.or_pris || {}).length > 0;
-                            div.innerHTML = (toutSlotsPris && orPris) ? '📭' : '📦';
+                            div.innerHTML = (toutSlotsPris && orPris) ? '📭' : varianteEmoji;
                         } else {
-                            div.innerHTML = '📦';
+                            div.innerHTML = varianteEmoji;
                         }
                         if (cell.event.data?.piege && !cell.event.data.piege.declenche && data.pieges_detectes?.[key]?.[myID]) {
                             div.innerHTML += '<span style="font-size:0.55em;vertical-align:top;">⚠️</span>';
@@ -526,7 +631,11 @@ function _afficherGrilleDonjon(data) {
                     else if (cell.event.type === 'rencontre' && !cell.event.declenche) {
                         if (data.rencontres_detectees?.[key]?.[myID]) div.innerHTML = '👹';
                     }
-                    // Découvertes : cachées jusqu'au déclenchement
+                    // Découvertes visibles (ex: fantôme) : toujours affichées même après déclenchement
+                    else if (cell.event.type === 'decouverte' && cell.event.visible) {
+                        div.innerHTML = cell.event.data?.emoji || '👻';
+                    }
+                    // Découvertes normales : cachées jusqu'au déclenchement
                 }
             }
 
@@ -664,8 +773,10 @@ function _afficherPanneauDonjon(data) {
         const ck   = `${maPos.x}_${maPos.y}`;
         const cell = data.grille?.[ck];
         if (cell?.event?.type === 'coffre') {
-            panel.innerHTML += `<button onclick="_initCoffreDonjon('${ck}', ${JSON.stringify(cell.event).replace(/"/g, '&quot;')})" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">📦 Ouvrir le coffre</button>`;
-        } else if (cell?.event?.type === 'porte' && !cell.event.declenche) {
+            const _ev = _emojicoffre(cell.event.data?.variante, false);
+            const _lbl = _labelcoffre(cell.event.data?.variante);
+            panel.innerHTML += `<button onclick="_initCoffreDonjon('${ck}', ${JSON.stringify(cell.event).replace(/"/g, '&quot;')})" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">${_ev} ${_lbl}</button>`;
+        } else if (cell?.event?.type === 'porte' && !cell.event.declenche && !cell.event.data?.ouverteParDefaut) {
             panel.innerHTML += `<button onclick="_interagirPorteDonjon('${ck}', {x:${maPos.x},y:${maPos.y}}, ${JSON.stringify(cell.event).replace(/"/g, '&quot;')}, '${myID}', window.donjonActif)" style="background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">🚪 Interagir avec la porte</button>`;
         }
     }
@@ -723,8 +834,16 @@ function deplacerJoueur(dx, dy) {
 
     // Porte non encore déclenchée : gestion async (verrou + clef + durabilité)
     if (cell.event?.type === 'porte' && !cell.event?.declenche) {
-        _interagirPorteDonjon(cellKey, { x: nx, y: ny }, cell.event, myID, data);
-        return;
+        if (cell.event?.data?.ouverteParDefaut) {
+            // Passage libre mais on marque la porte ouverte pour débloquer la vision
+            const refP = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_portes/' + cellKey);
+            refP.once('value', sp => {
+                if (!sp.val()) refP.set({ statut: 'ouverte', durabilite: 0, durabiliteMax: cell.event.data?.durabilite || 30 });
+            });
+        } else {
+            _interagirPorteDonjon(cellKey, { x: nx, y: ny }, cell.event, myID, data);
+            return;
+        }
     }
 
     // Piège non déclenché : vérifier si détecté → modal de choix
@@ -742,8 +861,10 @@ function deplacerJoueur(dx, dy) {
     if (typeof _incStatPartie === 'function') _incStatPartie('cases_parcourues', 1);
     if (cell.event) {
         if (cell.event.type === 'coffre') {
-            // Le coffre est toujours interactable — _initCoffreDonjon gère l'état async
             _initCoffreDonjon(cellKey, cell.event);
+        } else if (cell.event.type === 'decouverte' && cell.event.visible) {
+            // Découvertes visibles (fantôme) : toujours re-déclenchables
+            _declencherEvenementDonjon(cellKey, cell.event, myID);
         } else if (!cell.event.declenche) {
             _declencherEvenementDonjon(cellKey, cell.event, myID);
         }
@@ -1303,8 +1424,10 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
         return;
     }
 
-    // Tous les autres types : marquer comme déclenché immédiatement
-    db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
+    // Tous les autres types : marquer comme déclenché (sauf découvertes visibles → re-déclenchables)
+    if (!(type === 'decouverte' && event.visible)) {
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
+    }
 
     if (type === 'piege') {
         const degats    = event.data?.degats    || 5;
@@ -1355,9 +1478,10 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
 
     } else if (type === 'decouverte') {
         const texte = event.data?.texte || 'Découverte !';
-        if (typeof _toast === 'function') _toast(`🔎 ${texte}`, 'info');
-        _logDonjon(`🔎 ${nom} découvre : ${texte}`);
-        _afficherDecouverteDonjon(texte);
+        const emoji = event.data?.emoji || '🔎';
+        if (typeof _toast === 'function') _toast(`${emoji} ${texte.split('\n')[0]}`, 'info');
+        _logDonjon(`${emoji} ${nom} découvre : ${texte.split('\n')[0]}`);
+        _afficherDecouverteDonjon(texte, emoji);
 
     } else if (type === 'rencontre') {
         const desc = event.data?.description || 'Des ennemis apparaissent !';
@@ -1545,13 +1669,14 @@ function _initCoffreDonjon_suite(cellKey, eventData) {
         const verrouille    = Math.random() * 100 < probVerrou;
         const positions     = window.donjonActif?.positions || {};
         const nbJoueurs     = Object.keys(positions).filter(id => !id.startsWith('cmp_')).length;
-        const loot          = _genererLootCoffre(nbJoueurs);
+        const loot          = _genererLootCoffre(nbJoueurs, eventData.data?.items, eventData.data?.or);
 
         const etat = {
             verrouille,
             durabilite:    verrouille ? durabiliteMax : 0,
             durabiliteMax: durabiliteMax,
             statut:        verrouille ? 'verrouille' : 'ouvert',
+            variante:      eventData.data?.variante || 'coffre',
             loot
         };
 
@@ -1569,21 +1694,41 @@ function _initCoffreDonjon_suite(cellKey, eventData) {
     });
 }
 
+const _VARIANTES_COFFRE = {
+    tonneau:  { emoji: '🪣', label: 'Tonneau' },
+    coffre:   { emoji: '📦', label: 'Coffre' },
+    magique:  { emoji: '✨', label: 'Coffre magique' },
+};
+function _emojicoffre(variante) {
+    return (_VARIANTES_COFFRE[variante] || _VARIANTES_COFFRE.coffre).emoji;
+}
+function _labelcoffre(variante) {
+    return (_VARIANTES_COFFRE[variante] || _VARIANTES_COFFRE.coffre).label;
+}
+
 /**
- * Génère le loot d'un coffre : un slot par joueur présent dans le donjon.
+ * Génère le loot d'un coffre.
+ * Si itemsFixe est fourni, utilise ces items (coffre pré-défini dans le preset).
+ * Sinon, génère aléatoirement un slot par joueur.
  * Structure : { slots: { "0": {id,nom,pris_par:null}, ... }, or: N }
  */
-function _genererLootCoffre(nbJoueurs) {
+function _genererLootCoffre(nbJoueurs, itemsFixe, orFixe) {
+    const slots = {};
+    if (itemsFixe && itemsFixe.length > 0) {
+        itemsFixe.forEach((item, i) => {
+            slots[String(i)] = { id: item.id, nom: item.nom, quantite: item.quantite || 1, pris_par: null };
+        });
+        return { slots, or: orFixe !== undefined ? orFixe : 0 };
+    }
     if (typeof itemsData === 'undefined') return { slots: {}, or: 0 };
     const lootables = Object.entries(itemsData).filter(([, v]) => v.lootable);
-    const nb     = Math.max(1, nbJoueurs || 1);
-    const slots  = {};
+    const nb = Math.max(1, nbJoueurs || 1);
     for (let i = 0; i < nb; i++) {
         if (lootables.length === 0) break;
         const [id, item] = lootables[Math.floor(Math.random() * lootables.length)];
-        slots[String(i)] = { id, nom: item.nom, pris_par: null };
+        slots[String(i)] = { id, nom: item.nom, quantite: 1, pris_par: null };
     }
-    const or = Math.floor(Math.random() * 50) + 10;
+    const or = orFixe !== undefined ? orFixe : Math.floor(Math.random() * 50) + 10;
     return { slots, or };
 }
 
@@ -1807,41 +1952,67 @@ function _afficherModalCoffre(cellKey, etat) {
 
     const myID  = (window.perso?.nom || '').replace(/\s+/g, '_');
     const ouvert = etat.statut === 'ouvert' || etat.statut === 'casse';
+    const variante = etat.variante;
+    const emojiV = _emojicoffre(variante, false);
+    const labelV = _labelcoffre(variante);
     let header, corps;
 
     if (ouvert) {
-        header = etat.statut === 'casse' ? '📦💥 Coffre fracassé' : '📦 Coffre ouvert';
-        const dejaPris = !!(etat.pris_par?.[myID]);
+        header = etat.statut === 'casse' ? `${emojiV}💥 ${labelV} fracassé` : `${emojiV} ${labelV} ouvert`;
 
-        if (dejaPris) {
-            corps = `<div style="color:#888;font-size:0.9em;padding:10px 0;">Vous avez déjà récupéré un objet dans ce coffre.</div>`;
+        // Round-robin : un joueur peut prendre son (N+1)ème objet seulement si
+        // tous les autres ont déjà pris au moins N objets.
+        const positions = window.donjonActif?.positions || {};
+        const joueurs = Object.keys(positions).filter(id => !id.startsWith('cmp_'));
+        const myCount = etat.pris_par?.[myID] || 0;
+        const autresMin = joueurs.length <= 1
+            ? myCount
+            : joueurs.filter(id => id !== myID)
+                     .reduce((min, id) => Math.min(min, etat.pris_par?.[id] || 0), Infinity);
+        const peutPrendre = autresMin >= myCount;
+
+        const slots  = etat.loot?.slots || {};
+        const orVal  = etat.loot?.or || 0;
+        const orPris = !!(etat.or_pris?.[myID]);
+        const orHtml = orVal > 0 && !orPris
+            ? `<div style="color:#f0b429;margin:8px 0;">💰 ${orVal} pièces d'or
+                <button onclick="_prendreOrDonjon('${cellKey}')" style="margin-left:8px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.8em;">Prendre</button>
+               </div>`
+            : orVal > 0 && orPris ? `<div style="color:#555;font-size:0.85em;margin-top:4px;">💰 Or déjà récupéré.</div>` : '';
+
+        const slotsLibres = Object.entries(slots).filter(([, s]) => !s.pris_par);
+
+        if (slotsLibres.length === 0 && orVal === 0) {
+            corps = `<div style="color:#666;font-size:0.9em;padding:10px 0;">Le coffre est vide.</div>`;
+        } else if (!peutPrendre) {
+            const retard = joueurs
+                .filter(id => id !== myID && (etat.pris_par?.[id] || 0) < myCount)
+                .map(id => id.replace(/_/g, ' ')).join(', ');
+            corps = `<div style="color:#aaa;padding:8px 0;">⏳ En attente des autres joueurs pour le tour ${myCount + 1}…<br>
+                <span style="color:#666;font-size:0.82em;">${retard} n'${retard.includes(',') ? 'ont' : 'a'} pas encore pris leur objet n° ${myCount}.</span>
+            </div>${orHtml}`;
         } else {
-            // Slots d'items
-            const slots    = etat.loot?.slots || {};
             const slotsHtml = Object.entries(slots).map(([slotKey, slot]) => {
                 if (slot.pris_par) {
                     return `<li style="color:#555;padding:3px 0;font-size:0.85em;">🎁 ${slot.nom} <em>(pris par ${slot.pris_par.replace(/_/g,' ')})</em></li>`;
                 }
-                return `<li style="color:#ccc;padding:3px 0;">🎁 ${slot.nom}
+                const slotItemDef = typeof itemsData !== 'undefined' ? itemsData[slot.id] : null;
+                const slotNonId = slotItemDef?.nonIdentifie;
+                const slotNom = slotNonId
+                    ? (typeof _nomInconnu === 'function' ? `❓ ${_nomInconnu(slotItemDef)}` : 'Dague non identifiée')
+                    : slot.nom;
+                const slotColor = slotNonId ? '#ce93d8' : '#ccc';
+                const qLabel = (slot.quantite || 1) > 1 ? ` ×${slot.quantite}` : '';
+                return `<li style="color:${slotColor};padding:3px 0;">🎁 ${slotNom}${qLabel}
                     <button onclick="_prendreItemDonjon('${cellKey}','${slotKey}')" style="margin-left:8px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.8em;">Prendre</button>
                 </li>`;
             }).join('') || '<li style="color:#666;">Vide.</li>';
-
-            // Or
-            const orVal  = etat.loot?.or || 0;
-            const orPris = !!(etat.or_pris?.[myID]);
-            const orHtml = orVal > 0 && !orPris
-                ? `<div style="color:#f0b429;margin:8px 0;">💰 ${orVal} pièces d'or
-                    <button onclick="_prendreOrDonjon('${cellKey}')" style="margin-left:8px;background:#2a1a0a;color:#d4af37;border:1px solid #8b6914;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:0.8em;">Prendre</button>
-                   </div>`
-                : orVal > 0 && orPris ? `<div style="color:#555;font-size:0.85em;margin-top:4px;">💰 Or déjà récupéré.</div>` : '';
-
             corps = `<ul style="list-style:none;padding:0;margin:0 0 6px;">${slotsHtml}</ul>${orHtml}`;
         }
 
     } else {
         // Coffre verrouillé
-        header = '🔒 Coffre verrouillé';
+        header = `🔒 ${labelV} verrouillé`;
         const DX         = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
         const crochetage = window.perso?.compInvesties?.crochetage || 0;
         const chanceCroch = Math.min(95, DX * 3 + crochetage * 5);
@@ -2008,10 +2179,20 @@ function _prendreItemDonjon(cellKey, slotKey) {
     ref.once('value', snap => {
         const etat = snap.val();
         if (!etat) return;
-        if (etat.pris_par?.[myID]) {
-            if (typeof _toast === 'function') _toast('Vous avez déjà pris un objet dans ce coffre.', 'error');
+
+        // Check round-robin : peut prendre si tous les autres ont autant d'objets que moi
+        const positions = window.donjonActif?.positions || {};
+        const joueurs = Object.keys(positions).filter(id => !id.startsWith('cmp_'));
+        const myCount = etat.pris_par?.[myID] || 0;
+        const autresMin = joueurs.length <= 1
+            ? myCount
+            : joueurs.filter(id => id !== myID)
+                     .reduce((min, id) => Math.min(min, etat.pris_par?.[id] || 0), Infinity);
+        if (autresMin < myCount) {
+            if (typeof _toast === 'function') _toast('En attente que les autres joueurs prennent leur objet.', 'error');
             return;
         }
+
         const slot = etat.loot?.slots?.[slotKey];
         if (!slot || slot.pris_par) {
             if (typeof _toast === 'function') _toast('Cet objet a déjà été pris.', 'error');
@@ -2022,19 +2203,25 @@ function _prendreItemDonjon(cellKey, slotKey) {
         if (!itemDef) return;
 
         // Ajouter à l'inventaire
+        const qte = slot.quantite || 1;
         if (!window.perso.inventaire) window.perso.inventaire = [];
         const idx = window.perso.inventaire.findIndex(i => i.id === slot.id && itemDef.stackable);
-        if (idx !== -1) window.perso.inventaire[idx].quantite = (window.perso.inventaire[idx].quantite || 1) + 1;
-        else window.perso.inventaire.push({ id: slot.id, quantite: 1 });
+        if (idx !== -1) window.perso.inventaire[idx].quantite = (window.perso.inventaire[idx].quantite || 1) + qte;
+        else {
+            const entry = { id: slot.id, quantite: qte };
+            if (itemDef.nonIdentifie) entry.identifie = false;
+            window.perso.inventaire.push(entry);
+        }
         if (typeof autoSave === 'function') autoSave();
         if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
-        if (typeof _toast === 'function') _toast(`✅ ${itemDef.nom} ramassé !`, 'success');
-        _logDonjon(`🎁 ${window.perso.nom} ramasse : ${itemDef.nom}`);
+        const label = qte > 1 ? `${itemDef.nom} ×${qte}` : itemDef.nom;
+        if (typeof _toast === 'function') _toast(`✅ ${label} ramassé !`, 'success');
+        _logDonjon(`🎁 ${window.perso.nom} ramasse : ${label}`);
 
-        // Marquer dans Firebase
+        // Marquer dans Firebase — incrémenter le compteur du joueur
         const updates = {};
         updates[`loot/slots/${slotKey}/pris_par`] = myID;
-        updates[`pris_par/${myID}`] = true;
+        updates[`pris_par/${myID}`] = myCount + 1;
         ref.update(updates).then(() => {
             document.getElementById('modal-donjon-coffre')?.remove();
         });
@@ -2069,7 +2256,11 @@ function _prendreOrDonjon(cellKey) {
 
 // ── Découverte ───────────────────────────────────────────────
 
-function _afficherDecouverteDonjon(texte) {
+function _afficherDecouverteDonjon(texte, emoji) {
+    emoji = emoji || '🔎';
+    const isGhost = emoji === '👻';
+    const borderColor = isGhost ? '#9c27b0' : '#2196f3';
+    const bgColor     = isGhost ? '#1a0d2a' : '#0d1a2a';
     let modal = document.getElementById('modal-donjon-decouverte');
     if (!modal) {
         modal = document.createElement('div');
@@ -2077,11 +2268,12 @@ function _afficherDecouverteDonjon(texte) {
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
         document.body.appendChild(modal);
     }
+    const lignes = texte.split('\n').map(l => `<p style="color:#ccc;line-height:1.6;margin:4px 0;">${l}</p>`).join('');
     modal.innerHTML = `
-        <div style="background:#0d1a2a;border:2px solid #2196f3;border-radius:10px;padding:20px;max-width:340px;width:90%;text-align:center;">
-            <div style="font-size:2em;margin-bottom:8px;">🔎</div>
-            <p style="color:#ccc;line-height:1.5;">${texte}</p>
-            <button onclick="document.getElementById('modal-donjon-decouverte').remove()" style="background:#1a2a3a;color:#2196f3;border:1px solid #2196f3;padding:7px 20px;border-radius:4px;cursor:pointer;margin-top:8px;">OK</button>
+        <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:10px;padding:20px;max-width:380px;width:90%;text-align:center;">
+            <div style="font-size:2.5em;margin-bottom:8px;">${emoji}</div>
+            ${lignes}
+            <button onclick="document.getElementById('modal-donjon-decouverte').remove()" style="background:#1a2a3a;color:${borderColor};border:1px solid ${borderColor};padding:7px 20px;border-radius:4px;cursor:pointer;margin-top:12px;">Fermer</button>
         </div>`;
     modal.style.display = 'flex';
 }
@@ -2108,10 +2300,8 @@ function _calculerVisibilite(grille, largeur, hauteur, px, py, etats_portes) {
             const cell = grille[key];
             visible.add(key); // Voir les murs / portes bordants
             if (!visited.has(key) && cell?.type !== 'mur') {
-                // Une porte fermée ou verrouillée bloque la vue derrière elle
-                const estPorte = cell?.event?.type === 'porte';
-                const etatPorte = etats_portes?.[key];
-                const estFermee = estPorte && (etatPorte?.statut !== 'ouverte');
+                // Les portes bloquent TOUJOURS la vision (seuls les murs + portes délimitent les salles)
+                const estFermee = cell?.event?.type === 'porte';
                 if (!estFermee) {
                     visited.add(key);
                     queue.push([nx, ny]);

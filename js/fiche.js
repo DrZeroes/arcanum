@@ -1,3 +1,11 @@
+/** Retourne l'URL du portrait du joueur à partir de perso (ou d'un objet {race,sexe,photo}). */
+function getPortraitJoueur(p) {
+    if (!p || !p.photo) return null;
+    const raceDossier = (p.race || 'human').toLowerCase().replace(/\s+/g, '');
+    const sexePath = p.race === 'Bedokien' ? '' : (p.sexe === 'F' ? 'Femme/' : 'Homme/');
+    return `./docs/img/portraits/${raceDossier}/${sexePath}${p.photo}`;
+}
+
 function modStat(stat, val) {
 if (window.perso.pvActuel <= 0) { 
         alert("💀 Vous êtes mort ! Impossible de modifier vos statistiques."); 
@@ -247,16 +255,19 @@ photoContainer.innerHTML = `
     if (document.getElementById('der-compagnons')) document.getElementById('der-compagnons').innerText = Math.max(1, Math.floor(statCH / 4));
 
  // 9. COMPÉTENCES, MAGIE, TECH
+    if (!perso.rangsComp) perso.rangsComp = {};
     if (typeof competencesData !== 'undefined') {
         for (let cat in competencesData) {
             competencesData[cat].forEach(c => {
                 let id = c.id;
-                
-                // --- CALCUL DU TOTAL (Investi + Équipement) ---
-                let investi = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
-                let bonusEquip = 0;
 
-                // On parcourt l'équipement pour trouver des bonusComp
+                // --- CALCUL DU TOTAL (Investi × rang + Équipement + Effets) ---
+                let investi = (perso.compInvesties && perso.compInvesties[id]) ? perso.compInvesties[id] : 0;
+                let rang    = perso.rangsComp[id] || 0;
+                let rangInfo = (typeof RANGS !== 'undefined') ? (RANGS[rang] || RANGS[0]) : { mult: 1.0 };
+                let investiEffectif = Math.round(investi * rangInfo.mult);
+
+                let bonusEquip = 0;
                 for (let slot in perso.equipement) {
                     let itemEq = perso.equipement[slot];
                     if (itemEq && itemEq.identifie !== false && itemsData[itemEq.id] && itemsData[itemEq.id].stats?.bonusComp) {
@@ -266,15 +277,39 @@ photoContainer.innerHTML = `
                 }
 
                 const bonusE    = (typeof _bonusEffets === 'function') ? _bonusEffets(perso, id) : 0;
-                let totalFinal  = investi + bonusEquip + bonusE;
-                // ----------------------------------------------
+                let totalFinal  = investiEffectif + bonusEquip + bonusE;
+                // ---------------------------------------------------------------
 
                 let el = document.getElementById('fiche-val-' + id);
                 if (el) {
                     el.innerText = totalFinal;
-                    el.style.color = bonusE > 0 ? '#ffd700' : bonusE < 0 ? '#e040fb' : (bonusEquip > 0) ? "#4caf50" : "#fff";
+                    el.style.color = bonusE > 0 ? '#ffd700' : bonusE < 0 ? '#e040fb' : (bonusEquip > 0 || rang > 0) ? "#4caf50" : "#fff";
                 }
-                
+
+                // Badge de rang
+                let badge = document.getElementById('rang-badge-' + id);
+                if (badge && typeof RANGS !== 'undefined') {
+                    if (rang > 0) {
+                        badge.textContent = rangInfo.abbr;
+                        badge.title = rangInfo.nom + (rang < 3 ? ` (×${rangInfo.mult})` : ' ×2 — Maîtrise absolue');
+                        badge.style.background    = rangInfo.color;
+                        badge.style.color         = rangInfo.txtColor;
+                        badge.style.border        = '1px solid ' + rangInfo.txtColor;
+                        badge.style.padding       = '0 4px';
+                        badge.style.borderRadius  = '3px';
+                        badge.style.fontSize      = '0.7em';
+                        badge.style.fontWeight    = 'bold';
+                        badge.style.marginRight   = '3px';
+                    } else {
+                        badge.textContent         = '—';
+                        badge.title               = 'Aucune formation';
+                        badge.style.background    = 'transparent';
+                        badge.style.color         = '#555';
+                        badge.style.border        = 'none';
+                        badge.style.padding       = '0 2px';
+                    }
+                }
+
                 let btnMoins = document.getElementById('btn-moins-' + id);
                 if (btnMoins) {
                     btnMoins.style.visibility = (investissementsTemporaires.comp[id] > 0) ? "visible" : "hidden";
@@ -485,6 +520,7 @@ function initCompetencesUI() {
         competencesData[cat].forEach(c => {
 div.innerHTML += `<div class="skill-row">
             <div class="skill-name">${c.nom} <span class="skill-stat-tag">${c.stat}</span></div>
+            <span id="rang-badge-${c.id}" class="rang-badge" title="Aucune formation">—</span>
             <button id="btn-moins-${c.id}" class="btn-stat btn-moins edit-only" onclick="modComp('${c.id}', -4)">-</button>
             <span id="fiche-val-${c.id}" class="stat-value">0</span>
             <button id="btn-plus-comp-${c.id}" class="btn-stat btn-plus edit-only" onclick="modComp('${c.id}', 4)">+</button>
@@ -791,4 +827,58 @@ function switchTechTab(d) {
     const tab = document.getElementById('tab-tech');
     tab.querySelectorAll('.magic-tab-btn').forEach(b => b.classList.toggle('active', b.title === d));
     tab.querySelectorAll('.magic-content-pane').forEach(p => p.classList.toggle('active', p.id === 'tech-pane-' + d.replace(/\s+/g, '')));
+}
+
+
+// ================= SYSTÈME DE RANGS =================
+
+/**
+ * Accorde un rang à un personnage dans une compétence.
+ * Appelé par le MJ via ouvrirEntraineur() ou directement.
+ * @param {string} type   - 'comp' (seul type supporté actuellement)
+ * @param {string} skillId - id de la compétence (ex: 'melee')
+ * @param {number} rang   - 1=Apprenti, 2=Expert, 3=Maître
+ * @param {boolean} gratuit - si true, bypass le paiement (quête récompense)
+ */
+function octroierRang(type, skillId, rang, gratuit = false) {
+    if (typeof RANGS === 'undefined' || typeof SEUILS_RANGS === 'undefined') {
+        _toast('Données de rang manquantes.', 'error'); return false;
+    }
+    if (rang < 1 || rang > 3) { _toast('Rang invalide.', 'error'); return false; }
+
+    if (!perso.rangsComp) perso.rangsComp = {};
+
+    const rangActuel = perso.rangsComp[skillId] || 0;
+    if (rang <= rangActuel) {
+        _toast('Ce personnage a déjà ce rang ou un rang supérieur.', 'error'); return false;
+    }
+    if (rang > rangActuel + 1) {
+        _toast('Impossible de sauter un rang — obtenez d\'abord le rang précédent.', 'error'); return false;
+    }
+
+    const seuil   = SEUILS_RANGS[rang];
+    const investi = (perso.compInvesties && perso.compInvesties[skillId]) || 0;
+    if (investi < seuil) {
+        _toast(`Points insuffisants en ${skillId} — requis : ${seuil}, actuel : ${investi}.`, 'error'); return false;
+    }
+
+    perso.rangsComp[skillId] = rang;
+    const rangInfo = RANGS[rang];
+    _toast(`Rang ${rangInfo.nom} obtenu en ${skillId} ! (×${rangInfo.mult} sur les points investis)`, 'success');
+    updateFicheUI();
+    localStorage.setItem('arcanum_sauvegarde', JSON.stringify(perso));
+    if (typeof autoSave === 'function') autoSave();
+    return true;
+}
+
+/**
+ * Vérifie si le joueur remplit les conditions pour un rang donné.
+ * Utile pour afficher les options disponibles chez un entraîneur.
+ */
+function peutObtenirRang(skillId, rang) {
+    if (!perso.rangsComp) perso.rangsComp = {};
+    const rangActuel = perso.rangsComp[skillId] || 0;
+    if (rang !== rangActuel + 1) return false;
+    const investi = (perso.compInvesties && perso.compInvesties[skillId]) || 0;
+    return investi >= (SEUILS_RANGS[rang] || 99);
 }

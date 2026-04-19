@@ -24,3 +24,23 @@ const competencesData = {
         { id: "desamorcage", nom: "Désamorçage de piège", stat: "IN", desc: "+5% de chance de désamorcer un piège par point" }
     ],
 };
+
+// ── RANGS DE COMPÉTENCES ──────────────────────────────────────────────────────
+// Points investis (0-20) → rang débloqué par un entraîneur (apprenti/expert/maître)
+// Le rang applique un multiplicateur sur la valeur investie dans la skill.
+const RANGS = {
+    0: { nom: "—",        abbr: "",  color: "transparent", txtColor: "#666",    mult: 1.0 },
+    1: { nom: "Apprenti", abbr: "A", color: "#2a5fa5",      txtColor: "#c8dfff", mult: 1.25 },
+    2: { nom: "Expert",   abbr: "E", color: "#8a6d00",      txtColor: "#ffe896", mult: 1.5  },
+    3: { nom: "Maître",   abbr: "M", color: "#7a1a1a",      txtColor: "#ffb3b3", mult: 2.0  }
+};
+
+// Points minimum requis dans la skill pour qu'un entraîneur accepte de former le joueur
+const SEUILS_RANGS = { 1: 1, 2: 9, 3: 18 };
+
+// Retourne la valeur effective d'une compétence (investie × multiplicateur de rang)
+function getEffectiveComp(id) {
+    const investi = (perso.compInvesties && perso.compInvesties[id]) || 0;
+    const rang    = (perso.rangsComp    && perso.rangsComp[id])    || 0;
+    return Math.round(investi * (RANGS[rang]?.mult ?? 1.0));
+}

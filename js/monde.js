@@ -1,5 +1,377 @@
 // ================= DONNÉES DU MONDE =================
 
+// ── ENTRAÎNEURS DE COMPÉTENCES ────────────────────────────────────────────────
+// Chaque entrée : skill (id), rang (1=Apprenti/2=Expert/3=Maître),
+// seuil (points requis auto-vérifiés), cout (or, 0 si quête), quete (ID ou null)
+const entreineursData = {
+
+    // ── MÊLÉE ──
+    "entraineur_melee_A": {
+        nom: "Ser Aldric le Vétéran", skill: "melee", rang: 1,
+        cout: 200, quete: null,
+        ville: "Shrouded Hills",
+        phrase: "Un bon soldat ? Il faut d'abord apprendre à tenir son arme."
+    },
+    "entraineur_melee_E": {
+        nom: "Ser Aldric le Vétéran", skill: "melee", rang: 2,
+        cout: 0, quete: "Q31",
+        ville: "Dernholm",
+        phrase: "Je ne transmets mon art qu'à ceux qui ont prouvé leur valeur au combat. Revenez avec des preuves."
+    },
+    "entraineur_melee_M": {
+        nom: "Adkin Chambers", skill: "melee", rang: 3,
+        cout: 0, quete: "Q31",
+        ville: "Stillwater",
+        phrase: "Vaincre Sir Garrick ? Alors vous méritez le titre de Maître."
+    },
+
+    // ── ARC ──
+    "entraineur_arc_A": {
+        nom: "Ellumyn l'Archer", skill: "arc", rang: 1,
+        cout: 150, quete: null,
+        ville: "Quintarra",
+        phrase: "Tenir un arc sans formation, c'est comme viser les étoiles les yeux fermés."
+    },
+    "entraineur_arc_E": {
+        nom: "Ellumyn l'Archer", skill: "arc", rang: 2,
+        cout: 800, quete: null,
+        ville: "Quintarra",
+        phrase: "Vos progrès sont notables. Pour 800 pièces, je vous montrerai les techniques avancées."
+    },
+    "entraineur_arc_M": {
+        nom: "Ellumyn l'Archer", skill: "arc", rang: 3,
+        cout: 0, quete: "Q50",
+        ville: "Quintarra",
+        phrase: "Trouvez-moi du mithril et je vous révèle les secrets de l'arc elfique ancestral."
+    },
+
+    // ── ESQUIVE ──
+    "entraineur_esquive_A": {
+        nom: "Lukan le Fugitif", skill: "esquive", rang: 1,
+        cout: 100, quete: null,
+        ville: "Tarant",
+        phrase: "Se battre, c'est bien. Ne pas être touché, c'est mieux."
+    },
+    "entraineur_esquive_E": {
+        nom: "Lukan le Fugitif", skill: "esquive", rang: 2,
+        cout: 600, quete: null,
+        ville: "Tarant",
+        phrase: "Je peux vous apprendre à lire les attaques avant qu'elles arrivent. Ça a un prix."
+    },
+    "entraineur_esquive_M": {
+        nom: "Adkin Chambers", skill: "esquive", rang: 3,
+        cout: 0, quete: "Q31",
+        ville: "Stillwater",
+        phrase: "L'esquive parfaite n'est pas un réflexe — c'est un état d'esprit. Montrez-le-moi."
+    },
+
+    // ── LANCER ──
+    "entraineur_lancer_A": {
+        nom: "Hilda Ferrebombe", skill: "lancer", rang: 1,
+        cout: 200, quete: null,
+        ville: "Tarant",
+        phrase: "La précision avec des explosifs ? Commençons par les bases."
+    },
+    "entraineur_lancer_E": {
+        nom: "Hilda Ferrebombe", skill: "lancer", rang: 2,
+        cout: 750, quete: null,
+        ville: "Tarant",
+        phrase: "Trajectoires en arc, compensation du vent... ça s'apprend. Pour 750 or."
+    },
+    "entraineur_lancer_M": {
+        nom: "Hilda Ferrebombe", skill: "lancer", rang: 3,
+        cout: 1500, quete: null,
+        ville: "Tarant",
+        phrase: "Maîtrise absolue du lancer ? Je n'ai pas eu beaucoup d'élèves à ce niveau."
+    },
+
+    // ── ATTAQUE SOURNOISE ──
+    "entraineur_attaque_sournoise_A": {
+        nom: "Thaddeus Mynor", skill: "attaque_sournoise", rang: 1,
+        cout: 0, quete: "Q23",
+        ville: "Tarant",
+        phrase: "Rejoignez la Guilde et je vous apprendrai à frapper en premier — et à toucher."
+    },
+    "entraineur_attaque_sournoise_E": {
+        nom: "Thaddeus Mynor", skill: "attaque_sournoise", rang: 2,
+        cout: 500, quete: null,
+        ville: "Tarant",
+        phrase: "Deux fois plus vite, deux fois plus silencieux. Pour les membres de la Guilde seulement."
+    },
+    "entraineur_attaque_sournoise_M": {
+        nom: "Thaddeus Mynor", skill: "attaque_sournoise", rang: 3,
+        cout: 0, quete: "Q24",
+        ville: "Tarant",
+        phrase: "Ramenez l'idole de Kree et je vous transmettrai le coup parfait."
+    },
+
+    // ── VOL À LA TIRE ──
+    "entraineur_vol_a_la_tire_A": {
+        nom: "Thaddeus Mynor", skill: "vol_a_la_tire", rang: 1,
+        cout: 0, quete: "Q23",
+        ville: "Tarant",
+        phrase: "Prouvez-moi que vous pouvez entrer dans la Guilde, et je vous apprendrai à vider des poches."
+    },
+    "entraineur_vol_a_la_tire_E": {
+        nom: "Miranda Tears", skill: "vol_a_la_tire", rang: 2,
+        cout: 400, quete: null,
+        ville: "Tarant (Le Bourbier)",
+        phrase: "Doigts agiles, regard fuyant. 400 or pour les astuces avancées."
+    },
+    "entraineur_vol_a_la_tire_M": {
+        nom: "Miranda Tears", skill: "vol_a_la_tire", rang: 3,
+        cout: 0, quete: "Q20",
+        ville: "Tarant (Le Bourbier)",
+        phrase: "Aidez Pollock à régler ses affaires et je vous montrerai comment voler sans même être vu."
+    },
+
+    // ── DISCRÉTION ──
+    "entraineur_discretion_A": {
+        nom: "Lukan le Fugitif", skill: "discretion", rang: 1,
+        cout: 150, quete: null,
+        ville: "Tarant",
+        phrase: "Se fondre dans l'ombre, ça s'apprend."
+    },
+    "entraineur_discretion_E": {
+        nom: "Lukan le Fugitif", skill: "discretion", rang: 2,
+        cout: 500, quete: null,
+        ville: "Tarant",
+        phrase: "Pour les experts : rester invisible même sous la lumière."
+    },
+    "entraineur_discretion_M": {
+        nom: "Lukan le Fugitif", skill: "discretion", rang: 3,
+        cout: 1200, quete: null,
+        ville: "Tarant",
+        phrase: "La maîtrise de la discrétion, c'est devenir une ombre parmi les ombres."
+    },
+
+    // ── DÉTECTION DE PIÈGE ──
+    "entraineur_detection_piege_A": {
+        nom: "Constable Owens", skill: "detection_piege", rang: 1,
+        cout: 100, quete: null,
+        ville: "Shrouded Hills",
+        phrase: "Les mines autour de la ville m'ont appris à voir les pièges avant qu'ils me voient."
+    },
+    "entraineur_detection_piege_E": {
+        nom: "Constable Owens", skill: "detection_piege", rang: 2,
+        cout: 0, quete: "Q07",
+        ville: "Shrouded Hills",
+        phrase: "Aidez-moi avec le pont et je vous apprendrai les techniques avancées."
+    },
+    "entraineur_detection_piege_M": {
+        nom: "Ingrid la Démineure", skill: "detection_piege", rang: 3,
+        cout: 2000, quete: null,
+        ville: "Tarant",
+        phrase: "Je suis la seule à avoir survécu à l'atelier Boyle. Je peux vous apprendre pourquoi."
+    },
+
+    // ── MARCHANDAGE ──
+    "entraineur_marchandage_A": {
+        nom: "Madame Lil", skill: "marchandage", rang: 1,
+        cout: 200, quete: null,
+        ville: "Tarant",
+        phrase: "Dans mon métier, tout se négocie. Je peux vous montrer comment."
+    },
+    "entraineur_marchandage_E": {
+        nom: "Madame Lil", skill: "marchandage", rang: 2,
+        cout: 0, quete: "Q17",
+        ville: "Tarant",
+        phrase: "Faites quelques courses pour moi et je vous apprendrai à tirer le meilleur des marchés."
+    },
+    "entraineur_marchandage_M": {
+        nom: "M. Wright", skill: "marchandage", rang: 3,
+        cout: 1000, quete: null,
+        ville: "Tarant",
+        phrase: "Vingt ans au Journal Tarantien m'ont appris que tout a un prix — et qu'on peut toujours négocier."
+    },
+
+    // ── PERSUASION ──
+    "entraineur_persuasion_A": {
+        nom: "Doc Roberts", skill: "persuasion", rang: 1,
+        cout: 150, quete: null,
+        ville: "Shrouded Hills",
+        phrase: "La médecine, c'est aussi convaincre les gens que ça va aller."
+    },
+    "entraineur_persuasion_E": {
+        nom: "M. Willoughsby", skill: "persuasion", rang: 2,
+        cout: 500, quete: null,
+        ville: "Tarant",
+        phrase: "La rhétorique avancée s'enseigne à la Mairie. Pour ceux qui en ont les moyens."
+    },
+    "entraineur_persuasion_M": {
+        nom: "M. Willoughsby", skill: "persuasion", rang: 3,
+        cout: 0, quete: "Q55",
+        ville: "Tarant",
+        phrase: "Réussissez les négociations avec Caladon et je vous proclame Maître de la Persuasion."
+    },
+
+    // ── SOINS ──
+    "entraineur_soins_A": {
+        nom: "Sœur Thérèse", skill: "soins", rang: 1,
+        cout: 100, quete: null,
+        ville: "Tarant",
+        phrase: "Appliquer un bandage ne s'improvise pas."
+    },
+    "entraineur_soins_E": {
+        nom: "Sœur Thérèse", skill: "soins", rang: 2,
+        cout: 400, quete: null,
+        ville: "Tarant",
+        phrase: "Herbes, dosages, contra-indications... Pour ceux qui veulent vraiment soigner."
+    },
+    "entraineur_soins_M": {
+        nom: "Hieronymous Maxim", skill: "soins", rang: 3,
+        cout: 0, quete: "Q54",
+        ville: "Caladon",
+        phrase: "L'arachnide médical que je fabriquais nécessite une maîtrise parfaite des soins. Prouvez-le-moi."
+    },
+
+    // ── JEU ──
+    "entraineur_jeu_A": {
+        nom: "Jacob Bens", skill: "jeu", rang: 1,
+        cout: 50, quete: null,
+        ville: "Shrouded Hills (Auberge)",
+        phrase: "Je vous apprendrai comment lire les autres joueurs. Pour presque rien."
+    },
+    "entraineur_jeu_E": {
+        nom: "Caleb Malloy", skill: "jeu", rang: 2,
+        cout: 300, quete: null,
+        ville: "Tarant (Le Bourbier)",
+        phrase: "Au Bourbier, on joue pour de vrai. Je vous montrerai les astuces des professionnels."
+    },
+    "entraineur_jeu_M": {
+        nom: "Caleb Malloy", skill: "jeu", rang: 3,
+        cout: 0, quete: "Q16",
+        ville: "Tarant (Le Bourbier)",
+        phrase: "Livrez mon whisky et je vous apprendrai à ne jamais perdre."
+    },
+
+    // ── RÉPARATION ──
+    "entraineur_reparation_A": {
+        nom: "Lloyd (forgeron)", skill: "reparation", rang: 1,
+        cout: 100, quete: null,
+        ville: "Shrouded Hills",
+        phrase: "Savoir réparer ce qu'on a, c'est la première chose qu'un aventurier doit apprendre."
+    },
+    "entraineur_reparation_E": {
+        nom: "Lloyd (forgeron)", skill: "reparation", rang: 2,
+        cout: 0, quete: "Q06",
+        ville: "Shrouded Hills",
+        phrase: "Fabriquez-moi du pur alliage et je vous montrerai comment travailler les métaux fins."
+    },
+    "entraineur_reparation_M": {
+        nom: "Barnabé le Marteleur", skill: "reparation", rang: 3,
+        cout: 1500, quete: null,
+        ville: "Tarant",
+        phrase: "Maîtrise totale de la forge et de la réparation. Rares sont ceux qui atteignent ce niveau."
+    },
+
+    // ── ARMES À FEU ──
+    "entraineur_armes_a_feu_A": {
+        nom: "Richard Leeks (forgeron)", skill: "armes_a_feu", rang: 1,
+        cout: 200, quete: null,
+        ville: "Stillwater",
+        phrase: "Savoir charger un pistolet, c'est déjà quelque chose."
+    },
+    "entraineur_armes_a_feu_E": {
+        nom: "Richard Leeks (forgeron)", skill: "armes_a_feu", rang: 2,
+        cout: 700, quete: null,
+        ville: "Stillwater",
+        phrase: "Entretien, cadence, précision sous pression... la formation avancée."
+    },
+    "entraineur_armes_a_feu_M": {
+        nom: "Richard Leeks (forgeron)", skill: "armes_a_feu", rang: 3,
+        cout: 0, quete: "Q25",
+        ville: "Stillwater",
+        phrase: "Retrouvez Cyrus et il enchântera vos armes. C'est tout ce qu'il me reste à vous apprendre."
+    },
+
+    // ── CROCHETAGE ──
+    "entraineur_crochetage_A": {
+        nom: "Thaddeus Mynor", skill: "crochetage", rang: 1,
+        cout: 0, quete: "Q23",
+        ville: "Tarant",
+        phrase: "Pour entrer dans la Guilde, il faut déjà savoir crocheter une serrure."
+    },
+    "entraineur_crochetage_E": {
+        nom: "J.T. Morgan", skill: "crochetage", rang: 2,
+        cout: 0, quete: "Q52",
+        ville: "Caladon (Prison)",
+        phrase: "Si vous pouvez m'atteindre ici, vous méritez les secrets du métier."
+    },
+    "entraineur_crochetage_M": {
+        nom: "J.T. Morgan", skill: "crochetage", rang: 3,
+        cout: 0, quete: "Q52",
+        ville: "Caladon",
+        phrase: "Libérez-moi et je ferai de vous le meilleur serrurier de tout Arcanum."
+    },
+
+    // ── DÉSAMORÇAGE DE PIÈGE ──
+    "entraineur_desamorcage_A": {
+        nom: "Constable Owens", skill: "desamorcage", rang: 1,
+        cout: 100, quete: null,
+        ville: "Shrouded Hills",
+        phrase: "Neutraliser un piège, ça demande de la méthode."
+    },
+    "entraineur_desamorcage_E": {
+        nom: "Hilda Ferrebombe", skill: "desamorcage", rang: 2,
+        cout: 500, quete: null,
+        ville: "Tarant",
+        phrase: "Mécanismes complexes, désamorçage sous pression. Cours avancé."
+    },
+    "entraineur_desamorcage_M": {
+        nom: "Ingrid la Démineure", skill: "desamorcage", rang: 3,
+        cout: 2500, quete: null,
+        ville: "Tarant",
+        phrase: "Maîtrise absolue du désamorçage. Vous pourrez désamorcer n'importe quoi, n'importe où."
+    }
+};
+
+// ── INTERACTION AVEC UN ENTRAÎNEUR ───────────────────────────────────────────
+function ouvrirEntraineur(idEntraineur) {
+    const e = entreineursData[idEntraineur];
+    if (!e) { _toast('Entraîneur introuvable.', 'error'); return; }
+
+    if (!perso.rangsComp) perso.rangsComp = {};
+
+    const rangActuel  = perso.rangsComp[e.skill] || 0;
+    const investi     = (perso.compInvesties && perso.compInvesties[e.skill]) || 0;
+    const seuil       = SEUILS_RANGS[e.rang];
+    const rangInfo    = RANGS[e.rang];
+    const nomRang     = rangInfo.nom;
+
+    // Déjà ce rang ou supérieur
+    if (rangActuel >= e.rang) {
+        _toast(`${e.nom} : Vous avez déjà le rang ${RANGS[rangActuel].nom} (ou supérieur) en ${e.skill}.`);
+        return;
+    }
+    // Rang pas encore accessible (doit avoir rang précédent)
+    if (e.rang > rangActuel + 1) {
+        _toast(`${e.nom} : Obtenez d'abord le rang ${RANGS[e.rang - 1].nom} avant de prétendre à ${nomRang}.`, 'error');
+        return;
+    }
+    // Points insuffisants
+    if (investi < seuil) {
+        _toast(`${e.nom} : "${e.phrase}" — Requis : ${seuil} points en ${e.skill} (actuel : ${investi}).`, 'error');
+        return;
+    }
+    // Quête requise
+    if (e.quete) {
+        _toast(`${e.nom} : "${e.phrase}" — Cette formation requiert la quête ${e.quete}.`);
+        return;
+    }
+    // Formation payante
+    if (e.cout > 0) {
+        if ((perso.argent || 0) < e.cout) {
+            _toast(`${e.nom} : Cette formation coûte ${e.cout} or. Vous n'en avez pas assez.`, 'error');
+            return;
+        }
+        if (!confirm(`${e.nom} vous propose la formation ${nomRang} en "${e.skill}" pour ${e.cout} or.\n\nAccepter ?`)) return;
+        perso.argent -= e.cout;
+    }
+
+    octroierRang('comp', e.skill, e.rang, e.cout === 0);
+}
+
 const coffresFixes = {
     "site_crash": {
         nom: "Trouvé sur les cadavres",

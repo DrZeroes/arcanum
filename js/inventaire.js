@@ -306,10 +306,25 @@ function updateInventaireUI() {
     let reductionClient = ptsMarchandage * 0.02;
 
     // --- GENERATEUR DE STATS VISUELLES ---
+    const _STAT_LABELS = { FO:'Force', DX:'Dextérité', IN:'Intelligence', CN:'Constitution', CH:'Charisme', FT:'Fatigue max', PV:'PV max', resMagie:'Rés. Magie', resPhys:'Rés. Physique', resFeu:'Rés. Feu', resElec:'Rés. Électrique', resPoison:'Rés. Poison', align:'Alignement', bonusComp:'Bonus compétences' };
     const getStatsHtml = (data, item) => {
         let h = `<div style="margin-top:5px; font-size:0.85em;">`;
         if (data.degats && data.degats !== "0") h += `<span style="color:#ff5252; margin-right: 10px;">⚔️ Dégâts: ${data.degats}</span>`;
         if (data.armure && data.armure > 0) h += `<span style="color:#4caf50; margin-right: 10px;">🛡️ Armure: ${data.armure}</span>`;
+        if (data.stats) {
+            for (const [k, v] of Object.entries(data.stats)) {
+                if (v === 0 || v === null || v === undefined) continue;
+                if (k === 'bonusComp' && typeof v === 'object') {
+                    const parts = Object.entries(v).map(([comp, val]) => `${comp.replace(/_/g,' ')} +${val}`).join(', ');
+                    h += `<span style="color:#b39ddb; margin-right:10px;">✨ Compétences: ${parts}</span>`;
+                    continue;
+                }
+                const label = _STAT_LABELS[k] || k;
+                const sign  = v > 0 ? '+' : '';
+                const color = v > 0 ? '#b39ddb' : '#ff8a65';
+                h += `<span style="color:${color}; margin-right:10px;">✨ ${label}: ${sign}${v}</span>`;
+            }
+        }
         h += `</div>`;
         return h;
     };

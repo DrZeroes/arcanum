@@ -181,6 +181,160 @@ function lancerD20Accueil() {
     }, 60);
 }
 
+/**
+ * Modal fiche complète d'un compagnon — lisible par le joueur ET le MJ.
+ * cmp : objet compagnon live (avec statsBase, statsInvesties, compInvesties, etc.)
+ */
+function ouvrirFicheCompagnon(cmp) {
+    document.getElementById('fiche-cmp-modal')?.remove();
+
+    const fo  = (cmp.statsBase?.FO || 0) + (cmp.statsInvesties?.FO || 0);
+    const ini = (cmp.statsBase?.IN || 0) + (cmp.statsInvesties?.IN || 0);
+    const cn  = (cmp.statsBase?.CN || 0) + (cmp.statsInvesties?.CN || 0);
+    const dx  = (cmp.statsBase?.DX || 0) + (cmp.statsInvesties?.DX || 0);
+    const ch  = (cmp.statsBase?.CH || 0) + (cmp.statsInvesties?.CH || 0);
+    const pvMax = (fo * 2) + ini + (cmp.boostPV || 0);
+    const ftMax = (cn * 2) + ini + (cmp.boostFT || 0);
+    const pvPct = pvMax > 0 ? Math.round(((cmp.pvActuel ?? pvMax) / pvMax) * 100) : 100;
+    const ftPct = ftMax > 0 ? Math.round(((cmp.ftActuel ?? ftMax) / ftMax) * 100) : 100;
+
+    const statRow = (label, base, inv) => {
+        const total = (base || 0) + (inv || 0);
+        const invStr = inv ? `<span style="color:#4caf50;font-size:0.8em"> (+${inv})</span>` : '';
+        return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #222;">
+            <span style="color:#aaa;">${label}</span>
+            <span style="color:#fff;font-weight:bold;">${total}${invStr}</span>
+        </div>`;
+    };
+
+    // Compétences
+    let compsHtml = '';
+    if (cmp.compInvesties && typeof competencesData !== 'undefined') {
+        const rangsDef = (typeof RANGS !== 'undefined') ? RANGS : {};
+        for (const cat in competencesData) {
+            competencesData[cat].forEach(skill => {
+                const inv = cmp.compInvesties[skill.id] || 0;
+                if (!inv) return;
+                const rang = cmp.rangsComp?.[skill.id] || 0;
+                const ri   = rangsDef[rang];
+                const badge = rang > 0 && ri
+                    ? `<span style="background:${ri.color};color:${ri.txtColor};border-radius:3px;padding:0 4px;font-size:0.7em;margin-left:4px;">${ri.abbr}</span>`
+                    : '';
+                const eff = rang > 0 && ri ? Math.round(inv * ri.mult) : inv;
+                compsHtml += `<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.85em;">
+                    <span style="color:#ccc;">${skill.nom}${badge}</span>
+                    <span style="color:#d4af37;">${inv}${rang > 0 ? ' → <b>' + eff + '</b>' : ''}</span>
+                </div>`;
+            });
+        }
+    }
+
+    // Magie
+    let magieHtml = '';
+    if (cmp.magieInvesties) {
+        for (const [ecole, pts] of Object.entries(cmp.magieInvesties)) {
+            if (!pts) continue;
+            magieHtml += `<div style="display:flex;justify-content:space-between;font-size:0.85em;padding:2px 0;">
+                <span style="color:#ce93d8;">✨ ${ecole}</span><span style="color:#fff;">${pts}/5</span>
+            </div>`;
+        }
+    }
+
+    // Tech
+    let techHtml = '';
+    if (cmp.techInvesties) {
+        for (const [disc, pts] of Object.entries(cmp.techInvesties)) {
+            if (!pts) continue;
+            techHtml += `<div style="display:flex;justify-content:space-between;font-size:0.85em;padding:2px 0;">
+                <span style="color:#80cbc4;">⚙ ${disc}</span><span style="color:#fff;">${pts}/5</span>
+            </div>`;
+        }
+    }
+
+    // Équipement
+    const slotLabels = { main_droite:'Main droite', main_gauche:'Main gauche / Bouclier',
+        torse:'Torse', tete:'Tête', bottes:'Bottes', gants:'Gants', anneau:'Anneau', amulette:'Amulette' };
+    let equipHtml = '';
+    if (cmp.equipement && typeof itemsData !== 'undefined') {
+        for (const [slot, id] of Object.entries(cmp.equipement)) {
+            if (!id) continue;
+            const def = itemsData[id];
+            if (!def) continue;
+            equipHtml += `<div style="display:flex;justify-content:space-between;font-size:0.82em;padding:2px 0;">
+                <span style="color:#888;">${slotLabels[slot] || slot}</span>
+                <span style="color:#d4af37;">${def.nom}</span>
+            </div>`;
+        }
+    }
+
+    const portraitSrc = cmp.portrait || '';
+    const modal = document.createElement('div');
+    modal.id = 'fiche-cmp-modal';
+    modal.style.cssText = `position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.88);
+        display:flex;align-items:center;justify-content:center;padding:16px;`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.innerHTML = `
+    <div style="background:#141414;border:1px solid #444;border-radius:8px;width:100%;max-width:520px;
+                max-height:90vh;overflow-y:auto;padding:20px;">
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
+            ${portraitSrc ? `<img src="${portraitSrc}" style="width:100px;height:100px;object-fit:cover;border-radius:6px;border:2px solid #d4af37;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+            <div style="flex:1;">
+                <div style="color:#d4af37;font-size:1.2em;font-weight:bold;">${cmp.nom}</div>
+                <div style="color:#888;font-size:0.85em;margin-top:2px;">Niv. ${cmp.niveau || 1} · ${cmp.race || '?'} · ${cmp.sexe === 'F' ? 'Féminin' : 'Masculin'}</div>
+                ${cmp.lieu ? `<div style="color:#666;font-size:0.78em;margin-top:2px;">📍 ${cmp.lieu}</div>` : ''}
+                ${cmp.prndSlot === false ? `<div style="color:#9575cd;font-size:0.75em;margin-top:2px;">Hors-slot compagnon</div>` : ''}
+                ${cmp.temporaire ? `<div style="color:#e57373;font-size:0.75em;margin-top:2px;">Compagnon temporaire</div>` : ''}
+            </div>
+            <button onclick="document.getElementById('fiche-cmp-modal').remove()"
+                style="background:#3a1010;color:#ff6b6b;border:1px solid #8b0000;padding:4px 10px;border-radius:4px;cursor:pointer;flex-shrink:0;">✕</button>
+        </div>
+
+        <!-- PV / FT -->
+        <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.82em;color:#aaa;margin-bottom:2px;"><span>❤ PV</span><span>${cmp.pvActuel ?? pvMax} / ${pvMax}</span></div>
+            <div style="height:6px;background:#333;border-radius:3px;"><div style="height:100%;width:${pvPct}%;background:#e57373;border-radius:3px;"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.82em;color:#aaa;margin:6px 0 2px;"><span>⚡ FT</span><span>${cmp.ftActuel ?? ftMax} / ${ftMax}</span></div>
+            <div style="height:6px;background:#333;border-radius:3px;"><div style="height:100%;width:${ftPct}%;background:#64b5f6;border-radius:3px;"></div></div>
+        </div>
+
+        <!-- Stats -->
+        <div style="margin-bottom:12px;">
+            <div style="color:#666;font-size:0.72em;text-transform:uppercase;margin-bottom:4px;">Statistiques</div>
+            ${statRow('Force (FO)', cmp.statsBase?.FO, cmp.statsInvesties?.FO)}
+            ${statRow('Intelligence (IN)', cmp.statsBase?.IN, cmp.statsInvesties?.IN)}
+            ${statRow('Constitution (CN)', cmp.statsBase?.CN, cmp.statsInvesties?.CN)}
+            ${statRow('Dextérité (DX)', cmp.statsBase?.DX, cmp.statsInvesties?.DX)}
+            ${statRow('Charisme (CH)', cmp.statsBase?.CH, cmp.statsInvesties?.CH)}
+        </div>
+
+        ${compsHtml ? `<div style="margin-bottom:12px;">
+            <div style="color:#666;font-size:0.72em;text-transform:uppercase;margin-bottom:4px;">Compétences</div>
+            ${compsHtml}
+        </div>` : ''}
+
+        ${magieHtml ? `<div style="margin-bottom:12px;">
+            <div style="color:#666;font-size:0.72em;text-transform:uppercase;margin-bottom:4px;">Magie</div>
+            ${magieHtml}
+        </div>` : ''}
+
+        ${techHtml ? `<div style="margin-bottom:12px;">
+            <div style="color:#666;font-size:0.72em;text-transform:uppercase;margin-bottom:4px;">Technologie</div>
+            ${techHtml}
+        </div>` : ''}
+
+        ${equipHtml ? `<div style="margin-bottom:12px;">
+            <div style="color:#666;font-size:0.72em;text-transform:uppercase;margin-bottom:4px;">Équipement</div>
+            ${equipHtml}
+        </div>` : ''}
+
+        ${cmp.notes ? `<div style="color:#666;font-size:0.78em;font-style:italic;border-top:1px solid #222;padding-top:8px;">${cmp.notes}</div>` : ''}
+        ${cmp.contrainte ? `<div style="color:#555;font-size:0.75em;margin-top:4px;">⚠ ${cmp.contrainte}</div>` : ''}
+    </div>`;
+
+    document.body.appendChild(modal);
+}
+
 function ouvrirEcranCompagnons() {
     cacherTout();
     const ecran = document.getElementById('ecran-compagnons');
@@ -251,8 +405,12 @@ function _afficherEcranCompagnons_suite(container, comps, familier) {
         const compSurcharge = poidsComp > chargeCompMax;
         const chargeColor = compSurcharge ? '#f44336' : poidsComp > chargeCompMax * 0.8 ? '#ff9800' : '#4caf50';
 
+        const portraitHtml = c.portrait
+            ? `<img src="${c.portrait}" alt="${c.nom}" style="width:72px;height:72px;object-fit:cover;border-radius:4px;float:right;margin:0 0 6px 10px;">`
+            : '';
         fragments.push(`
             <div class="compagnon-card">
+                ${portraitHtml}
                 <div class="compagnon-header">
                     <span class="compagnon-nom">${c.nom}</span>
                     <span class="compagnon-niveau">Niv. ${c.niveau || 1}</span>
@@ -284,6 +442,9 @@ function _afficherEcranCompagnons_suite(container, comps, familier) {
                 ${_compagnon_sortsHtml(c)}
                 ${_compagnon_inventaireHtml(c, idx)}
                 ${(typeof _genererLedsXP === 'function') ? '<div style="margin-top:6px;">' + _genererLedsXP(c.xp || 0, c.niveau || 1) + '</div>' : ''}
+                <button onclick="ouvrirFicheCompagnon(window.perso.compagnons[${idx}])"
+                    style="margin-top:8px;width:100%;background:#1a1a2e;color:#9575cd;border:1px solid #4a3a7a;
+                           padding:5px;border-radius:4px;cursor:pointer;font-size:0.82em;">📋 Fiche complète</button>
             </div>
         `);
     });
@@ -1178,8 +1339,18 @@ if (statsBox && window.perso) {
     const foTotal = (window.perso.statsBase.FO || 0) + (window.perso.statsInvesties?.FO || 0) + _bonusEffets(window.perso, 'FO');
     const inTotal = (window.perso.statsBase.IN || 0) + (window.perso.statsInvesties?.IN || 0) + _bonusEffets(window.perso, 'IN');
     const cnTotal = (window.perso.statsBase.CN || 0) + (window.perso.statsInvesties?.CN || 0) + _bonusEffets(window.perso, 'CN');
-    const maxPV = (foTotal * 2) + inTotal + (window.perso.boostPV || 0) + _bonusEffets(window.perso, 'pv');
-    const maxFT = (cnTotal * 2) + inTotal + (window.perso.boostFT || 0) + _bonusEffets(window.perso, 'ft');
+    let bonusFTEquip = 0, bonusPVEquip = 0;
+    if (window.perso.equipement && typeof itemsData !== 'undefined') {
+        for (const slot in window.perso.equipement) {
+            const itemEq = window.perso.equipement[slot];
+            if (itemEq && itemsData[itemEq.id]?.stats && itemEq.identifie !== false) {
+                bonusFTEquip += itemsData[itemEq.id].stats.FT || 0;
+                bonusPVEquip += itemsData[itemEq.id].stats.PV || 0;
+            }
+        }
+    }
+    const maxPV = (foTotal * 2) + inTotal + (window.perso.boostPV || 0) + _bonusEffets(window.perso, 'pv') + bonusPVEquip;
+    const maxFT = (cnTotal * 2) + inTotal + (window.perso.boostFT || 0) + _bonusEffets(window.perso, 'ft') + bonusFTEquip;
 
     // 2. Récupération des valeurs actuelles SANS valeur par défaut automatique
     const pvReels = window.perso.pvActuel;

@@ -794,58 +794,8 @@ const ennemisData = {
 
     // ── ZONE 1 : Site du Crash & Wilderness ────────────────────────────────
 
-    "loup_affame": {
-        nom: "Loup affamé", race: "Humain", sexe: "M", niveau: 1,
-        antecedent: "Prédateur affaibli par la famine, attaque à vue.",
-        zones: ["crash", "arba", "simon"],
-        xp: 30,
-        statsBase:    { FO:8, IN:2, CN:7, DX:9, CH:1 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:18  FT:16
-        compInvesties: { melee:2 },
-        elementDegats: "poison",
-        equipement: { tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null },
-        pvActuel: 18, ftActuel: 16, boostPV:0, boostFT:0, argent: 0,
-        lootDrop: [ { id:"COMP06", qte:1 }, { id:"OR_PIECES", qte:2 } ]
-    },
-
-    "loup_alpha": {
-        nom: "Loup Alpha", race: "Humain", sexe: "M", niveau: 3,
-        antecedent: "Dominant de la meute, plus grand et nettement plus agressif.",
-        zones: ["crash", "arba"],
-        xp: 80,
-        statsBase:    { FO:10, IN:3, CN:9, DX:10, CH:2 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:23  FT:21
-        compInvesties: { melee:3, esquive:1 },
-        elementDegats: "poison",
-        equipement: { tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null },
-        pvActuel: 23, ftActuel: 21, boostPV:0, boostFT:0, argent: 0,
-        lootDrop: [ { id:"COMP06", qte:2 }, { id:"COMP05", qte:1 }, { id:"OR_PIECES", qte:5 } ]
-    },
-
-    "gnoll_rodeur": {
-        nom: "Gnoll Rôdeur", race: "Demi-Orque", sexe: "M", niveau: 2,
-        antecedent: "Humanoïde canin nomade, attaque en groupe depuis les lisières.",
-        zones: ["crash", "arba", "simon"],
-        xp: 55,
-        statsBase:    { FO:9, IN:5, CN:8, DX:8, CH:2 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:23  FT:21
-        compInvesties: { melee:2, lancer:1 },
-        equipement: {
-            tete:null,
-            torse: { id:"DEF02", quantite:1, durabilite:40, durabiliteMax:100 },
-            gants:null, bottes:null, anneau:null, amulette:null,
-            main_droite: { id:"AM07", quantite:1, durabilite:50, durabiliteMax:100 },
-            main_gauche:null
-        },
-        pvActuel: 23, ftActuel: 21, boostPV:0, boostFT:0, argent: 5,
-        lootDrop: [ { id:"AM07", qte:1 }, { id:"OR_PIECES", qte:8 }, { id:"CONS03", qte:1 } ]
-    },
-
     "simon_fahrkus": {
-        nom: "Simon Fahrkus", race: "Humain", sexe: "M", niveau: 3,
+        nom: "Simon Fahrkus", race: "Humain", sexe: "M", niveau: 3, portrait: "simon_fahrkus.png",
         antecedent: "Escroc retors, survivant de l'épave. Persuasif et dangereux, il cherche à dépouiller les rescapés avant de fuir.",
         zones: ["crash"],
         xp: 75,
@@ -865,7 +815,7 @@ const ennemisData = {
     },
 
     "elfe_encapuchonnee": {
-        nom: "Elfe Encapuchonnée", race: "Elfe", sexe: "F", niveau: 7,
+        nom: "Elfe Encapuchonnée", race: "Elfe", sexe: "F", niveau: 7, portrait: "elfe_encapuchonnee.png",
         antecedent: "Premier boss. Mystérieuse elfe dont l'identité est dissimulée. Sa présence sur l'épave n'est pas accidentelle — elle cherche quelque chose dans les débris.",
         zones: ["crash"],
         xp: 280,
@@ -890,7 +840,7 @@ const ennemisData = {
     // ── ZONE 2 : Triste Colline & Mine ─────────────────────────────────────
 
     "pickpocket": {
-        nom: "Pickpocket Halfelin", race: "Halfelin", sexe: "M", niveau: 2,
+        nom: "Pickpocket Halfelin", race: "Halfelin", sexe: "M", niveau: 2, portrait: "pickpocket.png",
         antecedent: "Petit voleur fuyant la mine, vole dans les poches avant de disparaître.",
         zones: ["tris"],
         xp: 45,
@@ -910,7 +860,7 @@ const ennemisData = {
     },
 
     "bandit_route": {
-        nom: "Bandit de Grand Chemin", race: "Humain", sexe: "M", niveau: 3,
+        nom: "Bandit de Grand Chemin", race: "Humain", sexe: "M", niveau: 3, portrait: "bandit.png",
         antecedent: "Ancien mineur reconverti au brigandage, désespéré et armé.",
         zones: ["tris", "simon"],
         xp: 70,
@@ -932,7 +882,7 @@ const ennemisData = {
     },
 
     "bandit_chef": {
-        nom: "Lucain le Grand", race: "Humain", sexe: "M", niveau: 5,
+        nom: "Lucain le Grand", race: "Humain", sexe: "M", niveau: 5, portrait: "lucain.png",
         antecedent: "Lucain le Grand — meneur brutal surnommé pour sa stature et sa cruauté, ex-soldat de Tarante tombé dans la criminalité.",
         zones: ["tris"],
         xp: 150,
@@ -954,7 +904,7 @@ const ennemisData = {
     },
 
     "gnome_solitaire": {
-        nom: "Gnome Solitaire", race: "Gnome", sexe: "M", niveau: 2,
+        nom: "Gnome Solitaire", race: "Gnome", sexe: "M", niveau: 2, portrait: "gnome.png",
         antecedent: "Gnome paranoïaque vivant en marge du village. Attaque quiconque s'approche de son territoire, convaincu d'être espionné.",
         zones: ["tris"],
         xp: 40,
@@ -974,7 +924,7 @@ const ennemisData = {
     },
 
     "machiniste": {
-        nom: "Machiniste", race: "Gnome", sexe: "M", niveau: 1,
+        nom: "Machiniste", race: "Gnome", sexe: "M", niveau: 1, portrait: "gnome.png",
         antecedent: "Réparateur de machines inoffensif, coincé à Triste Colline. Non-hostile — ne se bat que s'il est directement attaqué. Peut offrir des réparations.",
         zones: ["tris"],
         xp: 5,
@@ -992,7 +942,7 @@ const ennemisData = {
     },
 
     "braqueur": {
-        nom: "Braqueur", race: "Humain", sexe: "M", niveau: 4,
+        nom: "Braqueur", race: "Humain", sexe: "M", niveau: 4, portrait: "bandit.png",
         antecedent: "Brigand armé d'une arme à feu, opère sur la route menant à Triste Colline. Préfère intimider avant de tirer.",
         zones: ["tris"],
         xp: 100,
@@ -1013,26 +963,8 @@ const ennemisData = {
         lootDrop: [ { id:"AF02", qte:1 }, { id:"OR_PIECES", qte:38 }, { id:"COMP08", qte:2 } ]
     },
 
-    "araignee_grottes": {
-        nom: "Araignée des Grottes", race: "Humain", sexe: "M", niveau: 3,
-        antecedent: "Créature venimeuse tapie dans les galeries de la mine abandonnée sous Triste Colline.",
-        zones: ["tris"],
-        xp: 65,
-        statsBase:    { FO:9, IN:2, CN:8, DX:11, CH:1 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:20  FT:18
-        compInvesties: { melee:3, discretion:2 },
-        elementDegats: "poison",
-        equipement: {
-            tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null,
-            main_droite:null, main_gauche:null
-        },
-        pvActuel: 20, ftActuel: 18, boostPV:0, boostFT:0, argent: 0,
-        lootDrop: [ { id:"COMP06", qte:2 }, { id:"TEC02", qte:1 } ]
-    },
-
     "mineur_revolte": {
-        nom: "Mineur en Révolte", race: "Humain", sexe: "M", niveau: 3,
+        nom: "Mineur en Révolte", race: "Humain", sexe: "M", niveau: 3, portrait: "mineur.png",
         antecedent: "Ouvrier de la mine épuisé et exploité, il a choisi la violence.",
         zones: ["tris"],
         xp: 60,
@@ -1052,7 +984,7 @@ const ennemisData = {
     },
 
     "garde_mine": {
-        nom: "Garde de Mine corrompu", race: "Humain", sexe: "M", niveau: 4,
+        nom: "Garde de Mine corrompu", race: "Humain", sexe: "M", niveau: 4, portrait: "garde.png",
         antecedent: "Garde payé par les propriétaires pour faire taire les plaintes.",
         zones: ["tris"],
         xp: 110,
@@ -1075,28 +1007,8 @@ const ennemisData = {
 
     // ── ZONE 3 : Route vers Tarante (Wilderness) ───────────────────────────
 
-    "orc_pillard": {
-        nom: "Orc Pillard", race: "Orque", sexe: "M", niveau: 4,
-        antecedent: "Pillard tribale chassé de son clan, attaque les convois commerciaux.",
-        zones: ["tarante"],
-        xp: 120,
-        statsBase:    { FO:12, IN:6, CN:11, DX:8, CH:3 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:30  FT:28
-        compInvesties: { melee:4, lancer:2 },
-        equipement: {
-            tete:null,
-            torse: { id:"DEF02", quantite:1, durabilite:60, durabiliteMax:100 },
-            gants:null, bottes:null, anneau:null, amulette:null,
-            main_droite: { id:"AM10", quantite:1, durabilite:65, durabiliteMax:100 },
-            main_gauche:null
-        },
-        pvActuel: 30, ftActuel: 28, boostPV:0, boostFT:0, argent: 12,
-        lootDrop: [ { id:"AM10", qte:1 }, { id:"OR_PIECES", qte:12 }, { id:"DEF02", qte:1 } ]
-    },
-
     "brigand_arme": {
-        nom: "Brigand Armé", race: "Humain", sexe: "M", niveau: 5,
+        nom: "Brigand Armé", race: "Humain", sexe: "M", niveau: 5, portrait: "bandit.png",
         antecedent: "Mercenaire sans contrat, vole les voyageurs sur la route de Tarante.",
         zones: ["tarante"],
         xp: 140,
@@ -1117,30 +1029,10 @@ const ennemisData = {
         lootDrop: [ { id:"AF02", qte:1 }, { id:"MUN01", qte:8 }, { id:"OR_PIECES", qte:40 } ]
     },
 
-    "ogre_sauvage": {
-        nom: "Ogre Sauvage", race: "Ogre", sexe: "M", niveau: 4,
-        antecedent: "Solitaire errant, territorial et imprévisible. Ne fuira jamais.",
-        zones: ["tarante"],
-        xp: 200,
-        statsBase:    { FO:14, IN:2, CN:8, DX:7, CH:2 },
-        statsInvesties:{ FO:0, IN:0, CN:0, DX:0, CH:0 },
-        // PV:30  FT:18
-        compInvesties: { melee:3 },
-        equipement: {
-            tete:null,
-            torse: { id:"DEF02", quantite:1, durabilite:50, durabiliteMax:100 },
-            gants:null, bottes:null, anneau:null, amulette:null,
-            main_droite: { id:"AM01", quantite:1, durabilite:80, durabiliteMax:100 },
-            main_gauche:null
-        },
-        pvActuel: 30, ftActuel: 18, boostPV:0, boostFT:0, argent: 0,
-        lootDrop: [ { id:"OR_PIECES", qte:5 }, { id:"COMP02", qte:4 } ]
-    },
-
     // ── ZONE 4 : Approche de Tarante (Main de Moloch) ─────────────────────
 
     "assassin_main": {
-        nom: "Assassin de la Main de Moloch", race: "Humain", sexe: "M", niveau: 6,
+        nom: "Assassin de la Main de Moloch", race: "Humain", sexe: "M", niveau: 6, portrait: "assassin.png",
         antecedent: "Tueur de la confrérie secrète, envoyé pour éliminer le survivant du Zephyr.",
         zones: ["tarante"],
         xp: 220,
@@ -1160,7 +1052,7 @@ const ennemisData = {
     },
 
     "tireur_embuscade": {
-        nom: "Tireur en Embuscade", race: "Humain", sexe: "M", niveau: 5,
+        nom: "Tireur en Embuscade", race: "Humain", sexe: "M", niveau: 5, portrait: "assassin.png",
         antecedent: "Mercenaire de la Main positionné en hauteur, tire depuis l'ombre.",
         zones: ["tarante"],
         xp: 160,
@@ -1180,7 +1072,7 @@ const ennemisData = {
     },
 
     "assassin_elite": {
-        nom: "Assassin d'Élite de la Main", race: "Humain", sexe: "M", niveau: 8,
+        nom: "Assassin d'Élite de la Main", race: "Humain", sexe: "M", niveau: 8, portrait: "assassin_elite.png",
         antecedent: "Le meilleur opérateur de la Main de Moloch. Il ne rate jamais sa cible.",
         zones: ["tarante"],
         xp: 350,
@@ -1197,6 +1089,938 @@ const ennemisData = {
         },
         pvActuel: 31, ftActuel: 29, boostPV:0, boostFT:0, argent: 150,
         lootDrop: [ { id:"AM09", qte:1 }, { id:"AM04", qte:1 }, { id:"OR_PIECES", qte:130 }, { id:"CONS04", qte:2 } ]
+    },
+
+    // ── MONSTRES ARCANUM ──
+
+    "apish_shaman": {
+        nom: "Chaman Singe", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:15, CN:10, DX:7, IN:18, CH:6, MA:30},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nature":5, "Mental":1},
+        portrait: "monstres/singe.png",
+        pvActuel: 58, ftActuel: 74, boostPV: 10, boostFT: 36,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "arachnix_child": {
+        nom: "Enfant Arachnide", niveau: 8,
+        race: "Bête",
+        statsBase: {FO:8, CN:8, DX:11, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/arachnix.png",
+        pvActuel: 38, ftActuel: 38, boostPV: 19, boostFT: 19,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 200, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "arachnix_mother": {
+        nom: "Mère Arachnide", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:12, CN:12, DX:15, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/arachnix.png",
+        pvActuel: 60, ftActuel: 60, boostPV: 33, boostFT: 33,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "automaton": {
+        nom: "Automate", niveau: 30,
+        race: "Artificiel",
+        statsBase: {FO:20, CN:19, DX:13, IN:7, CH:1, TC:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/automate.png",
+        pvActuel: 100, ftActuel: 104, boostPV: 53, boostFT: 59,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "bear_ancient": {
+        nom: "Ours Ancestral", niveau: 30,
+        race: "Bête",
+        statsBase: {FO:20, CN:17, DX:17, IN:15, CH:8, MA:30},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nature":5, "Mental":1},
+        portrait: "monstres/ours.png",
+        pvActuel: 102, ftActuel: 117, boostPV: 47, boostFT: 68,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "bear_golden": {
+        nom: "Ours Doré", niveau: 20,
+        race: "Bête",
+        statsBase: {FO:17, CN:12, DX:12, IN:4, CH:14},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/ours.png",
+        pvActuel: 68, ftActuel: 73, boostPV: 30, boostFT: 45,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "bear_grizzly": {
+        nom: "Ours Grizzly", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:14, CN:16, DX:10, IN:5, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/ours.png",
+        pvActuel: 58, ftActuel: 74, boostPV: 25, boostFT: 37,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "bear_polar": {
+        nom: "Ours Polaire", niveau: 10,
+        race: "Bête",
+        statsBase: {FO:14, CN:10, DX:8, IN:4, CH:9},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/ours.png",
+        pvActuel: 48, ftActuel: 49, boostPV: 16, boostFT: 25,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 250, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:3}]
+    },
+
+    "bear_polar_cub": {
+        nom: "Ourson Polaire", niveau: 5,
+        race: "Bête",
+        statsBase: {FO:7, CN:5, DX:4, IN:4, CH:14},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/ours.png",
+        pvActuel: 48, ftActuel: 29, boostPV: 30, boostFT: 15,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 125, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "black_defiler": {
+        nom: "Profanateur Noir", niveau: 25,
+        race: "Mort-vivant",
+        statsBase: {FO:16, CN:8, DX:11, IN:16, CH:3, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nécromancie noire":3},
+        portrait: "monstres/defiler.png",
+        pvActuel: 104, ftActuel: 88, boostPV: 56, boostFT: 56,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "black_defiler_slave": {
+        nom: "Esclave du Profanateur", niveau: 15,
+        race: "Mort-vivant",
+        statsBase: {FO:14, CN:12, DX:15, IN:12, CH:3, MA:10},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nécromancie noire":1, "Invocation":1},
+        portrait: "monstres/defiler.png",
+        pvActuel: 77, ftActuel: 73, boostPV: 37, boostFT: 37,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "bone_butcher": {
+        nom: "Boucher d'Os", niveau: 15,
+        race: "Mort-vivant",
+        statsBase: {FO:12, CN:10, DX:13, IN:5, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/bone_butcher.png",
+        pvActuel: 63, ftActuel: 59, boostPV: 34, boostFT: 34,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "brute_fang": {
+        nom: "Croc Brutal", niveau: 20,
+        race: "Bête",
+        statsBase: {FO:18, CN:13, DX:15, IN:5, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/brute_fang.png",
+        pvActuel: 68, ftActuel: 77, boostPV: 27, boostFT: 46,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "burnowar": {
+        nom: "Burnowar", niveau: 30,
+        race: "Démon",
+        statsBase: {FO:14, CN:12, DX:9, IN:15, CH:3, MA:25},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Feu":5},
+        portrait: "monstres/burnowar.png",
+        pvActuel: 110, ftActuel: 106, boostPV: 67, boostFT: 67,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "death_latern": {
+        nom: "Lanterne de Mort", niveau: 20,
+        race: "Esprit",
+        statsBase: {FO:8, CN:7, DX:19, IN:9, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/lanterne.png",
+        pvActuel: 69, ftActuel: 67, boostPV: 44, boostFT: 44,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "elemental_snake": {
+        nom: "Serpent Élémentaire", niveau: 32,
+        race: "Élémentaire",
+        statsBase: {FO:13, CN:17, DX:14, IN:14, CH:4, MA:25},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Feu":3, "Eau":2},
+        portrait: "monstres/serpent.png",
+        pvActuel: 92, ftActuel: 119, boostPV: 52, boostFT: 71,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 800, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "feraloch": {
+        nom: "Féraloch", niveau: 20,
+        race: "Bête",
+        statsBase: {FO:13, CN:14, DX:9, IN:3, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/feraloch.png",
+        pvActuel: 75, ftActuel: 77, boostPV: 46, boostFT: 46,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "fleshy_mound": {
+        nom: "Monticule de Chair", niveau: 15,
+        race: "Démon",
+        statsBase: {FO:14, CN:11, DX:10, IN:4, CH:5},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/mound.png",
+        pvActuel: 70, ftActuel: 64, boostPV: 38, boostFT: 38,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "forest_ape": {
+        nom: "Singe des Forêts", niveau: 17,
+        race: "Bête",
+        statsBase: {FO:14, CN:12, DX:16, IN:7, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/singe.png",
+        pvActuel: 62, ftActuel: 70, boostPV: 27, boostFT: 39,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 425, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "foul_spirit": {
+        nom: "Esprit Immonde", niveau: 25,
+        race: "Esprit",
+        statsBase: {FO:7, CN:15, DX:8, IN:16, CH:3, MA:35},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Air":2, "Mental":3, "Transformation":2},
+        portrait: "monstres/esprit.png",
+        pvActuel: 86, ftActuel: 102, boostPV: 56, boostFT: 56,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "frigidon": {
+        nom: "Frigidon", niveau: 25,
+        race: "Bête",
+        statsBase: {FO:12, CN:11, DX:12, IN:9, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/frigidon.png",
+        pvActuel: 85, ftActuel: 83, boostPV: 52, boostFT: 52,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "ghoul": {
+        nom: "Goule", niveau: 6,
+        race: "Mort-vivant",
+        statsBase: {FO:9, CN:12, DX:8, IN:3, CH:1, MA:50},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/goule.png",
+        pvActuel: 40, ftActuel: 42, boostPV: 19, boostFT: 15,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 150, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "golem_ore": {
+        nom: "Golem de Minerai", niveau: 25,
+        race: "Artificiel",
+        statsBase: {FO:18, CN:18, DX:9, IN:6, CH:5, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/golem.png",
+        pvActuel: 78, ftActuel: 105, boostPV: 36, boostFT: 63,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "gore_guard": {
+        nom: "Gardien Sanglant", niveau: 22,
+        race: "Artificiel",
+        statsBase: {FO:14, CN:15, DX:10, IN:3, CH:1, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/gore_guard.png",
+        pvActuel: 72, ftActuel: 80, boostPV: 41, boostFT: 47,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 550, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:7}]
+    },
+
+    "gowrath_greater": {
+        nom: "Grand Gowrath", niveau: 18,
+        race: "Bête",
+        statsBase: {FO:15, CN:11, DX:9, IN:3, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/gowrath.png",
+        pvActuel: 75, ftActuel: 67, boostPV: 42, boostFT: 42,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 450, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "gowrath_lesser": {
+        nom: "Petit Gowrath", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:14, CN:10, DX:8, IN:3, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/gowrath.png",
+        pvActuel: 67, ftActuel: 59, boostPV: 36, boostFT: 36,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "grim_shade": {
+        nom: "Ombre Sinistre", niveau: 30,
+        race: "Esprit",
+        statsBase: {FO:12, CN:15, DX:17, IN:16, CH:3, MA:25},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Mental":3, "Air":2},
+        portrait: "monstres/shade.png",
+        pvActuel: 106, ftActuel: 112, boostPV: 66, boostFT: 66,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "hell_creeper": {
+        nom: "Rampant des Enfers", niveau: 15,
+        race: "Démon",
+        statsBase: {FO:15, CN:7, DX:17, IN:15, CH:2, MA:15},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Feu":3},
+        portrait: "monstres/hell_creeper.png",
+        pvActuel: 283, ftActuel: 67, boostPV: 238, boostFT: 38,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "insectress_hunter": {
+        nom: "Chasseuse Insectoïde", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:12, CN:12, DX:15, IN:4, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/insectresse.png",
+        pvActuel: 60, ftActuel: 60, boostPV: 32, boostFT: 32,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "kite_berserker": {
+        nom: "Berserker Kite", niveau: 8,
+        race: "Kite",
+        statsBase: {FO:3, CN:4, DX:14, IN:2, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/kite.png",
+        pvActuel: 30, ftActuel: 32, boostPV: 22, boostFT: 22,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 200, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "kite_bowman": {
+        nom: "Archer Kite", niveau: 5,
+        race: "Kite",
+        statsBase: {FO:3, CN:4, DX:9, IN:4, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/kite.png",
+        pvActuel: 24, ftActuel: 26, boostPV: 14, boostFT: 14,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 125, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "kite_scout": {
+        nom: "Éclaireur Kite", niveau: 3,
+        race: "Kite",
+        statsBase: {FO:3, CN:4, DX:8, IN:4, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/kite.png",
+        pvActuel: 20, ftActuel: 22, boostPV: 10, boostFT: 10,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 75, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "kite_shaman": {
+        nom: "Chaman Kite", niveau: 12,
+        race: "Kite",
+        statsBase: {FO:2, CN:4, DX:5, IN:15, CH:3, MA:25},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nature":5},
+        portrait: "monstres/kite.png",
+        pvActuel: 50, ftActuel: 54, boostPV: 31, boostFT: 31,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "kite_warrior": {
+        nom: "Guerrier Kite", niveau: 5,
+        race: "Kite",
+        statsBase: {FO:4, CN:4, DX:10, IN:4, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/kite.png",
+        pvActuel: 26, ftActuel: 26, boostPV: 14, boostFT: 14,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 125, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "lethe_wyvern": {
+        nom: "Wyverne du Léthé", niveau: 45,
+        race: "Bête",
+        statsBase: {FO:18, CN:17, DX:16, IN:16, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/wyverne.png",
+        pvActuel: 147, ftActuel: 145, boostPV: 95, boostFT: 95,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 1125, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:15}]
+    },
+
+    "lich_greater": {
+        nom: "Grand Liche", niveau: 15,
+        race: "Mort-vivant",
+        statsBase: {FO:13, CN:8, DX:8, IN:15, CH:3, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Energie":4},
+        portrait: "monstres/liche.png",
+        pvActuel: 78, ftActuel: 68, boostPV: 37, boostFT: 37,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "lich_lesser": {
+        nom: "Petit Liche", niveau: 8,
+        race: "Mort-vivant",
+        statsBase: {FO:9, CN:8, DX:6, IN:13, CH:3, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/liche.png",
+        pvActuel: 50, ftActuel: 48, boostPV: 19, boostFT: 19,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 200, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "lords_slave": {
+        nom: "Esclave du Seigneur", niveau: 22,
+        race: "Humain",
+        statsBase: {FO:16, CN:14, DX:17, IN:14, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/esclave.png",
+        pvActuel: 72, ftActuel: 92, boostPV: 26, boostFT: 50,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 550, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:7}]
+    },
+
+    "molten_arachnid": {
+        nom: "Arachnide en Fusion", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:9, CN:7, DX:14, IN:15, CH:2, MA:15},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Feu":3},
+        portrait: "monstres/arachnix.png",
+        pvActuel: 58, ftActuel: 67, boostPV: 25, boostFT: 38,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "mongrelon": {
+        nom: "Mongrelon", niveau: 20,
+        race: "Humanoïde",
+        statsBase: {FO:14, CN:13, DX:16, IN:8, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/mongrelon.png",
+        pvActuel: 78, ftActuel: 76, boostPV: 42, boostFT: 42,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "monkey_swarmer": {
+        nom: "Singe en Essaim", niveau: 3,
+        race: "Bête",
+        statsBase: {FO:5, CN:4, DX:16, IN:3, CH:5},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/singe.png",
+        pvActuel: 34, ftActuel: 20, boostPV: 21, boostFT: 9,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 75, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "muck_walker": {
+        nom: "Marcheur de Boue", niveau: 20,
+        race: "Artificiel",
+        statsBase: {FO:17, CN:14, DX:13, IN:3, CH:1, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/muck_walker.png",
+        pvActuel: 68, ftActuel: 74, boostPV: 31, boostFT: 43,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "plaguish_maiden": {
+        nom: "Vierge Pestilentielle", niveau: 20,
+        race: "Mort-vivant",
+        statsBase: {FO:9, CN:8, DX:15, IN:14, CH:1, MA:10},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Air":2},
+        portrait: "monstres/pestilentielle.png",
+        pvActuel: 80, ftActuel: 78, boostPV: 48, boostFT: 48,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "prodigious_vermin": {
+        nom: "Vermine Prodigieuse", niveau: 4,
+        race: "Bête",
+        statsBase: {FO:4, CN:6, DX:8, IN:1, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/vermine.png",
+        pvActuel: 36, ftActuel: 26, boostPV: 27, boostFT: 13,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 100, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "putrid_rodent": {
+        nom: "Rongeur Putride", niveau: 12,
+        race: "Bête",
+        statsBase: {FO:8, CN:7, DX:11, IN:1, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/putride.png",
+        pvActuel: 44, ftActuel: 44, boostPV: 27, boostFT: 29,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "putrid_walker": {
+        nom: "Marcheur Putride", niveau: 12,
+        race: "Mort-vivant",
+        statsBase: {FO:10, CN:12, DX:9, IN:3, CH:1, MA:75},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/putride.png",
+        pvActuel: 52, ftActuel: 54, boostPV: 29, boostFT: 27,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "rat_granite": {
+        nom: "Rat de Granit", niveau: 30,
+        race: "Bête",
+        statsBase: {FO:17, CN:18, DX:7, IN:10, CH:1, MA:10},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Transformation":2},
+        portrait: "monstres/rat.png",
+        pvActuel: 88, ftActuel: 115, boostPV: 44, boostFT: 69,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "rat_rock": {
+        nom: "Rat de Roche", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:10, CN:14, DX:8, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/rat.png",
+        pvActuel: 58, ftActuel: 64, boostPV: 35, boostFT: 33,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "rat_were": {
+        nom: "Rat-Garou", niveau: 25,
+        race: "Lycanthrope",
+        statsBase: {FO:16, CN:17, DX:14, IN:15, CH:6},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/rat.png",
+        pvActuel: 78, ftActuel: 102, boostPV: 31, boostFT: 53,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "rock_sprite": {
+        nom: "Lutin de Pierre", niveau: 15,
+        race: "Fée",
+        statsBase: {FO:12, CN:11, DX:9, IN:12, CH:3, MA:100},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Terre":2},
+        portrait: "monstres/rock_sprite.png",
+        pvActuel: 78, ftActuel: 71, boostPV: 42, boostFT: 37,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "seether": {
+        nom: "Bouillonnant", niveau: 7,
+        race: "Démon",
+        statsBase: {FO:2, CN:3, DX:10, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/seether.png",
+        pvActuel: 42, ftActuel: 26, boostPV: 35, boostFT: 17,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 175, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "seething_mass": {
+        nom: "Masse Bouillonnante", niveau: 20,
+        race: "Démon",
+        statsBase: {FO:11, CN:10, DX:14, IN:5, CH:5},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/seething.png",
+        pvActuel: 68, ftActuel: 70, boostPV: 41, boostFT: 45,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "sewer_shambler": {
+        nom: "Traîne-Égout", niveau: 10,
+        race: "Humanoïde",
+        statsBase: {FO:11, CN:10, DX:9, IN:6, CH:5, MA:70},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/sewershambler.png",
+        pvActuel: 54, ftActuel: 52, boostPV: 26, boostFT: 26,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 250, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:3}]
+    },
+
+    "sewer_slitherer": {
+        nom: "Rampant des Égouts", niveau: 3,
+        race: "Bête",
+        statsBase: {FO:3, CN:3, DX:7, IN:2, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/egout.png",
+        pvActuel: 34, ftActuel: 19, boostPV: 26, boostFT: 11,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 75, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "shadow_crawler": {
+        nom: "Rampeur de l'Ombre", niveau: 30,
+        race: "Mort-vivant",
+        statsBase: {FO:17, CN:14, DX:15, IN:6, CH:3, MA:15},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nécromancie noire":3},
+        portrait: "monstres/ombre.png",
+        pvActuel: 88, ftActuel: 109, boostPV: 48, boostFT: 75,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "shadow_hunter": {
+        nom: "Chasseur d'Ombre", niveau: 13,
+        race: "Esprit",
+        statsBase: {FO:11, CN:11, DX:13, IN:7, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/ombre.png",
+        pvActuel: 58, ftActuel: 58, boostPV: 29, boostFT: 29,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 325, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "shiver_beast": {
+        nom: "Bête Frissonnante", niveau: 10,
+        race: "Bête",
+        statsBase: {FO:8, CN:7, DX:10, IN:5, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/shiver.png",
+        pvActuel: 48, ftActuel: 44, boostPV: 27, boostFT: 25,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 250, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:3}]
+    },
+
+    "shiverbit": {
+        nom: "Mordant de Givre", niveau: 12,
+        race: "Bête",
+        statsBase: {FO:12, CN:10, DX:14, IN:8, CH:5},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/shiver.png",
+        pvActuel: 52, ftActuel: 55, boostPV: 20, boostFT: 27,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "siren_queen": {
+        nom: "Reine Sirène", niveau: 30,
+        race: "Bête",
+        statsBase: {FO:17, CN:14, DX:19, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/sirene.png",
+        pvActuel: 100, ftActuel: 94, boostPV: 63, boostFT: 63,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "skullcrusher": {
+        nom: "Brise-Crâne", niveau: 30,
+        race: "Troll",
+        statsBase: {FO:19, CN:14, DX:12, IN:3, CH:6},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/skullcrusher.png",
+        pvActuel: 98, ftActuel: 99, boostPV: 57, boostFT: 68,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
+    },
+
+    "slime_demon": {
+        nom: "Démon Visqueux", niveau: 25,
+        race: "Démon",
+        statsBase: {FO:8, CN:8, DX:15, IN:6, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/slime.png",
+        pvActuel: 78, ftActuel: 85, boostPV: 56, boostFT: 63,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "spider_dread": {
+        nom: "Araignée Redoutable", niveau: 15,
+        race: "Bête",
+        statsBase: {FO:13, CN:10, DX:16, IN:11, CH:3, MA:15},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Mental":3},
+        portrait: "monstres/araignee.png",
+        pvActuel: 58, ftActuel: 69, boostPV: 21, boostFT: 38,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 375, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:5}]
+    },
+
+    "spider_greater": {
+        nom: "Grande Araignée", niveau: 7,
+        race: "Bête",
+        statsBase: {FO:7, CN:5, DX:11, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/araignee.png",
+        pvActuel: 42, ftActuel: 30, boostPV: 25, boostFT: 17,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 175, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "spider_siren": {
+        nom: "Araignée Sirène", niveau: 25,
+        race: "Bête",
+        statsBase: {FO:15, CN:13, DX:16, IN:4, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/araignee.png",
+        pvActuel: 86, ftActuel: 82, boostPV: 52, boostFT: 52,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:8}]
+    },
+
+    "stone_monkey": {
+        nom: "Singe de Pierre", niveau: 8,
+        race: "Bête",
+        statsBase: {FO:8, CN:7, DX:8, IN:5, CH:5},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/singe.png",
+        pvActuel: 44, ftActuel: 36, boostPV: 23, boostFT: 17,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 200, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "swamp_shambler": {
+        nom: "Traîne-Marais", niveau: 18,
+        race: "Plante",
+        statsBase: {FO:18, CN:16, DX:11, IN:8, CH:5, MA:70},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/shambler.png",
+        pvActuel: 87, ftActuel: 83, boostPV: 43, boostFT: 43,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 450, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:6}]
+    },
+
+    "tattered_bowman": {
+        nom: "Archer en Lambeaux", niveau: 12,
+        race: "Mort-vivant",
+        statsBase: {FO:9, CN:8, DX:12, IN:5, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/archer_lambeaux.png",
+        pvActuel: 51, ftActuel: 49, boostPV: 28, boostFT: 28,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "venom_hound": {
+        nom: "Chien Venimeux", niveau: 7,
+        race: "Bête",
+        statsBase: {FO:9, CN:8, DX:11, IN:6, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/chien.png",
+        pvActuel: 42, ftActuel: 40, boostPV: 18, boostFT: 18,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 175, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "volars_wisp": {
+        nom: "Feu Follet de Volar", niveau: 12,
+        race: "Esprit",
+        statsBase: {FO:6, CN:4, DX:15, IN:8, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/feu_follet.png",
+        pvActuel: 49, ftActuel: 45, boostPV: 29, boostFT: 29,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:4}]
+    },
+
+    "widower": {
+        nom: "Veuf", niveau: 7,
+        race: "Esprit",
+        statsBase: {FO:2, CN:1, DX:3, IN:3, CH:1},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/veuf.png",
+        pvActuel: 14, ftActuel: 22, boostPV: 7, boostFT: 17,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 175, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "will_o_the_wisp": {
+        nom: "Feu Follet", niveau: 6,
+        race: "Esprit",
+        statsBase: {FO:5, CN:4, DX:9, IN:8, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/feu_follet.png",
+        pvActuel: 35, ftActuel: 33, boostPV: 17, boostFT: 17,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 150, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "wolf": {
+        nom: "Loup", niveau: 3,
+        race: "Bête",
+        statsBase: {FO:11, CN:9, DX:13, IN:3, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/loup.png",
+        pvActuel: 34, ftActuel: 34, boostPV: 9, boostFT: 13,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 75, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "wolf_ailing": {
+        nom: "Loup Malade", niveau: 1,
+        race: "Bête",
+        statsBase: {FO:2, CN:3, DX:4, IN:4, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/loup.png",
+        pvActuel: 10, ftActuel: 15, boostPV: 2, boostFT: 5,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 25, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:1}]
+    },
+
+    "wolf_patriarch": {
+        nom: "Loup Patriarche", niveau: 23,
+        race: "Bête",
+        statsBase: {FO:13, CN:13, DX:15, IN:18, CH:6, MA:30},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nature":5, "Mental":1},
+        portrait: "monstres/loup.png",
+        pvActuel: 74, ftActuel: 96, boostPV: 30, boostFT: 52,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 575, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:7}]
+    },
+
+    "wolf_timber": {
+        nom: "Loup des Forêts", niveau: 7,
+        race: "Bête",
+        statsBase: {FO:9, CN:8, DX:11, IN:6, CH:4},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/timberwolf.png",
+        pvActuel: 42, ftActuel: 40, boostPV: 18, boostFT: 18,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 175, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:2}]
+    },
+
+    "yeti": {
+        nom: "Yéti", niveau: 30,
+        race: "Bête",
+        statsBase: {FO:19, CN:16, DX:13, IN:5, CH:6},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "monstres/yeti.png",
+        pvActuel: 98, ftActuel: 103, boostPV: 55, boostFT: 66,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:10}]
     }
 };
 

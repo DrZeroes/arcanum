@@ -94,6 +94,11 @@ function synchroniserJoueur() {
         surcharge: surcharge,
         estMort: window.perso.estMort || false,
         empoisonne: !!window.perso.poison,
+        photo: window.perso.photo || null,
+        race: window.perso.race || null,
+        sexe: window.perso.sexe || null,
+        compInvesties: window.perso.compInvesties || null,
+        rangsComp: window.perso.rangsComp || null,
         timestamp: Date.now()
     };
 
@@ -471,6 +476,7 @@ function tenterVolATire() {
     // — Calcul de la chance —
     const dx       = (perso.statsBase?.DX || 0) + (perso.statsInvesties?.DX || 0);
     const volPts   = (perso.compInvesties?.vol_a_la_tire || 0);
+    const rangVol  = (typeof _getRang === 'function') ? _getRang('vol_a_la_tire', perso) : 0;
     // Bonus équipement : items avec stats.bonusVol (ex. gants de voleur)
     let bonusEquip = 0;
     if (perso.equipement && typeof itemsData !== 'undefined') {
@@ -481,7 +487,11 @@ function tenterVolATire() {
     }
     const chance = Math.min(95, dx * 3 + volPts * 4 + bonusEquip);
     const roll   = Math.floor(Math.random() * 100) + 1; // 1–100
-    const succes = roll <= chance;
+    // Rang : Apprenti = échec seulement sur crit fail (1-5) ; Maître = toujours réussit
+    let succes;
+    if (rangVol >= 3)      succes = true;          // Maître : inattrappable
+    else if (rangVol >= 1) succes = roll > 5;      // Apprenti/Expert : échec seulement sur crit fail
+    else                   succes = roll <= chance;
 
     // — Supprimer l'autorisation Firebase et masquer la zone —
     const playerID = perso.nom.replace(/\s+/g, '_');
@@ -539,6 +549,29 @@ function tenterVolATire() {
     }
 }
 
+function activerEcouteurRangs() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const ref = db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_rang');
+    ref.off();
+    ref.on('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        ref.remove();
+        const { skillId, rang } = data;
+        if (!skillId || rang === undefined) return;
+        if (!window.perso.rangsComp) window.perso.rangsComp = {};
+        window.perso.rangsComp[skillId] = rang;
+        if (typeof autoSave === 'function') autoSave();
+        const RANGS_NOM = { 0: '—', 1: 'Apprenti', 2: 'Expert', 3: 'Maître' };
+        const nomSkill = (typeof competencesData !== 'undefined')
+            ? Object.values(competencesData).flat().find(s => s.id === skillId)?.nom || skillId
+            : skillId;
+        if (typeof _toast === 'function') _toast(`🎓 Maîtrise ${nomSkill} : ${RANGS_NOM[rang] || rang}`, 'success');
+        if (typeof updateFicheUI === 'function') updateFicheUI();
+    });
+}
+
 function activerEcouteurStats() {
     if (!window.perso || !window.perso.nom) return;
     const playerID = window.perso.nom.replace(/\s+/g, '_');
@@ -582,9 +615,12 @@ function activerEcouteurStats() {
         // Occultation : +10 esquive
         const bonusEsqOccultation = window.perso.effets_actifs
             ? Object.values(window.perso.effets_actifs).reduce((s, e) => s + (e.bonus_esquive || 0), 0) : 0;
+        // Rang Esquive : Apprenti +5, Expert +10, Maître +20
+        const _rangEsq = (typeof _getRang === 'function') ? _getRang('esquive', window.perso) : 0;
+        const bonusEsqRang = _rangEsq >= 3 ? 20 : (_rangEsq >= 2 ? 10 : (_rangEsq >= 1 ? 5 : 0));
         // Incarnation d'Air : esquive fixée à 75
         const _incAir = window.perso.effets_actifs && Object.values(window.perso.effets_actifs).some(e => e.incarnation && e.element_incarnation === 'Air');
-        const esquive_pts = _incAir ? 75 : (esquive_pts_base + bonusEsqBrouillard + bonusEsqOccultation);
+        const esquive_pts = _incAir ? 75 : (esquive_pts_base + bonusEsqBrouillard + bonusEsqOccultation + bonusEsqRang);
         if (!persoSurchargé && esquive_pts > 0 && Math.floor(Math.random() * 100) < esquive_pts) {
             esquive = true;
             if (typeof _toast === 'function') _toast('🏃 Attaque esquivée !', 'success');
@@ -814,13 +850,17 @@ function activerEcouteurStats() {
 
         // XP de quête
         if (data.stat === 'XP') {
+            // Apprenti Persuasion : +5% XP de quête
+            const _rangPersu = (typeof _getRang === 'function') ? _getRang('persuasion', window.perso) : 0;
+            const _xpEffectif = _rangPersu >= 1 ? Math.round(data.valeur * 1.05) : data.valeur;
             if (typeof _gagnerXP === 'function') {
-                _gagnerXP(data.valeur);
+                _gagnerXP(_xpEffectif);
             } else {
-                window.perso.xp = (window.perso.xp || 0) + data.valeur;
+                window.perso.xp = (window.perso.xp || 0) + _xpEffectif;
                 if (typeof autoSave === 'function') autoSave();
             }
-            if (typeof _toast === 'function') _toast(`⭐ +${data.valeur} XP (Quête) !`, 'success');
+            const _xpLabel = _xpEffectif !== data.valeur ? `${_xpEffectif} (+5% Persuasion)` : _xpEffectif;
+            if (typeof _toast === 'function') _toast(`⭐ +${_xpLabel} XP (Quête) !`, 'success');
             return; // pas de toast générique
         }
 
@@ -836,7 +876,7 @@ function activerEcouteurStats() {
                 const perdu = Math.abs(Math.min(0, valeurEffective ?? data.valeur));
                 if (perdu > 0) _incStatPartie('pv_perdus', perdu);
             }
-            if (data.stat === 'PV' && data.valeur > 0) {
+            if (data.stat === 'PV' && data.valeur > 0 && data.source !== 'mj') {
                 _incStatPartie('soins_recus', data.valeur);
             }
         }
@@ -994,7 +1034,7 @@ function ouvrirEcranGroupe() {
 
     container.innerHTML = '<div class="groupe-vide">Chargement...</div>';
 
-    db.ref('parties/' + sessionActuelle + '/joueurs').on('value', (snapshot) => {
+    db.ref('parties/' + sessionActuelle + '/joueurs').on('value', async (snapshot) => {
         const joueurs = snapshot.val();
         if (!joueurs) {
             container.innerHTML = '<div class="groupe-vide">Aucun aventurier connecté à cette session.</div>';
@@ -1003,6 +1043,10 @@ function ouvrirEcranGroupe() {
 
         const lieuActuel = window.perso ? window.perso.lieuActuel : null;
         const fragments = [];
+
+        // Récupère aussi les compagnons depuis Firebase
+        const snapshot2 = await db.ref('parties/' + sessionActuelle + '/compagnons').once('value');
+        const compagnonsParJoueur = snapshot2.val() || {};
 
         for (let id in joueurs) {
             const j = joueurs[id];
@@ -1022,13 +1066,53 @@ function ouvrirEcranGroupe() {
                 ? '💀 Inconscient'
                 : (estMoi ? '● Vous' : '● En vie');
 
+            // Portrait du joueur
+            let portraitJoueur = null;
+            if (estMoi && window.perso && typeof getPortraitJoueur === 'function') {
+                portraitJoueur = getPortraitJoueur(window.perso);
+            } else if (j.photo && j.race) {
+                const raceDossier = (j.race || 'human').toLowerCase().replace(/\s+/g, '');
+                const sexePath = j.race === 'Bedokien' ? '' : (j.sexe === 'F' ? 'Femme/' : 'Homme/');
+                portraitJoueur = `./docs/img/portraits/${raceDossier}/${sexePath}${j.photo}`;
+            }
+            const portraitJoueurHtml = portraitJoueur
+                ? `<img src="${portraitJoueur}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid #555;flex-shrink:0;">`
+                : `<div style="width:48px;height:48px;background:#2a2a2a;border-radius:4px;border:1px solid #444;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px;">👤</div>`;
+
+            // Compagnons de ce joueur
+            const mesCompagnons = Object.values(compagnonsParJoueur[id] || {}).filter(c => c && c.recrutee);
+            const compHtml = mesCompagnons.length > 0
+                ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid #333;">
+                    <div style="font-size:9px; color:#888; text-transform:uppercase; margin-bottom:4px;">Compagnons</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
+                        ${mesCompagnons.map(c => {
+                            const imgUrl = c.portrait || null;
+                            return imgUrl
+                                ? `<div title="${c.nom}" style="text-align:center;">
+                                    <img src="${imgUrl}" alt="${c.nom}" style="width:32px;height:32px;object-fit:cover;border-radius:3px;border:1px solid #5a4010;">
+                                    <div style="font-size:8px;color:#d4af37;margin-top:1px;max-width:32px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.nom}</div>
+                                  </div>`
+                                : `<div title="${c.nom}" style="text-align:center;">
+                                    <div style="width:32px;height:32px;background:#2a2010;border-radius:3px;border:1px solid #5a4010;display:flex;align-items:center;justify-content:center;font-size:14px;">🤝</div>
+                                    <div style="font-size:8px;color:#d4af37;margin-top:1px;max-width:32px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.nom}</div>
+                                  </div>`;
+                        }).join('')}
+                    </div>
+                  </div>`
+                : '';
+
             fragments.push(`
                 <div class="${cardClasses}">
-                    <div class="groupe-card-header">
-                        <div class="groupe-card-nom">${j.nom}</div>
-                        <div class="groupe-card-niveau">Niv. ${j.niveau || 1}</div>
+                    <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px;">
+                        ${portraitJoueurHtml}
+                        <div style="flex:1; min-width:0;">
+                            <div class="groupe-card-header">
+                                <div class="groupe-card-nom">${j.nom}</div>
+                                <div class="groupe-card-niveau">Niv. ${j.niveau || 1}</div>
+                            </div>
+                            <div class="groupe-card-statut">${statutTexte}</div>
+                        </div>
                     </div>
-                    <div class="groupe-card-statut">${statutTexte}</div>
 
                     <div class="groupe-bar-label">
                         <span>❤ PV</span>
@@ -1049,6 +1133,7 @@ function ouvrirEcranGroupe() {
                     <div class="groupe-card-lieu${memeLieu ? ' meme-lieu' : ''}">
                         📍 ${j.lieu || 'Lieu inconnu'}
                     </div>
+                    ${compHtml}
                 </div>`);
         }
 
@@ -1125,13 +1210,20 @@ function activerEcouteurCompagnons() {
                 npc.compInvesties  = mem.compInvesties  ? JSON.parse(JSON.stringify(mem.compInvesties))  : npc.compInvesties;
                 npc.inventaire     = mem.inventaire     ? JSON.parse(JSON.stringify(mem.inventaire))     : npc.inventaire;
             }
-            // Initialise pvActuel/ftActuel si le compagnon n'a pas de mémoire
-            if (npc.pvActuel === undefined || npc.pvActuel === null) {
+            // Initialise pvActuel/ftActuel si absent ou si le compagnon était mort en mémoire
+            if (!npc.pvActuel || npc.pvActuel <= 0) {
                 const fo  = (npc.statsBase?.FO || 3) + (npc.statsInvesties?.FO || 0);
                 const ini = (npc.statsBase?.IN || 3) + (npc.statsInvesties?.IN || 0);
                 const cn  = (npc.statsBase?.CN || 3) + (npc.statsInvesties?.CN || 0);
                 npc.pvActuel = (fo * 2) + ini + (npc.boostPV || 0);
                 npc.ftActuel = (cn * 2) + ini + (npc.boostFT || 0);
+            }
+            // Normalise l'équipement : strings → objets {id, quantite:1}
+            if (npc.equipement) {
+                for (const slot in npc.equipement) {
+                    const v = npc.equipement[slot];
+                    if (typeof v === 'string') npc.equipement[slot] = { id: v, quantite: 1 };
+                }
             }
             comps.push(npc);
             if (!npcBase.estFamilier && typeof _incStatPartie === 'function') {
@@ -1169,9 +1261,32 @@ function activerEcouteurCompagnons() {
             const nom = comp.nom;
             // Mémorise le compagnon avant de le retirer
             if (!window.perso.compagnonsMemoire) window.perso.compagnonsMemoire = {};
-            if (comp.npcId) window.perso.compagnonsMemoire[comp.npcId] = JSON.parse(JSON.stringify(comp));
+            const memoireKey = comp.compagnonId || comp.npcId;
+            if (memoireKey) window.perso.compagnonsMemoire[memoireKey] = JSON.parse(JSON.stringify(comp));
             comps.splice(data.compIdx, 1);
             if (typeof _toast === 'function') _toast(`👋 ${nom} a quitté votre groupe.`);
+        }
+        else if (data.type === 'raz') {
+            const comp = comps[data.compIdx];
+            if (!comp) return;
+            const memoireKey = comp.compagnonId || comp.npcId;
+            if (memoireKey && window.perso.compagnonsMemoire) {
+                delete window.perso.compagnonsMemoire[memoireKey];
+            }
+            // Réinitialise la progression du compagnon à sa base
+            if (memoireKey && typeof compagnonsData !== 'undefined' && compagnonsData[memoireKey]) {
+                const base = compagnonsData[memoireKey];
+                comp.statsInvesties  = {};
+                comp.compInvesties   = {};
+                comp.magieInvesties  = {};
+                comp.techInvesties   = {};
+                comp.rangsComp       = {};
+                comp.niveau          = 1;
+                comp.xp              = 0;
+                comp.inventaire      = base.inventaire ? JSON.parse(JSON.stringify(base.inventaire)) : [];
+                comp.equipement      = base.equipement ? JSON.parse(JSON.stringify(base.equipement)) : {};
+            }
+            if (typeof _toast === 'function') _toast(`🔄 ${comp.nom} remis à zéro.`);
         }
         else if (data.type === 'item_add') {
             const comp = comps[data.compIdx];
@@ -1665,6 +1780,7 @@ function mjModifierStat(playerID, stat) {
     db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_stat').set({
         stat: stat,
         valeur: parseInt(val),
+        source: 'mj',
         timestamp: Date.now()
     });
 }
@@ -1753,6 +1869,7 @@ function demarrerMoteurMulti() {
     activerEcouteurCadeaux();
     activerEcouteurArgent();
     activerEcouteurStats();
+    activerEcouteurRangs();
     activerEcouteurEffets();
     activerEcouteurStatsPropres();
     activerEcouteurDeplacementGroupe();

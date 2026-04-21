@@ -586,9 +586,16 @@
     <div id="mj-section-combat" class="mj-section" style="display:none;"></div>
 
     <div id="mj-section-codex" class="mj-section" style="display:none;">
-        <input type="text" id="recherche-codex-mj" placeholder="Rechercher..." onkeyup="filtrerCodexMJ()" 
-               style="width: 100%; padding: 10px; margin-bottom: 10px; background: #111; color: #fff; border: 1px solid #ff9800;">
-        <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #444;">
+        <input type="text" id="recherche-codex-mj" placeholder="Rechercher..." onkeyup="filtrerCodexMJ()"
+               style="width: 100%; padding: 10px; margin-bottom: 6px; background: #111; color: #fff; border: 1px solid #ff9800;">
+        <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+            <button onclick="genererEnnemisCodexMJ()" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Défaut</button>
+            <button onclick="genererEnnemisCodexMJ((a,b)=>a.niveau-b.niveau)" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Niv ↑</button>
+            <button onclick="genererEnnemisCodexMJ((a,b)=>b.niveau-a.niveau)" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Niv ↓</button>
+            <button onclick="genererEnnemisCodexMJ((a,b)=>(a.race||'').localeCompare(b.race||''))" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Race A→Z</button>
+            <button onclick="genererEnnemisCodexMJ((a,b)=>(a.nom||'').localeCompare(b.nom||''))" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Nom A→Z</button>
+        </div>
+        <div style="max-height: 55vh; overflow-y: auto; border: 1px solid #444;">
             <table style="width: 100%; border-collapse: collapse;">
                 <tbody id="tbody-codex-mj"></tbody>
             </table>

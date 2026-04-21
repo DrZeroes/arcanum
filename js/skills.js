@@ -44,3 +44,35 @@ function getEffectiveComp(id) {
     const rang    = (perso.rangsComp    && perso.rangsComp[id])    || 0;
     return Math.round(investi * (RANGS[rang]?.mult ?? 1.0));
 }
+
+// ── EFFETS DE RANG PAR COMPÉTENCE ────────────────────────────────────────────
+// Lookup des effets passifs débloqués selon le rang atteint dans chaque skill.
+const RANG_EFFETS = {
+    arc:               { 1: { vitesse: 5 },           2: { actionsParTour: 2 },          3: { degatsMax: true } },
+    melee:             { 1: { vitesse: 5 },           2: { perforationArmure: 0.25 },    3: { pasEchecCritique: true } },
+    lancer:            { 1: { vitesse: 5 },           2: { bonusDegats: 0.5 },           3: { degatsMax: true } },
+    armes_a_feu:       { 1: { vitesse: 5 },           2: { bonusDegats: 0.10 },          3: { degatsMax: true } },
+    attaque_sournoise: { 1: { percerArmure: true },   2: { percerArmureTousTypes: true }, 3: { seuilCritique: 20 } },
+    esquive:           { 1: { bonusEsquive: 5 },      2: { bonusEsquive: 10 },           3: { bonusEsquive: 20 } },
+    vol_a_la_tire:     { 1: { echecMin: 5 },          2: { penalitesTaille: 0.5 },       3: { inattrappable: true } },
+    discretion:        { 1: { bonusDiscretion: 3 },   2: { bonusDiscretion: 7 },         3: { bonusDiscretion: 15 } },
+    detection_piege:   { 1: { bonusDetection: 5 },    2: { bonusDetection: 10 },         3: { secondeChance: true } },
+    jeu:               { 1: { bonusMise: 0.10 },      2: { misierEquipement: true },     3: { misierNonVendable: true } },
+    marchandage:       { 1: { reductionSupp: 0.05 },  2: { tousArticles: true },         3: { articlesHorsVente: true } },
+    soins:             { 1: { bonusSoins: 0.5 },      2: { pasEchecCritique: true },     3: { toujoursReussiteCritique: true } },
+    persuasion:        { 1: { bonusXp: 0.05 },        2: { slotCompagnon: 1 },           3: { pasPrerequis: true } },
+    reparation:        { 1: { degradation: 5 },       2: { degradation: 1 },             3: { degradation: 0 } },
+    crochetage:        { 1: { pasCoutTour: true },    2: { bonusCrochetage: 5 },         3: { bonusCrochetage: 25 } },
+    desamorcage:       { 1: { bonusDesamorcage: 5 },  2: { seuilCritique: 4 },           3: { secondeChance: true } },
+};
+
+/** Retourne le rang actuel d'une compétence pour un objet joueur (défaut : window.perso). */
+function _getRang(skillId, p) {
+    const obj = p || window.perso;
+    return (obj?.rangsComp?.[skillId]) || 0;
+}
+
+/** Retourne l'objet d'effets de rang pour un skill et un rang donnés (ou {} si inexistant). */
+function _getRangEffet(skillId, rang) {
+    return (typeof RANG_EFFETS !== 'undefined' && RANG_EFFETS[skillId]?.[rang]) || {};
+}

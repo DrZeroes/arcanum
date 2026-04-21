@@ -242,6 +242,11 @@ function _afficherEnnemis(data) {
         const pvPct   = e.pvMax > 0 ? Math.round((e.pvActuel / e.pvMax) * 100) : 0;
         const estMort = e.pvActuel <= 0;
         const couleur = pvPct <= 25 ? '#e53935' : pvPct <= 50 ? '#f57c00' : '#c62828';
+        const portraitFile = (typeof ennemisData !== 'undefined' && e.id && ennemisData[e.id]?.portrait)
+            ? ennemisData[e.id].portrait : null;
+        const portraitHtml = portraitFile
+            ? `<img src="docs/img/portraits/npc-ennemis/${portraitFile}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid #333;" onerror="this.style.display='none'">`
+            : '';
         // FT ennemi : affiché si disponible (initialisé après premier passe-tour)
         const ftMax    = e.ftMax    ?? null;
         const ftActuel = e.ftActuel ?? null;
@@ -251,6 +256,9 @@ function _afficherEnnemis(data) {
                 <div class="combat-bar-track"><div class="combat-bar-fill ft" style="width:${ftPct}%;"></div></div>` : '';
         return `
             <div class="combat-ennemi-card${estMort ? ' est-mort' : ''}" id="ennemi-card-${e.instanceId}">
+                <div style="display:flex;gap:8px;align-items:flex-start;">
+                ${portraitHtml}
+                <div style="flex:1;min-width:0;">
                 <div class="combat-ennemi-nom">${e.nom}
                     <span class="combat-ennemi-niv">Niv.${e.niveau || 1}</span>
                 </div>
@@ -281,7 +289,7 @@ function _afficherEnnemis(data) {
                     return tags ? `<div style="margin-top:4px;">${tags}</div>` : '';
                 })()}
                 ${estMort ? '<div class="combat-mort-label">☠ Vaincu</div>' : ''}
-            </div>`;
+                </div></div>`;
     }).join('');
 }
 
@@ -1056,9 +1064,9 @@ function ouvrirCiblesSortCombat(nomSort) {
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
                 if (joueurs[id].nom === window.perso?.nom) continue;
-                if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel || 0) <= 0) continue;
-                if (s.resurrection && (joueurs[id].pvActuel || 0) > 0) continue;
-                if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel || 0) >= (joueurs[id].pvMax || 0)) continue;
+                if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel ?? 1) <= 0) continue;
+                if (s.resurrection && (joueurs[id].pvActuel ?? 1) > 0) continue;
+                if (!s.resurrection && !s.buffStat && joueurs[id].pvMax > 0 && (joueurs[id].pvActuel ?? 0) >= joueurs[id].pvMax) continue;
                 html += `<button class="combat-cible-btn allie"
                     onclick="finaliserSortCombat('${id}', 'joueur')">
                     ${joueurs[id].nom} <span class="cible-pv">PV ${joueurs[id].pvActuel}/${joueurs[id].pvMax}</span>
@@ -1907,7 +1915,7 @@ function _afficherActionsControleMJ(participant, panel) {
 
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
-                if ((joueurs[id].pvActuel || 0) > 0) {
+                if ((joueurs[id].pvActuel ?? 1) > 0) {
                     const estDiscret  = premierTour && discrets[id] === true;
                     const estInterdit = _effCC.charme && _effCC.charme.cible_interdit === joueurs[id].nom;
                     // Invisibilité : cacher la cible si elle a un effet invisible actif
@@ -1963,6 +1971,16 @@ function _afficherActionsControleMJ(participant, panel) {
                         + '</button>';
                 });
             }
+            // Sorts du monstre (sortsConnus est dans ennemis, pas dans ordre_jeu)
+            const _ennemiFull = (data?.ennemis || []).find(e => e.instanceId === participant.instanceId);
+            const sortsEnnemi = _ennemiFull?.sortsConnus || [];
+            if (sortsEnnemi.length > 0) {
+                const _ftEnnemi = _ennemiFull?.ftActuel ?? null;
+                const _accEnnemi = _genererSortsAccordionMJ(sortsEnnemi,
+                    nom => 'mjUtiliserSortMonstre(' + participant.instanceId + ',\'' + nom.replace(/'/g, "\\'") + '\')',
+                    _ftEnnemi);
+                if (_accEnnemi) html += '<div class="combat-cibles-label" style="color:#9575cd;margin-top:6px;">✨ Sorts</div>' + _accEnnemi;
+            }
             const guerisonEnnemi = Math.max(1, Math.floor((participant.niveau || 1) / 3));
             html += '<button class="combat-sort-btn" onclick="mjPasserTourEnnemi(' + participant.instanceId + ')" style="margin-top:8px; opacity:0.75; width:100%;">'
                 + '<span class="sort-nom">⏭ Passer le tour</span>'
@@ -1996,19 +2014,17 @@ function _afficherActionsControleMJ(participant, panel) {
                 });
             }
 
-            // Sorts
+            // Sorts (accordéon par école)
             const sortsDuComp = _getSortsCompagnon({ magieInvesties: magieInv });
             if (sortsDuComp.length > 0) {
-                html += '<div class="combat-cibles-label" style="color:#9575cd; margin-top:6px;">✨ Sorts</div>';
                 if (!window._mjActionsData) window._mjActionsData = {};
-                sortsDuComp.forEach(s => {
-                    const meta = s.degats ? '⚔ ' + s.degats + ' dég.' : s.soin ? '💚 Soin' : '✨ Effet';
-                    const key = 'sort_' + s.nom.replace(/\W/g, '') + '_' + Date.now();
-                    window._mjActionsData[key] = { nomSort: s.nom, ennemis: ennemisVivants.map(e => ({instanceId: e.instanceId, nom: e.nom, pvActuel: e.pvActuel, pvMax: e.pvMax})) };
-                    html += '<button class="combat-sort-btn" onclick="mjUtiliserSortCompagnon(\'' + key + '\')" style="width:100%; margin:2px 0;">'
-                        + '<span class="sort-nom">' + s.nom + '</span>'
-                        + '<span class="sort-meta">' + meta + ' · ' + (s.cout || 0) + ' FT</span></button>';
-                });
+                const _nomsComp = sortsDuComp.map(s => s.nom);
+                const _accComp = _genererSortsAccordionMJ(_nomsComp, nom => {
+                    const key = 'sort_' + nom.replace(/\W/g, '') + '_' + Date.now();
+                    window._mjActionsData[key] = { nomSort: nom, ennemis: ennemisVivants.map(e => ({instanceId: e.instanceId, nom: e.nom, pvActuel: e.pvActuel, pvMax: e.pvMax})) };
+                    return 'mjUtiliserSortCompagnon(\'' + key + '\')';
+                }, ftComp);
+                if (_accComp) html += '<div class="combat-cibles-label" style="color:#9575cd; margin-top:6px;">✨ Sorts</div>' + _accComp;
             }
 
             // Objets consommables
@@ -2733,6 +2749,143 @@ function mjPasserTourEnnemi(instanceId) {
     });
 }
 
+// ── Helper : accordéon de sorts (MJ) ─────────────────────────
+// sortsNoms : array of spell name strings
+// onSortClick(nomSort) : function called when a spell is clicked
+// ftActuel : current FT of caster (null = no FT check)
+function _genererSortsAccordionMJ(sortsNoms, onSortClick, ftActuel) {
+    if (!sortsNoms || sortsNoms.length === 0) return '';
+    if (typeof magieData === 'undefined') return '';
+    const _icons = {"Déplacement":"🌀","Divination":"👁️","Air":"💨","Terre":"🪨","Feu":"🔥","Eau":"💧","Energie":"⚡","Mental":"🧠","Méta":"💠","Transformation":"🦋","Nature":"🌿","Nécromancie noire":"💀","Nécromancie blanche":"🕊️","Illusion":"🎭","Invocation":"👹","Temporel":"⏳"};
+    const parEcole = {};
+    for (const ecole in magieData) {
+        magieData[ecole].sorts.forEach(s => {
+            if (!sortsNoms.includes(s.nom)) return;
+            if (!parEcole[ecole]) parEcole[ecole] = [];
+            parEcole[ecole].push(s);
+        });
+    }
+    let html = '';
+    let idx = 0;
+    for (const ecole in parEcole) {
+        const icon = _icons[ecole] || '🪄';
+        const eid  = 'mj-sort-ecole-' + (idx++) + '-' + ecole.replace(/[^a-zA-Z0-9]/g, '_');
+        const spells = parEcole[ecole];
+        let inner = '';
+        spells.forEach(s => {
+            const cout  = s.cout || 0;
+            const peut  = ftActuel === null || ftActuel >= cout;
+            const meta  = s.degats ? '⚔ ' + s.degats + ' dég.' : s.soin ? '💚 Soin' : '✨ Effet';
+            const nomSafe = s.nom.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            inner += '<button class="combat-sort-btn' + (peut ? '' : ' epuise') + '"'
+                + (peut ? ' onclick="' + onSortClick(s.nom) + '"' : ' disabled')
+                + ' style="margin-left:8px;width:calc(100% - 8px);margin-top:2px;">'
+                + '<span class="sort-nom">' + s.nom + '</span>'
+                + '<span class="sort-meta">' + meta + ' · ' + cout + ' FT</span></button>';
+        });
+        html += '<button class="combat-sort-btn" style="border-color:#4a3a6a;background:#1a0f2a;width:100%;"'
+            + ' onclick="var d=document.getElementById(\'' + eid + '\');d.style.display=d.style.display===\'none\'?\'block\':\'none\';">'
+            + '<span class="sort-nom">' + icon + ' ' + ecole + '</span>'
+            + '<span class="sort-meta">' + spells.length + ' sort(s) ▾</span></button>'
+            + '<div id="' + eid + '" style="display:none;">' + inner + '</div>';
+    }
+    return html;
+}
+
+// ── Sorts de monstres (MJ) ────────────────────────────────────
+
+function mjUtiliserSortMonstre(instanceId, nomSort) {
+    const data  = window.combatActif;
+    const panel = document.getElementById('combat-actions-panel');
+    if (!data || !panel) return;
+    const monstre = (data.ennemis || []).find(e => e.instanceId === instanceId);
+    if (!monstre) return;
+    const s = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+    if (!s) { _logCombat('Sort introuvable : ' + nomSort); return; }
+
+    const nomSafe = nomSort.replace(/'/g, "\\'");
+
+    if (s.degats) {
+        // Cibles : joueurs vivants + compagnons vivants
+        db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
+            const joueurs = snap.val() || {};
+            let html = '<div class="combat-actions-titre">✨ ' + s.nom + ' — Cible</div>'
+                + '<div class="combat-cibles-label allie">Joueurs</div>';
+            for (const id in joueurs) {
+                if (joueurs[id].estMJ || (joueurs[id].pvActuel ?? 1) <= 0) continue;
+                html += '<button class="combat-cible-btn allie" onclick="mjAppliquerSortMonstre(' + instanceId + ',\'joueur\',\'' + id + '\',\'' + nomSafe + '\')">'
+                    + joueurs[id].nom + ' <span class="cible-pv">PV ' + joueurs[id].pvActuel + '/' + joueurs[id].pvMax + '</span></button>';
+            }
+            // Compagnons vivants
+            const ordreComps = (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'compagnon' && !p.ko);
+            if (ordreComps.length > 0) {
+                html += '<div class="combat-cibles-label" style="color:#ffe082;margin-top:6px;">🤝 Compagnons</div>';
+                ordreComps.forEach(c => {
+                    const nomC = c.nom.replace(/'/g, "\\'");
+                    html += '<button class="combat-cible-btn allie" style="border-color:#ffe082;" onclick="mjAppliquerSortMonstre(' + instanceId + ',\'compagnon\',' + c.compIdx + '+\'|\'+\'' + c.ownerID + '\',\'' + nomSafe + '\')">'
+                        + '🤝 ' + c.nom + ' <span class="cible-pv">PV ' + (c.pvActuel ?? '?') + '/' + (c.pvMax || '?') + '</span></button>';
+                });
+            }
+            panel.innerHTML = html;
+        });
+    } else if (s.soin) {
+        // Soin sur le monstre lui-même
+        mjAppliquerSoinMonstre(instanceId, s);
+    } else {
+        // Effet / buff : appliquer et avancer le tour
+        mjAppliquerEffetMonstre(instanceId, s);
+    }
+}
+
+function mjAppliquerSortMonstre(instanceId, joueurID, nomSort) {
+    const s = (typeof trouverSort === 'function') ? trouverSort(nomSort) : null;
+    if (!s || !s.degats) return;
+    const data = window.combatActif;
+    const ennemisMAJ = [...(data?.ennemis || [])];
+    const idxMonstre = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
+    const monstre = idxMonstre !== -1 ? ennemisMAJ[idxMonstre] : null;
+
+    const crit = _lancerCritique(null);
+    let degats = parseInt(s.degats) || 5;
+    let critLabel = '';
+    if (crit.type === 'echec')    { degats = 0; critLabel = ' ⚠ ÉCHEC CRITIQUE'; }
+    else if (crit.type === 'critique') { degats = Math.round(degats * crit.mult); critLabel = ' ⚡ CRITIQUE ×1.5 !'; }
+
+    if (degats > 0) {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + joueurID + '/modif_stat').set({
+            stat: 'PV', valeur: -degats, magique: true, timestamp: Date.now()
+        });
+    }
+    const ordre = data.ordre_jeu || [];
+    db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+        .set(_prochainTourVivant(ordre, data.tour_actuel || 0));
+    _logCombat((monstre?.nom || 'Monstre') + ' lance ' + nomSort + critLabel + ' : ' + degats + ' dégâts magiques !');
+}
+
+function mjAppliquerSoinMonstre(instanceId, sDef) {
+    const data = window.combatActif;
+    const ennemisMAJ = [...(data?.ennemis || [])];
+    const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
+    if (idx === -1) return;
+    const soin = Math.min(parseInt(sDef.soin) || 10, ennemisMAJ[idx].pvMax - ennemisMAJ[idx].pvActuel);
+    ennemisMAJ[idx].pvActuel = Math.min(ennemisMAJ[idx].pvMax, ennemisMAJ[idx].pvActuel + soin);
+    const ordre = data.ordre_jeu || [];
+    db.ref('parties/' + sessionActuelle + '/combat_actif').update({
+        ennemis: ennemisMAJ,
+        tour_actuel: _prochainTourVivant(ordre, data.tour_actuel || 0)
+    });
+    _logCombat(ennemisMAJ[idx].nom + ' utilise ' + sDef.nom + ' : se soigne de ' + soin + ' PV !');
+}
+
+function mjAppliquerEffetMonstre(instanceId, sDef) {
+    const data = window.combatActif;
+    const ordre = data?.ordre_jeu || [];
+    db.ref('parties/' + sessionActuelle + '/combat_actif/tour_actuel')
+        .set(_prochainTourVivant(ordre, data.tour_actuel || 0));
+    const monstre = (data?.ennemis || []).find(e => e.instanceId === instanceId);
+    _logCombat((monstre?.nom || 'Monstre') + ' utilise ' + sDef.nom + '.');
+}
+
 // ── Attaque mêlée ─────────────────────────────────────────────
 
 function ouvrirCiblesAttaque() {
@@ -2912,7 +3065,7 @@ function passerTourCombat() {
  * Lance un d100 et retourne le type de coup selon le background du perso.
  * @returns {{ type: 'normal'|'echec'|'critique', roll: number, mult: number }}
  */
-function _lancerCritique(perso) {
+function _lancerCritique(perso, bonusCritSeuil = 0) {
     const roll = Math.floor(Math.random() * 100);
     const bg   = perso?.background || '';
 
@@ -2933,6 +3086,9 @@ function _lancerCritique(perso) {
         seuilEchec = Math.min(99, seuilEchec * 2);
         seuilCritique = 101; // jamais atteint → pas de critique possible
     }
+
+    // Bonus de rang (ex: Maître Attaque Sournoise : seuil critique abaissé)
+    if (bonusCritSeuil > 0) seuilCritique = Math.max(seuilEchec + 1, seuilCritique - bonusCritSeuil);
 
     if (roll <= seuilEchec)    return { type: 'echec',    roll, mult: 0 };
     if (roll >= seuilCritique) return { type: 'critique', roll, mult: multCritique };
@@ -2966,24 +3122,24 @@ function _marquerKODansOrdre(ordre, ennemisMAJ) {
 }
 
 /** Calcule le dé d'arme équipée d'un perso/compagnon. Retourne {de, label}. */
-function _degatsArme(p) {
+function _degatsArme(p, forceMax = false) {
     if (typeof itemsData === 'undefined') return { de: 6, label: '1d6' };
     const eq = p.equipement || {};
     const slot = eq.main_droite || eq.deux_mains || eq.main_gauche;
     if (!slot) {
-        const roll = 1 + Math.floor(Math.random() * 6);
+        const roll = forceMax ? 6 : (1 + Math.floor(Math.random() * 6));
         return { de: roll, label: 'Poing [1-6](' + roll + ')' };
     }
     const item = itemsData[slot.id];
     if (!item || !item.degats || item.degats === '0') {
-        const roll = 1 + Math.floor(Math.random() * 6);
+        const roll = forceMax ? 6 : (1 + Math.floor(Math.random() * 6));
         return { de: roll, label: 'Poing [1-6](' + roll + ')' };
     }
     // Format "X-Y" → roll between min and max
     const parts = String(item.degats).split('-');
     const max   = parseInt(parts[parts.length - 1]) || 6;
     const min   = parseInt(parts[0]) || 1;
-    const roll  = min + Math.floor(Math.random() * (max - min + 1));
+    const roll  = forceMax ? max : (min + Math.floor(Math.random() * (max - min + 1)));
     return { de: roll, label: item.nom + ' [' + item.degats + '](' + roll + ')' };
 }
 
@@ -3074,23 +3230,45 @@ function lancerAttaqueMelee(instanceId) {
     const feu_pts      = comp.armes_a_feu || 0;
     const sournois_pts = comp.attaque_sournoise || 0;
 
-    const arme  = _degatsArme(perso);
-    const crit  = _lancerCritique(perso);
+    // ── Rangs de compétences ──────────────────────────────────────
+    const rangsComp     = perso.rangsComp || {};
+    const rang_arc      = rangsComp.arc              || 0;
+    const rang_melee    = rangsComp.melee            || 0;
+    const rang_lancer   = rangsComp.lancer           || 0;
+    const rang_feu      = rangsComp.armes_a_feu      || 0;
+    const rang_sournois = rangsComp.attaque_sournoise || 0;
+
+    // Maître (rang 3) : dégâts toujours au maximum
+    const _forceMax = (_estArcA && rang_arc >= 3) || ((_estDistLancerA || _estExplosifA) && rang_lancer >= 3) || (_estFeuA && rang_feu >= 3);
+    const arme  = _degatsArme(perso, _forceMax);
+    // Maître Attaque Sournoise : seuil de critique abaissé de 20
+    const crit  = _lancerCritique(perso, rang_sournois >= 3 ? 20 : 0);
 
     // ── Calcul des dégâts de base ─────────────────────────────────
     let skillMult = 1;
     let skillLabel = '';
-    if (_estMeleeA)      { skillMult = 1 + melee_pts * 0.05;  skillLabel = melee_pts  > 0 ? ` Mêlée(+${melee_pts * 5}%)` : ''; }
-    else if (_estArcA)   { skillMult = 1 + arc_pts * 0.05;    skillLabel = arc_pts    > 0 ? ` Arc(+${arc_pts * 5}%)`    : ''; }
-    else if (_estFeuA)   { skillMult = 1 + feu_pts * 0.05;    skillLabel = feu_pts    > 0 ? ` AF(+${feu_pts * 5}%)`    : ''; }
-    else if (_estDistLancerA || _estExplosifA) {
+    if (_estMeleeA) {
+        skillMult  = 1 + melee_pts * 0.05;
+        skillLabel = melee_pts > 0 ? ` Mêlée(+${melee_pts * 5}%)` : '';
+    } else if (_estArcA) {
+        skillMult  = 1 + arc_pts * 0.05;
+        skillLabel = arc_pts > 0 ? ` Arc(+${arc_pts * 5}%)` : '';
+    } else if (_estFeuA) {
+        skillMult  = 1 + feu_pts * 0.05;
+        if (rang_feu >= 2) skillMult *= 1.10; // Expert AF : +10% dégâts
+        skillLabel = feu_pts > 0 ? ` AF(+${feu_pts * 5}%)` : '';
+    } else if (_estDistLancerA || _estExplosifA) {
         skillMult  = 1 + lancer_pts * 0.05;
+        if (rang_lancer >= 2) skillMult *= 1.50; // Expert Lancer : +50% dégâts
         skillLabel = lancer_pts > 0 ? ` Lancer(+${lancer_pts * 5}%)` : '';
     }
 
+    // Capture du flag "1er coup" avant qu'il soit muté par le bloc sournois
+    const _estPremierCoup = !window._combatPremierCoupFait;
+
     // Attaque sournoise : bonus sur la 1ère attaque du combat
     let sourLabel = '';
-    if (sournois_pts > 0 && !window._combatPremierCoupFait) {
+    if (sournois_pts > 0 && _estPremierCoup) {
         const sourMult = 1 + sournois_pts * 0.10;
         skillMult *= sourMult;
         sourLabel = ` Sournois(+${sournois_pts * 10}%)`;
@@ -3100,8 +3278,13 @@ function lancerAttaqueMelee(instanceId) {
     let degatsBase = Math.max(1, Math.round((arme.de + foMod) * skillMult));
     let critLabel  = '';
     if (crit.type === 'echec') {
-        degatsBase = 0;
-        critLabel  = ' ⚠ ÉCHEC CRITIQUE';
+        // Maître Mêlée : pas d'échec critique
+        if (_estMeleeA && rang_melee >= 3) {
+            critLabel = ' (Maître Mêlée — échec évité)';
+        } else {
+            degatsBase = 0;
+            critLabel  = ' ⚠ ÉCHEC CRITIQUE';
+        }
     } else if (crit.type === 'critique') {
         degatsBase = Math.round(degatsBase * crit.mult);
         critLabel  = crit.mult >= 2 ? ' ⚡ CRITIQUE ×2 !' : ' ⚡ CRITIQUE ×1.5 !';
@@ -3122,8 +3305,17 @@ function lancerAttaqueMelee(instanceId) {
     const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
     if (idx === -1) return;
 
-    // Armure ennemie réduit les dégâts
-    const armEnnemi = _armureTotal(ennemisMAJ[idx]);
+    // Armure ennemie réduit les dégâts (avec effets de rang)
+    let armEnnemi = _armureTotal(ennemisMAJ[idx]);
+    // Expert Mêlée : perfore 25% de l'armure
+    if (_estMeleeA && rang_melee >= 2 && armEnnemi > 0) armEnnemi = Math.floor(armEnnemi * 0.75);
+    // Attaque sournoise — bypass armure sur la 1ère attaque
+    const _ennemisActesFlags = window._ennemisOntAttaque || new Set();
+    if (rang_sournois >= 2 && _estPremierCoup) {
+        armEnnemi = 0; // Expert : bypass sur 1ère attaque, toutes armes
+    } else if (rang_sournois >= 1 && _estPremierCoup && !_ennemisActesFlags.has(instanceId)) {
+        armEnnemi = 0; // Apprenti : bypass si ennemi n'a pas encore agi
+    }
     const _effCibleAtk = ennemisMAJ[idx].effets || {};
 
     // Pétrification : immunité aux dégâts physiques
@@ -3169,7 +3361,8 @@ function lancerAttaqueMelee(instanceId) {
     const prochainTour = _prochainTourVivant(ordreMAJ, data.tour_actuel || 0);
 
     // ── Actions rapides ──────────────────────────────────────────
-    const _actionsArme = _itemDefA?.actionsParTour || 1;
+    let _actionsArme = _itemDefA?.actionsParTour || 1;
+    if (_estArcA && rang_arc >= 2) _actionsArme = Math.max(_actionsArme, 2); // Expert Arc : 2 attaques/tour
     const _tourActuel  = data.tour_actuel || 0;
     if (window._actionsRapides.tourKey !== _tourActuel) {
         window._actionsRapides = { tourKey: _tourActuel, max: _actionsArme, restantes: _actionsArme };

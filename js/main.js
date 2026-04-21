@@ -256,9 +256,10 @@ function ouvrirFicheCompagnon(cmp) {
         torse:'Torse', tete:'Tête', bottes:'Bottes', gants:'Gants', anneau:'Anneau', amulette:'Amulette' };
     let equipHtml = '';
     if (cmp.equipement && typeof itemsData !== 'undefined') {
-        for (const [slot, id] of Object.entries(cmp.equipement)) {
-            if (!id) continue;
-            const def = itemsData[id];
+        for (const [slot, val] of Object.entries(cmp.equipement)) {
+            if (!val) continue;
+            const itemId = typeof val === 'string' ? val : val?.id;
+            const def = itemId ? itemsData[itemId] : null;
             if (!def) continue;
             equipHtml += `<div style="display:flex;justify-content:space-between;font-size:0.82em;padding:2px 0;">
                 <span style="color:#888;">${slotLabels[slot] || slot}</span>
@@ -586,7 +587,12 @@ function _compagnon_equipementHtml(c, idx) {
     const slots = { tete:'Tête', torse:'Torse', gants:'Mains', bottes:'Pieds',
                     anneau:'Anneau', amulette:'Amulette', main_droite:'Main D.', main_gauche:'Main G.' };
     if (!c.equipement) c.equipement = {};
-    const eq = c.equipement;
+    // Normalise : string → objet {id} pour compatibilité compagnonsData
+    const eq = {};
+    for (const [s, v] of Object.entries(c.equipement)) {
+        if (!v) continue;
+        eq[s] = typeof v === 'string' ? { id: v } : v;
+    }
 
     // Détecte arme 2 mains
     const estDeuxMains = !!(eq.main_droite && itemsData[eq.main_droite.id]?.equipable === 'deux_mains');
@@ -700,7 +706,8 @@ function _desequiperCompagnon(compIdx, slot) {
     const c = window.perso?.compagnons?.[compIdx];
     if (!c?.equipement?.[slot]) return;
     if (!c.inventaire) c.inventaire = [];
-    c.inventaire.push(c.equipement[slot]);
+    const val = c.equipement[slot];
+    c.inventaire.push(typeof val === 'string' ? { id: val, quantite: 1 } : val);
     c.equipement[slot] = null;
     if (typeof autoSave === 'function') autoSave();
     if (typeof _syncCompagnonsSummary === 'function') _syncCompagnonsSummary();
@@ -858,15 +865,22 @@ function ouvrirPatchNotes(onglet) {
                     <li>Don d'or via modal (même UI que don d'objet)</li>
                     <li>Refonte sorts de combat — Cat. 1 (dégâts), 2 (CC), 3 (buffs groupe/indiv.), 4 (initiative)</li>
                     <li>Détection pièges : chance de base sans compétence</li>
+                    <li>Succès Steam-like (57 succès, 13 catégories)</li>
+                    <li>31 compagnons avec portraits, équipement, fiche complète</li>
+                    <li>Modal MJ don compagnon, RAZ, mémoire de progression</li>
+                    <li>Portraits dans frise d'action et onglet Groupe</li>
+                    <li>Sorts Cat. 5 — Incarnations Air, Pierre, Feu (buffPersistant)</li>
+                    <li>Sort Déverrouillage magique (donjon)</li>
+                    <li>Pièges sur coffres/portes (déclenchement à l'ouverture)</li>
                 </ul>
             </div>
             <div>
                 <h3 style="color:#f0b429;margin:0 0 8px;font-size:0.95em;">🔜 À faire</h3>
                 <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.88em;line-height:1.7;">
-                    <li>Sorts Cat. 5 — Incarnations élémentaires (Air, Pierre, Feu, Eau)</li>
-                    <li>Sorts Cat. 6 — Sorts Donjon (Déverrouillage magique, Détection de l'invisible)</li>
-                    <li>Pièges sur coffres/portes (déclencher à l'ouverture)</li>
+                    <li>Incarnation d'Eau (compléter Cat. 5)</li>
+                    <li>Sort Détection de l'invisible (Cat. 6)</li>
                     <li>Attribution XP pour kills par poison</li>
+                    <li>Équipement compagnon propagé dans les calculs de dégâts en combat</li>
                 </ul>
             </div>`;
         modal.style.display = 'flex';
@@ -874,6 +888,20 @@ function ouvrirPatchNotes(onglet) {
     }
 
     contenu.innerHTML = `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.10 — Avril 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Système de Compagnons complet, portraits, fiche, level-up, RAZ</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#d4af37;">🤝 31 Compagnons</strong> — équipement par défaut, portraits, règles spéciales (slots bloqués, arme obligatoire, prndSlot)</li>
+                <li><strong style="color:#b39ddb;">🖼 Portraits</strong> — miniatures dans la frise d'action (combat + donjon), cartes compagnon, onglet Groupe (48×48 joueur + 32×32 compagnons)</li>
+                <li><strong style="color:#81c784;">📋 Fiche complète</strong> — modal stats/compétences/magie/tech/équipement accessible joueur ET MJ</li>
+                <li><strong style="color:#4fc3f7;">🎁 Modal don MJ</strong> — portraits, recherche, compagnons déjà assignés grisés en temps réel</li>
+                <li><strong style="color:#ffb74d;">🌟 Level-up prérequis</strong> — plafonds (stats ≤ 10, comp ≤ 20, magie/tech ≤ 5) + stat gouvernante ≥ 7 avant skill</li>
+                <li><strong style="color:#ff9800;">🔄 RAZ compagnon</strong> (MJ) — remet à zéro progression + inventaire avec confirmation</li>
+                <li><strong style="color:#90a4ae;">💾 Mémoire de progression</strong> — niveau/XP/stats/équipement préservés au renvoi et à la réattribution</li>
+                <li><strong style="color:#ef9a9a;">🐛 Bugs</strong> — compagnons KO au début du combat, ennemis ne ciblaient pas les alliés, sorts buff ciblaient uniquement soi, équipement fiche ≠ équipement live</li>
+            </ul>
+        </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.9 — Avril 2026</h3>
             <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Système de Succès, refonte Codex objets</p>

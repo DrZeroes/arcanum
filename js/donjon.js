@@ -942,7 +942,9 @@ function _afficherModalPorte(cellKey, etat) {
 
     const DX          = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
     const crochetage  = window.perso?.compInvesties?.crochetage || 0;
-    const chanceCroch = Math.min(95, DX * 3 + crochetage * 5);
+    const _rangCrochDisplay = _getRang('crochetage', window.perso);
+    const _bonusRangCroch = _rangCrochDisplay >= 3 ? 25 : (_rangCrochDisplay >= 2 ? 5 : 0);
+    const chanceCroch = Math.min(95, DX * 3 + crochetage * 5 + _bonusRangCroch);
     const myID        = (window.perso?.nom || '').replace(/\s+/g, '_');
     const cleRequise  = etat.cleRequise;
     const aLaClef     = cleRequise && !!(window.donjonActif?.cles_joueurs?.[myID]?.[cleRequise]);
@@ -1143,7 +1145,9 @@ function _crochetagePorte(cellKey) {
     const ctx        = window._donjonPorteCtx;
     const DX         = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
     const crochetage = window.perso?.compInvesties?.crochetage || 0;
-    const chance     = Math.min(95, DX * 3 + crochetage * 5);
+    const rangCroch  = _getRang('crochetage', window.perso);
+    const bonusRang  = rangCroch >= 3 ? 25 : (rangCroch >= 2 ? 5 : 0);
+    const chance     = Math.min(95, DX * 3 + crochetage * 5 + bonusRang);
     const roll       = Math.floor(Math.random() * 100);
     const ref        = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_portes/' + cellKey);
     const nom        = window.perso?.nom || '?';
@@ -1158,7 +1162,12 @@ function _crochetagePorte(cellKey) {
     } else {
         if (typeof _toast === 'function') _toast(`❌ Crochetage échoué (${roll}/${chance}%).`, 'error');
         _logDonjon(`❌ ${nom} échoue à crocheter une porte (${roll}/${chance}%).`);
-        if (ctx) _avancerTourDonjon(ctx.data);
+        // Apprenti+ : pas de coût de tour sur un échec
+        if (rangCroch >= 1) {
+            if (typeof _toast === 'function') _toast('🔓 Apprenti — pas de coût de tour.', 'info');
+        } else {
+            if (ctx) _avancerTourDonjon(ctx.data);
+        }
     }
 }
 
@@ -1288,11 +1297,14 @@ function _verifierDetectionPieges(data, myID) {
 
         const piegeData    = estPiegesSol ? cell.event.data : cell.event.data.piege;
         const difficulte   = piegeData?.difficulte ?? 50;
-        const chanceBase   = Math.min(95, detection * 5 + 10);
+        const rangDet      = _getRang('detection_piege', p);
+        const bonusDet     = rangDet >= 2 ? 10 : (rangDet >= 1 ? 5 : 0);
+        const chanceBase   = Math.min(95, detection * 5 + 10 + bonusDet);
         const chanceFinale = Math.max(5, chanceBase - Math.floor((difficulte - 50) / 2));
         const roll         = Math.floor(Math.random() * 100) + 1;
 
-        if (roll <= chanceFinale) {
+        const detecte = roll <= chanceFinale || (rangDet >= 3 && (Math.floor(Math.random() * 100) + 1) <= chanceFinale);
+        if (detecte) {
             db.ref('parties/' + sessionActuelle + '/donjon_actif/pieges_detectes/' + key + '/' + myID).set(true);
             if (typeof _toast === 'function') _toast(`🔍 Vous repérez un piège à (${cx},${cy}) !`, 'warning');
             _logDonjon(`🔍 ${p.nom} détecte un piège en (${cx},${cy}).`);
@@ -1359,11 +1371,13 @@ function _desarmorcer(cellKey) {
     if (!data || !p) return;
 
     const desarm      = p.compInvesties?.desamorcage || 0;
+    const rangDesarm  = _getRang('desamorcage', p);
+    const bonusDesarm = rangDesarm >= 1 ? 5 : 0;
     const aDeclencheur = (p.inventaire || []).some(i => i.id === 'TEC14');
     const bonusTEC14   = aDeclencheur ? 15 : 0;
     const cell        = data.grille?.[cellKey];
     const difficulte  = cell?.event?.data?.difficulte ?? 50;
-    const chanceBase  = Math.min(95, desarm * 15 + 10 + bonusTEC14);
+    const chanceBase  = Math.min(95, desarm * 15 + 10 + bonusTEC14 + bonusDesarm);
     const chanceFinale = Math.max(5, chanceBase - Math.floor((difficulte - 50) / 2));
     const roll        = Math.floor(Math.random() * 100) + 1;
 
@@ -1372,7 +1386,7 @@ function _desarmorcer(cellKey) {
         if (typeof _toast === 'function') _toast('💥 Échec critique ! Le piège explose !', 'error');
         _logDonjon(`💥 ${nom} : échec critique lors du désarmorcage — piège déclenché !`);
         if (cell?.event) _declencherEvenementDonjon(cellKey, cell.event, myID);
-    } else if (roll <= Math.max(1, Math.floor(chanceFinale / 5))) {
+    } else if (roll <= Math.max(1, Math.floor(chanceFinale / (rangDesarm >= 2 ? 4 : 5)))) {
         // Succès critique : composants récupérés (réels IDs)
         const POOL_COMPOSANTS = ['COMP01','COMP26','COMP27'];
         if (aDeclencheur) POOL_COMPOSANTS.push('COMP26','COMP27'); // plus de chances avec déclencheur
@@ -1396,9 +1410,23 @@ function _desarmorcer(cellKey) {
         if (typeof _incStatPartie === 'function') _incStatPartie('pieges_desamorces', 1);
         db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
     } else {
-        // Échec : rien ne se passe, tour perdu
-        if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
-        _logDonjon(`❌ ${nom} échoue à désamorcer le piège (${roll}/${chanceFinale}%).`);
+        // Maître : seconde chance
+        if (rangDesarm >= 3) {
+            const roll2 = Math.floor(Math.random() * 100) + 1;
+            if (roll2 <= chanceFinale) {
+                if (typeof _toast === 'function') _toast(`✅ Maître Désamorçage — 2e chance réussie ! (${roll2}/${chanceFinale}%)`, 'success');
+                _logDonjon(`✅ ${nom} désamorce le piège à la 2e chance (${roll2}/${chanceFinale}%).`);
+                if (typeof _incStatPartie === 'function') _incStatPartie('pieges_desamorces', 1);
+                db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(true);
+            } else {
+                if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
+                _logDonjon(`❌ ${nom} échoue à désamorcer le piège (${roll}/${chanceFinale}%).`);
+            }
+        } else {
+            // Échec : rien ne se passe, tour perdu
+            if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
+            _logDonjon(`❌ ${nom} échoue à désamorcer le piège (${roll}/${chanceFinale}%).`);
+        }
     }
 
     _avancerTourDonjon(data);
@@ -1606,9 +1634,11 @@ function _desarmorcer_objet(cellKey) {
     if (!ctx) return;
     const p    = window.perso;
     const myID = (p?.nom || '').replace(/\s+/g, '_');
-    const desarm = p?.compInvesties?.desamorcage || 0;
+    const desarm      = p?.compInvesties?.desamorcage || 0;
+    const rangDesarmO = _getRang('desamorcage', p);
+    const bonusDesarmO = rangDesarmO >= 1 ? 5 : 0;
     const piege  = ctx.piege;
-    const chanceBase   = Math.min(95, desarm * 15 + 10);
+    const chanceBase   = Math.min(95, desarm * 15 + 10 + bonusDesarmO);
     const chanceFinale = Math.max(5, chanceBase - Math.floor((piege.difficulte - 50) / 2));
     const roll = Math.floor(Math.random() * 100) + 1;
 
@@ -1622,6 +1652,18 @@ function _desarmorcer_objet(cellKey) {
         _logDonjon(`✅ ${p.nom} désamorce le piège sur un objet.`);
         db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/data/piege/declenche').set(true);
         ctx.onContinue();
+    } else if (rangDesarmO >= 3) {
+        // Maître : seconde chance
+        const roll2 = Math.floor(Math.random() * 100) + 1;
+        if (roll2 <= chanceFinale) {
+            if (typeof _toast === 'function') _toast(`✅ Maître — 2e chance réussie ! (${roll2}/${chanceFinale}%)`, 'success');
+            _logDonjon(`✅ ${p.nom} désamorce l'objet à la 2e chance.`);
+            db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/data/piege/declenche').set(true);
+            ctx.onContinue();
+        } else {
+            if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
+            _logDonjon(`❌ ${p.nom} échoue à désamorcer l'objet (${roll}/${chanceFinale}%).`);
+        }
     } else {
         if (typeof _toast === 'function') _toast(`❌ Désarmorcage échoué (${roll}/${chanceFinale}%).`, 'error');
         _logDonjon(`❌ ${p.nom} échoue à désamorcer l'objet (${roll}/${chanceFinale}%).`);
@@ -2015,7 +2057,9 @@ function _afficherModalCoffre(cellKey, etat) {
         header = `🔒 ${labelV} verrouillé`;
         const DX         = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
         const crochetage = window.perso?.compInvesties?.crochetage || 0;
-        const chanceCroch = Math.min(95, DX * 3 + crochetage * 5);
+        const _rCroch = _getRang('crochetage', window.perso);
+        const _bCroch = _rCroch >= 3 ? 25 : (_rCroch >= 2 ? 5 : 0);
+        const chanceCroch = Math.min(95, DX * 3 + crochetage * 5 + _bCroch);
         const armeInfo   = _getArmeEquipeeDonjon();
         const durCoul    = etat.durabilite > etat.durabiliteMax * 0.5 ? '#4caf50'
                          : etat.durabilite > etat.durabiliteMax * 0.2 ? '#f0b429' : '#ff4444';
@@ -2080,7 +2124,9 @@ function _afficherModalCoffre(cellKey, etat) {
 function _crochetageCoffre(cellKey) {
     const DX         = (window.perso?.statsBase?.DX ?? 8) + (window.perso?.statsInvesties?.DX || 0);
     const crochetage = window.perso?.compInvesties?.crochetage || 0;
-    const chance     = Math.min(95, DX * 3 + crochetage * 5);
+    const rangCroch  = _getRang('crochetage', window.perso);
+    const bonusRang  = rangCroch >= 3 ? 25 : (rangCroch >= 2 ? 5 : 0);
+    const chance     = Math.min(95, DX * 3 + crochetage * 5 + bonusRang);
     const roll       = Math.floor(Math.random() * 100);
     const ref        = db.ref('parties/' + sessionActuelle + '/donjon_actif/etats_coffres/' + cellKey);
     const nom        = window.perso?.nom || '?';
@@ -2098,9 +2144,13 @@ function _crochetageCoffre(cellKey) {
         if (typeof _toast === 'function') _toast(`❌ Crochetage échoué (${roll}/${chance}%).`, 'error');
         _logDonjon(`❌ ${nom} échoue à crocheter un coffre (${roll}/${chance}%).`);
     }
-    // Avancer le tour dans tous les cas
+    // Apprenti+ : pas de coût de tour sur un échec; sinon avancer le tour
     const data = window.donjonActif;
-    if (data) _avancerTourDonjon(data);
+    if (roll >= chance && rangCroch >= 1) {
+        if (typeof _toast === 'function') _toast('🔓 Apprenti — pas de coût de tour.', 'info');
+    } else if (data) {
+        _avancerTourDonjon(data);
+    }
 }
 
 /** Frappe le coffre avec calcul de coup (crits inclus). */

@@ -109,7 +109,9 @@ function updateMarchandUI() {
     document.getElementById('votre-argent').innerText = perso.argent;
 
     let ptsMarchandage = (perso.compInvesties && perso.compInvesties['marchandage']) ? perso.compInvesties['marchandage'] : 0;
-    let reductionClient = ptsMarchandage * 0.02;
+    const _rangMarch = (typeof _getRang === 'function') ? _getRang('marchandage', perso) : 0;
+    // Apprenti Marchandage : −5% supplémentaire à l'achat
+    let reductionClient = ptsMarchandage * 0.02 + (_rangMarch >= 1 ? 0.05 : 0);
 
     // --- INVENTAIRE DU MARCHAND (ACHAT) ---
     let listM = document.getElementById('inventaire-marchand');

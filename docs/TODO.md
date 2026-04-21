@@ -38,10 +38,66 @@
 - Effets de statut : poison (tick/tour), étourdi/élec (saute un tour), brûlure/feu (dégâts bonus)
 - Persistance Firebase : `parties/{session}/donjon_actif/`
 
-## E — À faire
+## E — Compagnons ✅ FAIT (v0.10)
 
-### Pièges sur coffres/portes
-- Permettre au MJ de placer un piège sur une case coffre ou porte
-- Le piège se déclenche à l'ouverture (avant le loot ou le passage)
-- Types disponibles : poison, élec, feu, normal
+- 31 compagnons dans `compagnons.js` (stats, équipement, portraits, règles spéciales)
+- Portraits dans frise d'action, cartes compagnon, onglet Groupe
+- Modal MJ refaite (portraits, recherche, grisage des assignés)
+- Fiche complète `ouvrirFicheCompagnon` (joueur + MJ)
+- Level-up : vérification prérequis (plafonds, stat gouvernante ≥ 7)
+- Mémoire de progression au renvoi/réattribution
+- Bouton RAZ compagnon (MJ) avec confirmation
+
+## F — Sorts Cat. 5 (partiel) ✅ FAIT
+
+- Incarnation d'Air (`buffPersistant` : +30 esquive, −20% dég. physiques, 3 tours)
+- Incarnation de Pierre (`buffPersistant` : −30% dég. physiques, −20% dég. magiques, 3 tours)
+- Incarnation de Feu (`buffPersistant` : riposte feu 30% des dégâts reçus, 3 tours)
+- Appel des élémentaires (Air / Terre / Feu) via `invocation`
+
+## G — Sorts Cat. 6 (partiel) ✅ FAIT
+
+- Déverrouillage magique (`deverrouillage: true` — ouvre portes/coffres donjon, IN×5%)
+
+## H — Pièges sur coffres/portes ✅ FAIT
+
+- `_verifierPiegeObjet` déclenché à l'ouverture d'un coffre ou passage d'une porte
+- Types : poison, élec, feu, normal
+
+## J — Effets de Rang (Apprenti / Expert / Maître) ✅ FAIT (v0.11)
+
+- `RANG_EFFETS` + `_getRang` + `_getRangEffet` définis dans `skills.js`
+- **Combat** (`combat.js`, `codex.js`) :
+  - Arc Apprenti : +5 vitesse si arc équipé ; Expert : 2 attaques/tour ; Maître : dégâts max
+  - Mêlée Apprenti : +5 vitesse ; Expert : perce 25% armure ; Maître : pas d'échec critique
+  - Lancer Apprenti : +5 vitesse ; Expert : +50% dégâts ; Maître : dégâts max
+  - Armes à feu Apprenti : +5 vitesse ; Expert : +10% dégâts ; Maître : dégâts max
+  - Attaque sournoise Apprenti : 1ère attaque ignore armure (si ennemi n'a pas agi) ; Expert : toutes armes ; Maître : seuil critique −20
+  - Esquive Apprenti/Expert/Maître : +5/+10/+20 esquive passive
+- **Donjon** (`donjon.js`) :
+  - Crochetage Apprenti : pas de coût de tour sur échec ; Expert : +5 ; Maître : +25
+  - Détection piège Apprenti/Expert : +5/+10 ; Maître : 2e chance
+  - Désamorçage Apprenti : +5 ; Expert : seuil crit succès amélioré ; Maître : 2e chance
+- **Social / Technologie** :
+  - Vol à la tire Apprenti/Expert : échec seulement sur crit fail (1-5) ; Maître : toujours réussit
+  - Marchandage Apprenti : −5% supplémentaire à l'achat
+  - Soins Apprenti : ×1.5 efficacité des potions
+  - Réparation Apprenti/Expert/Maître : dégradation 5% / 1% / 0%
+  - Persuasion Apprenti : +5% XP de quêtes
+
+## I — À faire
+
+### Incarnation d'Eau (compléter Cat. 5)
+- Ajouter dans `magie.js` : niv 10, buffPersistant, effet défensif eau (ex: +25 RM, −20% dégâts magiques)
+- Appel d'un élémentaire d'Eau (niv 15, invocation)
+
+### Sort Détection de l'invisible (Cat. 6)
+- Révèle les ennemis/alliés invisibles dans le donjon (rayon basé sur IN)
+
+### Attribution XP pour kills par poison
+- Le tick de poison doit donner de l'XP si l'ennemi meurt (combat.js / codex.js mjTourSuivant)
+
+### Équipement compagnon propagé en combat
+- Passer `equipement` dans `ordre_jeu` lors du lancement du combat (codex.js)
+- `_degatsArme` lit déjà `p.equipement` — il suffit que le champ soit présent
 

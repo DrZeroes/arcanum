@@ -527,9 +527,10 @@ function finaliserActionObjet(cibleID, nomCible) {
         }
 
         // 3. APPLICATION DES EFFETS 🪄
-        // Bonus Soins : +5% d'efficacité par point de compétence
+        // Bonus Soins : +5% par point ; Apprenti rang +50% supplémentaire
         const soins_pts = window.perso?.compInvesties?.soins || 0;
-        const soinMult = 1 + soins_pts * 0.05;
+        const _rangSoins = (typeof _getRang === 'function') ? _getRang('soins', window.perso) : 0;
+        const soinMult = (1 + soins_pts * 0.05) * (_rangSoins >= 1 ? 1.5 : 1);
 
         const statRef = db.ref('parties/' + sessionActuelle + '/joueurs/' + cibleID + '/modif_stat');
         const pvBase = (estResurrection && !soinPV) ? 10 : soinPV;
@@ -584,7 +585,9 @@ function finaliserActionObjet(cibleID, nomCible) {
 
 /** Logique commune de réparation — modifie l'objet en place. */
 function _appliquerReparation(objet, reparation_pts) {
-    const degradationPct = Math.max(5, 15 - Math.floor(reparation_pts / 2));
+    const _rangRep = (typeof _getRang === 'function') ? _getRang('reparation', window.perso) : 0;
+    // Rang Réparation : Apprenti 5%, Expert 1%, Maître 0% de dégradation
+    const degradationPct = _rangRep >= 3 ? 0 : (_rangRep >= 2 ? 1 : (_rangRep >= 1 ? 5 : Math.max(5, 15 - Math.floor(reparation_pts / 2))));
     const ancienMax = objet.durabiliteMax || 100;
     const nouveauMax = Math.max(1, Math.floor(ancienMax * (1 - degradationPct / 100)));
     const nom = (typeof itemsData !== 'undefined' && itemsData[objet.id]?.nom) || objet.id;
@@ -701,4 +704,10 @@ function ouvrirDepenseOr() {
     if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
     if (typeof updateInventaireUI === 'function') updateInventaireUI();
     if (typeof _toast === 'function') _toast(`💸 ${montant} or dépensé. Reste : ${window.perso.argent} or`, 'gold');
+    if (typeof db !== 'undefined' && typeof sessionActuelle !== 'undefined' && sessionActuelle) {
+        db.ref('parties/' + sessionActuelle + '/alerte_mj').set({
+            texte: `💸 ${window.perso.nom} a dépensé ${montant} or (reste : ${window.perso.argent})`,
+            timestamp: Date.now()
+        });
+    }
 }

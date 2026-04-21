@@ -214,53 +214,43 @@ function mjChargerEnnemi(idEnnemi) {
           `${ennemi.antecedent}`);
 }
 
-function genererEnnemisCodexMJ() {
+function genererEnnemisCodexMJ(triFn) {
     const tbody = document.getElementById('tbody-codex-mj');
     if (!tbody || typeof ennemisData === 'undefined') return;
     tbody.innerHTML = '';
 
-    const zones = {
-        crash: '🌲 Zone 1 — Crash & Wilderness',
-        tris:  '⛏ Zone 2 — Triste Colline & Mine',
-        tarante: '🗡 Zone 3/4 — Route & Main de Moloch'
-    };
-    const dejaMisZone = new Set();
+    // Collect + sort
+    let liste = Object.entries(ennemisData).map(([id, e]) => ({ id, ...e }));
+    if (triFn) liste.sort(triFn);
 
-    for (let id in ennemisData) {
-        const e = ennemisData[id];
-        const fo = e.statsBase.FO, ini = e.statsBase.IN, cn = e.statsBase.CN;
-        const pvMax = (fo * 2) + ini;
-        const ftMax = (cn * 2) + ini;
-
-        // Séparateur de zone (affiché une seule fois par zone principale)
-        const zoneKey = e.zones[0];
-        if (!dejaMisZone.has(zoneKey) && zones[zoneKey]) {
-            dejaMisZone.add(zoneKey);
-            tbody.innerHTML += `
-                <tr><td colspan="3" style="padding:10px 10px 4px; color:#8b6914; font-size:0.75em; font-variant:small-caps; letter-spacing:2px; border-top:1px solid #2a1d12;">
-                    ${zones[zoneKey]}
-                </td></tr>`;
-        }
+    for (const e of liste) {
+        const fo = e.statsBase?.FO || 0, ini = e.statsBase?.IN || 0, cn = e.statsBase?.CN || 0;
+        const pvMax = (fo * 2) + ini + (e.boostPV || 0);
+        const ftMax = (cn * 2) + ini + (e.boostFT || 0);
 
         const lootStr = (e.lootDrop || []).map(l => {
             const item = (typeof itemsData !== 'undefined') ? itemsData[l.id] : null;
             return item ? item.nom : l.id;
         }).join(', ');
 
+        const raceLabel = e.race || '—';
+        const zoneLabel = (e.zones || []).join(', ') || 'Bestaire';
+
         tbody.innerHTML += `
             <tr style="border-bottom:1px solid #1a110b;">
                 <td style="padding:8px 10px;">
                     <span style="color:#e57373; font-weight:bold; font-size:0.9em;">${e.nom}</span>
-                    <div style="color:#555; font-size:0.72em; margin-top:2px;">${e.race} — Niv.${e.niveau} — XP: ${e.xp}</div>
+                    <div style="color:#555; font-size:0.72em; margin-top:2px;">${raceLabel} — Niv.${e.niveau} — XP: ${e.xp || 0}</div>
                 </td>
                 <td style="padding:8px 10px; font-size:0.78em;">
                     <span style="color:#e57373;">❤ ${pvMax}</span> &nbsp;
                     <span style="color:#64b5f6;">⚡ ${ftMax}</span><br>
-                    <span style="color:#666;">FO:${fo} DX:${e.statsBase.DX} IN:${ini}</span><br>
+                    <span style="color:#666;">FO:${fo} DX:${e.statsBase?.DX || 0} IN:${ini}</span><br>
                     <span style="color:#4a3a18; font-size:0.9em;">💰 ${lootStr}</span>
                 </td>
-                <td style="padding:8px 10px; text-align:right;">
-                    <button onclick="mjChargerEnnemi('${id}')" style="background:#2a0a0a; color:#e57373; border:1px solid #8b0000; padding:5px 10px; cursor:pointer; border-radius:3px; font-size:0.8em;">
+                <td style="padding:8px 10px; text-align:right; vertical-align:middle;">
+                    <div style="color:#555;font-size:0.7em;margin-bottom:4px;">${zoneLabel}</div>
+                    <button onclick="mjChargerEnnemi('${e.id}')" style="background:#2a0a0a; color:#e57373; border:1px solid #8b0000; padding:5px 10px; cursor:pointer; border-radius:3px; font-size:0.8em;">
                         ⚔ Stats
                     </button>
                 </td>
@@ -347,6 +337,7 @@ function rafraichirListeJoueursMJ() {
                                 <button onclick="mjOuvrirFicheCompagnon('${id}', ${c.idx})" style="background:#1a1a2e; color:#9575cd; border:1px solid #4a3a7a; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">📋 Fiche</button>
                                 <button onclick="mjLevelUpCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🌟 LvUp</button>
                                 <button onclick="mjAjouterItemCompagnon('${id}', ${c.idx})" style="background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">🎒 Item</button>
+                                <button onclick="mjRazCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#2a1a00; color:#ff9800; border:1px solid #8b4500; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;" title="Remettre à zéro progression + inventaire">🔄 RAZ</button>
                                 <button onclick="mjRenvoyerCompagnon('${id}', ${c.idx}, '${nomSafe}')" style="background:#3a1010; color:#ff6b6b; border:1px solid #8b0000; padding:2px 5px; cursor:pointer; font-size:10px; border-radius:2px;">✕</button>
                             </span>
                         </div>
@@ -378,6 +369,7 @@ function rafraichirListeJoueursMJ() {
                         <button onclick="mjOuvrirFouille('${id}', '${j.nom}')" style="grid-column: span 2; background:#0d1a0d; color:#4caf50; border:1px solid #2a5a2a; padding:4px; cursor:pointer; font-size:11px;">🔍 Ouvrir une fouille</button>
                         <button onclick="mjGererEffets('${id}', '${j.nom}')" style="grid-column: span 2; background:#1a1008; color:#ffd700; border:1px solid #7a6000; padding:4px; cursor:pointer; font-size:11px;">✨ Bénédictions / Malédictions</button>
                         <button onclick="mjGererSucces('${id}', '${j.nom}')" style="grid-column: span 2; background:#0a1a0a; color:#d4af37; border:1px solid #4a3a00; padding:4px; cursor:pointer; font-size:11px;">🏆 Gérer les Succès</button>
+                        <button onclick="mjGererMaitrises('${id}', '${j.nom}')" style="grid-column: span 2; background:#0a1020; color:#9575cd; border:1px solid #4a2a8a; padding:4px; cursor:pointer; font-size:11px;">🎓 Maîtrises de compétences</button>
                     </div>
 
                     <div style="margin-top:6px; border-top:1px solid #333; padding-top:5px;">
@@ -655,6 +647,17 @@ function mjRenvoyerCompagnon(playerID, compIdx, compNom) {
 }
 
 /**
+ * Le MJ remet à zéro la progression d'un compagnon.
+ */
+function mjRazCompagnon(playerID, compIdx, compNom) {
+    if (!confirm(`Remettre ${compNom} à zéro ?\nCela efface toute sa progression, ses niveaux et son équipement acquis.`)) return;
+    db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/compagnon_action').set({
+        type: 'raz', compIdx: compIdx, timestamp: Date.now()
+    });
+    if (typeof _toast === 'function') _toast(`🔄 ${compNom} remis à zéro.`);
+}
+
+/**
  * Le MJ ajoute un item à l'inventaire d'un compagnon.
  */
 function mjAjouterItemCompagnon(playerID, compIdx) {
@@ -724,25 +727,14 @@ function mjAfficherInterfaceCombat() {
             return;
         }
 
-        // Groupe les ennemis par zone
-        const parZone = {};
-        for (let id in ennemisData) {
-            const e = ennemisData[id];
-            (e.zones || ['?']).forEach(z => {
-                if (!parZone[z]) parZone[z] = [];
-                // Déduplique (un ennemi peut apparaître dans plusieurs zones)
-                if (!parZone[z].find(x => x.id === id)) parZone[z].push({ id, ...e });
-            });
-        }
-
-        let lignes = '';
-        for (let zone in parZone) {
-            const nomZone = (typeof lieuxDecouverts !== 'undefined' && lieuxDecouverts[zone])
-                ? lieuxDecouverts[zone].nom : zone;
-            lignes += `<tr><td colspan="3" style="padding:6px 8px; background:#1a0d05; color:#d4af37; font-size:0.75em; text-transform:uppercase; letter-spacing:0.1em;">${nomZone}</td></tr>`;
-            parZone[zone].forEach(e => {
-                const fo = e.statsBase.FO + (e.statsInvesties?.FO || 0);
-                const ini = e.statsBase.IN + (e.statsInvesties?.IN || 0);
+        // Build enemy list with optional sort
+        window._mjRafraichirCombatListe = function(triFn) {
+            let liste = Object.entries(ennemisData).map(([id, e]) => ({ id, ...e }));
+            if (triFn) liste.sort(triFn);
+            let lignes = '';
+            for (const e of liste) {
+                const fo  = (e.statsBase?.FO || 0) + (e.statsInvesties?.FO || 0);
+                const ini = (e.statsBase?.IN || 0) + (e.statsInvesties?.IN || 0);
                 const pvMax = (fo * 2) + ini + (e.boostPV || 0);
                 lignes += `
                     <tr style="border-bottom:1px solid #2a1d12;">
@@ -750,30 +742,36 @@ function mjAfficherInterfaceCombat() {
                             <span style="color:#666; font-size:0.75em;"> Niv.${e.niveau} ❤${pvMax}</span>
                         </td>
                         <td style="padding:6px 8px; text-align:center;">
-                            <input type="number" id="qty-${e.id}" min="0" max="9" value="0"
+                            <input type="number" id="qty-${e.id}" min="0" max="9" value="${_combatSelection[e.id] || 0}"
                                 style="width:45px; background:#111; color:#fff; border:1px solid #444; padding:3px; text-align:center; border-radius:3px;"
                                 onchange="_combatSelection['${e.id}'] = parseInt(this.value)||0">
                         </td>
-                        <td style="padding:6px 8px; color:#888; font-size:0.72em;">${e.race}</td>
+                        <td style="padding:6px 8px; color:#888; font-size:0.72em;">${e.race || '—'}</td>
                     </tr>`;
-            });
-        }
-
+            }
+            const tbl = document.getElementById('tbl-combat-ennemis');
+            if (tbl) tbl.innerHTML = lignes;
+        };
         const banniereRencontre = rencontreCtx
             ? `<div style="background:#2a1000;border:1px solid #ff6b6b;border-radius:6px;padding:8px 12px;margin-bottom:10px;color:#ff9966;font-size:0.88em;">👹 <strong>Rencontre :</strong> ${rencontreCtx}</div>`
             : '';
 
         section.innerHTML = `
             ${banniereRencontre}
-            <div style="margin-bottom:12px; color:#ff6b6b; font-size:0.8em; text-align:center; text-transform:uppercase; letter-spacing:0.08em;">
-                Définissez les quantités puis lancez le combat
+            <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                <button onclick="window._mjRafraichirCombatListe()" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Défaut</button>
+                <button onclick="window._mjRafraichirCombatListe((a,b)=>a.niveau-b.niveau)" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Niv ↑</button>
+                <button onclick="window._mjRafraichirCombatListe((a,b)=>b.niveau-a.niveau)" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Niv ↓</button>
+                <button onclick="window._mjRafraichirCombatListe((a,b)=>(a.race||'').localeCompare(b.race||''))" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Race A→Z</button>
+                <button onclick="window._mjRafraichirCombatListe((a,b)=>(a.nom||'').localeCompare(b.nom||''))" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Nom A→Z</button>
             </div>
-            <div style="max-height:55vh; overflow-y:auto; border:1px solid #333; border-radius:4px; margin-bottom:14px;">
-                <table style="width:100%; border-collapse:collapse;">${lignes}</table>
+            <div style="max-height:50vh; overflow-y:auto; border:1px solid #333; border-radius:4px; margin-bottom:14px;">
+                <table style="width:100%; border-collapse:collapse;"><tbody id="tbl-combat-ennemis"></tbody></table>
             </div>
             <button onclick="mjLancerCombat()" style="width:100%; background:#8b0000; color:white; border:none; padding:12px; cursor:pointer; font-size:1em; font-weight:bold; border-radius:4px; letter-spacing:0.05em;">
                 ⚔ LANCER LE COMBAT
             </button>`;
+        window._mjRafraichirCombatListe();
     });
 }
 
@@ -803,7 +801,7 @@ function mjLancerCombat() {
                 instanceId: instanceIdx++,
                 id,
                 nom: qte > 1 ? `${e.nom} ${i + 1}` : e.nom,
-                race: e.race,
+                race: e.race || null,
                 niveau: e.niveau,
                 pvActuel: e.pvActuel || pvMax,
                 pvMax,
@@ -814,7 +812,19 @@ function mjLancerCombat() {
                 equipement: e.equipement || null,
                 statsBase: e.statsBase || null,
                 statsInvesties: e.statsInvesties || null,
-                compInvesties: e.compInvesties || null
+                compInvesties: e.compInvesties || null,
+                sortsConnus: (() => {
+                    const mb = e.magieBase || {};
+                    const sorts = [];
+                    for (const [ecole, nb] of Object.entries(mb)) {
+                        if (typeof magieData !== 'undefined' && magieData[ecole]?.sorts) {
+                            for (let k = 0; k < nb && k < magieData[ecole].sorts.length; k++) {
+                                sorts.push(magieData[ecole].sorts[k].nom);
+                            }
+                        }
+                    }
+                    return sorts;
+                })()
             });
         }
     }
@@ -840,11 +850,25 @@ function mjLancerCombat() {
         for (let id in joueurs) {
             const j = joueurs[id];
             if (j.estMJ) continue;
+            // Bonus de vitesse selon le rang de compétence et l'arme équipée
+            let vitesseJ = j.vitesse || j.niveau || 1;
+            const eqJ = j.equipement || {};
+            const armeSlotJ = eqJ.main_droite || eqJ.deux_mains || eqJ.main_gauche;
+            const armeDefJ = (typeof itemsData !== 'undefined' && armeSlotJ?.id) ? itemsData[armeSlotJ.id] : null;
+            const rangsJ = j.rangsComp || {};
+            const estArcJ   = armeDefJ?.type === 'arme_distance' && armeDefJ?.soustype === 'arc';
+            const estFeuJ   = armeDefJ?.type === 'arme_feu';
+            const estLancerJ = armeDefJ?.type === 'arme_distance' && !estArcJ;
+            const estMeleeJ = !armeSlotJ || armeDefJ?.type === 'arme_melee';
+            if ((rangsJ.arc || 0) >= 1 && estArcJ)             vitesseJ += 5;
+            else if ((rangsJ.melee || 0) >= 1 && estMeleeJ)    vitesseJ += 5;
+            else if ((rangsJ.lancer || 0) >= 1 && estLancerJ)  vitesseJ += 5;
+            else if ((rangsJ.armes_a_feu || 0) >= 1 && estFeuJ) vitesseJ += 5;
             participants.push({
                 type: 'joueur',
                 id,
                 nom: j.nom,
-                vitesse: j.vitesse || j.niveau || 1
+                vitesse: vitesseJ
             });
             // Familier depuis le nœud dédié
             const familier = tousFamiliers[id];
@@ -911,9 +935,9 @@ function mjLancerCombat() {
                     ownerID: id,
                     compIdx: c.idx,
                     vitesse: Math.max(1, (c.niveau || 1) * 2),
-                    pvActuel: c.pvActuel ?? cPvMax,
+                    pvActuel: (c.pvActuel > 0) ? c.pvActuel : cPvMax,
                     pvMax: cPvMax,
-                    ftActuel: c.ftActuel ?? cFtMax,
+                    ftActuel: (c.ftActuel > 0) ? c.ftActuel : cFtMax,
                     ftMax: cFtMax,
                     xp: c.xp || 0,
                     statsBase: c.statsBase || null,
@@ -2618,6 +2642,127 @@ function mjDeplacerCompagnon(joueurId, dx, dy) {
 
         ref.update(updates).then(() => mjGererDonjon());
     });
+}
+
+/** Ouvre la modal MJ de gestion des maîtrises de compétences d'un joueur. */
+function mjGererMaitrises(playerID, playerNom) {
+    let modal = document.getElementById('modal-mj-maitrises');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-mj-maitrises';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const render = () => {
+        db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID).once('value', snap => {
+            const j = snap.val();
+            if (!j) return;
+            const rangsComp    = j.rangsComp    || {};
+            const compInvesties = j.compInvesties || {};
+
+            const RANGS_NOM = { 0: '—', 1: 'Apprenti', 2: 'Expert', 3: 'Maître' };
+            const RANGS_COLOR = { 0: '#555', 1: '#2a5fa5', 2: '#8a6d00', 3: '#7a1a1a' };
+            const RANGS_TXT   = { 0: '#888', 1: '#c8dfff', 2: '#ffe896', 3: '#ffb3b3' };
+            const SEUILS = { 1: 1, 2: 9, 3: 18 };
+
+            const box = document.createElement('div');
+            box.style.cssText = 'background:#0d0a18;border:2px solid #4a2a8a;border-radius:10px;padding:20px;max-width:520px;width:95%;max-height:88vh;overflow-y:auto;';
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;';
+            const titre = document.createElement('h3');
+            titre.style.cssText = 'color:#9575cd;margin:0;';
+            titre.textContent = '🎓 Maîtrises — ' + playerNom;
+            const btnFermer = document.createElement('button');
+            btnFermer.style.cssText = 'background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;';
+            btnFermer.textContent = '✕';
+            btnFermer.onclick = () => { modal.style.display = 'none'; };
+            header.appendChild(titre);
+            header.appendChild(btnFermer);
+            box.appendChild(header);
+
+            const legende = document.createElement('div');
+            legende.style.cssText = 'font-size:11px;color:#666;margin-bottom:12px;';
+            legende.textContent = 'Seuils : Apprenti ≥1pt · Expert ≥9pts · Maître ≥18pts investis dans la compétence';
+            box.appendChild(legende);
+
+            if (typeof competencesData === 'undefined') {
+                box.appendChild(Object.assign(document.createElement('div'), { textContent: 'competencesData non chargé.', style: 'color:#888;' }));
+            } else {
+                for (const [catNom, skills] of Object.entries(competencesData)) {
+                    const catDiv = document.createElement('div');
+                    catDiv.style.cssText = 'margin-bottom:10px;';
+                    const catTitre = document.createElement('div');
+                    catTitre.style.cssText = 'color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;border-bottom:1px solid #333;padding-bottom:2px;';
+                    catTitre.textContent = catNom;
+                    catDiv.appendChild(catTitre);
+
+                    for (const skill of skills) {
+                        const rang = rangsComp[skill.id] || 0;
+                        const pts  = compInvesties[skill.id] || 0;
+
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1a1a2a;';
+
+                        const nomSpan = document.createElement('span');
+                        nomSpan.style.cssText = 'flex:1;color:#ccc;font-size:12px;';
+                        nomSpan.textContent = skill.nom;
+
+                        const ptsSpan = document.createElement('span');
+                        ptsSpan.style.cssText = 'color:#666;font-size:11px;min-width:42px;text-align:right;';
+                        ptsSpan.textContent = pts + 'pts';
+
+                        const badge = document.createElement('span');
+                        badge.style.cssText = `background:${RANGS_COLOR[rang]};color:${RANGS_TXT[rang]};font-size:10px;padding:1px 6px;border-radius:3px;min-width:54px;text-align:center;`;
+                        badge.textContent = RANGS_NOM[rang];
+
+                        const setRang = (newRang) => {
+                            db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_rang').set({
+                                skillId: skill.id,
+                                rang: newRang,
+                                timestamp: Date.now()
+                            }).then(() => {
+                                const label = newRang > rang ? `↑ ${RANGS_NOM[newRang]}` : `↓ ${RANGS_NOM[newRang]}`;
+                                if (typeof _toast === 'function') _toast(`🎓 ${playerNom} — ${skill.nom} : ${label}`, 'success');
+                                render();
+                            });
+                        };
+
+                        const btnMoins = document.createElement('button');
+                        btnMoins.textContent = '−';
+                        btnMoins.style.cssText = 'background:#2a1a1a;color:#f44336;border:1px solid #5a1a1a;padding:1px 7px;cursor:pointer;border-radius:3px;font-size:13px;';
+                        btnMoins.disabled = rang <= 0;
+                        if (rang <= 0) btnMoins.style.opacity = '0.3';
+                        btnMoins.onclick = () => setRang(rang - 1);
+
+                        const btnPlus = document.createElement('button');
+                        btnPlus.textContent = '+';
+                        const nextRang = rang + 1;
+                        const ptsOk = nextRang <= 3 && pts >= (SEUILS[nextRang] || 999);
+                        btnPlus.disabled = rang >= 3 || !ptsOk;
+                        btnPlus.style.cssText = 'background:#1a2a1a;color:#4caf50;border:1px solid #1a5a1a;padding:1px 7px;cursor:pointer;border-radius:3px;font-size:13px;';
+                        if (btnPlus.disabled) { btnPlus.style.opacity = '0.3'; btnPlus.title = rang >= 3 ? 'Rang maximum' : `Requiert ${SEUILS[nextRang] || '?'}pts (actuellement ${pts})`; }
+                        btnPlus.onclick = () => setRang(rang + 1);
+
+                        row.appendChild(nomSpan);
+                        row.appendChild(ptsSpan);
+                        row.appendChild(badge);
+                        row.appendChild(btnMoins);
+                        row.appendChild(btnPlus);
+                        catDiv.appendChild(row);
+                    }
+                    box.appendChild(catDiv);
+                }
+            }
+
+            modal.innerHTML = '';
+            modal.appendChild(box);
+            modal.style.display = 'flex';
+        });
+    };
+
+    render();
 }
 
 /** Passe le tour du compagnon actuel (MJ). */

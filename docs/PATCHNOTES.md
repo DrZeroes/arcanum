@@ -2,6 +2,87 @@
 
 ---
 
+## v0.11 — Avril 2026
+
+### Effets de Rang (Apprenti / Expert / Maître) — 16 compétences
+
+- **`RANG_EFFETS`** défini dans `skills.js` — lookup complet des effets passifs par rang pour les 16 skills
+- **`_getRang(skillId, perso)`** — helper global pour lire le rang d'un joueur sur n'importe quel objet
+
+**Combat** (`combat.js`, `codex.js`) :
+- **Arc** — Apprenti : +5 vitesse si arc équipé · Expert : 2 attaques/tour · Maître : dégâts toujours max
+- **Mêlée** — Apprenti : +5 vitesse · Expert : perce 25% de l'armure ennemie · Maître : jamais d'échec critique
+- **Lancer** — Apprenti : +5 vitesse · Expert : +50% dégâts · Maître : dégâts toujours max
+- **Armes à feu** — Apprenti : +5 vitesse · Expert : +10% dégâts · Maître : dégâts toujours max
+- **Attaque sournoise** — Apprenti : 1ère attaque ignore l'armure si ennemi n'a pas encore agi · Expert : toutes armes · Maître : seuil critique −20 (critique à 69+)
+- **Esquive** — Apprenti/Expert/Maître : +5/+10/+20 points d'esquive passive
+
+**Donjon** (`donjon.js`) :
+- **Crochetage** — Apprenti : pas de coût de tour sur échec · Expert : +5 · Maître : +25 (bonus cumulatif)
+- **Détection de piège** — Apprenti : +5 · Expert : +10 · Maître : 2e chance sur échec
+- **Désamorçage** — Apprenti : +5 · Expert : seuil de succès critique élargi · Maître : 2e tentative sur échec
+
+**Social & Technologie** :
+- **Vol à la tire** — Apprenti/Expert : échec seulement sur crit fail (1-5) · Maître : toujours réussit
+- **Marchandage** — Apprenti : −5% supplémentaire à l'achat (s'additionne au bonus de compétence)
+- **Soins** — Apprenti : ×1.5 efficacité des potions et objets de soin
+- **Réparation** — Apprenti/Expert/Maître : dégradation durabilité max 5% / 1% / 0%
+- **Persuasion** — Apprenti : +5% XP reçu par quêtes
+
+---
+
+## v0.10 — Avril 2026
+
+### Système de Compagnons — refonte complète
+
+- **31 compagnons** dans `compagnons.js` : stats, équipement par défaut, portraits, règles spéciales (`prndSlot`, `restrictionsEquip`, `armeObligatoire`)
+- Équipement normalisé : les slots stockent des objets `{id, quantite}` ; conversion automatique des IDs strings hérités
+- Barnabé (chien) : `equipement: {}` — aucun slot équipable
+- Gorgoth : slots main droite/gauche/torse bloqués (`restrictionsEquip`)
+- Arronax : arme obligatoire deux-mains (`armeObligatoire`)
+- `prndSlot: false` pour Barnabé, Arronax, Kraka-Tur, Gorgoth → ne comptent pas dans la limite CH
+
+### Portraits & Miniatures
+
+- **Frise d'action (combat + donjon)** — miniature 36×36 sous le nom de chaque participant (joueur + compagnons)
+- **Carte compagnon (onglet Compagnons)** — portrait flottant à droite de chaque carte
+- **Onglet Groupe** — portrait 48×48 à gauche de chaque carte joueur + section compagnons en dessous (miniatures 32×32 avec nom)
+- `getPortraitJoueur(p)` — calcul centralisé du portrait joueur depuis race/sexe/photo
+
+### Modal MJ — Don de compagnon
+
+- Remplace `prompt()` par une vraie modal HTML
+- Portraits, noms, niveaux, descriptions affichés
+- Barre de recherche en temps réel
+- Compagnons déjà attribués **grisés** (sync Firebase `compagnonId`)
+
+### Fiche complète du compagnon (`ouvrirFicheCompagnon`)
+
+- Modal accessible joueur (bouton "📋 Fiche complète" sur chaque carte compagnon) ET MJ (bouton "📋 Fiche" dans son Codex)
+- Stats totales (base + investies), PV/FT avec barres, compétences, magie, tech, équipement
+
+### Level-Up — Vérification des prérequis
+
+- Plafonds : stats investies ≤ 10, compétences ≤ 20, magie ≤ 5, tech ≤ 5
+- Prérequis de stat : la stat gouvernante doit atteindre ≥ 7 avant d'investir dans le skill correspondant
+- Boutons désactivés avec indicateur `valeur/cap` si le cap est atteint
+
+### MJ — Gestion avancée des compagnons
+
+- **Bouton 🔄 RAZ** : remet un compagnon à zéro (stats/niveau/XP/inventaire) avec alerte de confirmation
+- **Mémoire de progression** : si le MJ renvoie un compagnon, sa progression (XP, stats, équipement) est sauvegardée sous `compagnonId` — retrouvée à la prochaine attribution
+- Clé mémoire unifiée : `compagnonId || npcId` (plus de perte au renvoi)
+
+### Corrections de bugs
+
+- **Compagnons KO au début du combat** : `pvActuel = 0` (mort en session précédente) n'était pas réinitialisé (`??` ignorait 0) → corrigé dans `don` handler et `mjLancerCombat`
+- **Ennemis ne ciblaient pas les alliés** : `pvActuel` indéfini → filtré comme mort → changé en `?? 1` (undefined = vivant)
+- **Sort allié ne ciblait que soi-même** : même cause (joueurs Firebase + compagnons KO) → même fix
+- **Équipement dans fiche ≠ équipement compagnon** : fiche attendait des strings, panneau attendait des objets — normalisé dans les deux sens
+- **Panneau compagnon affichait tous les slots vides** : `eq.id` undefined sur une string → normalisation à l'affichage et à la réception
+
+---
+
 ## v0.9 — Avril 2026
 
 ### Système de Succès (Steam-like)

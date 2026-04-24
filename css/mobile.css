@@ -1,0 +1,245 @@
+/* ============================================================
+   ARCANUM — MOBILE CSS
+   Chargé après style.css, surcharge via media queries.
+   Aucune modification du code JS ou de la logique de jeu.
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+  /* ── Général ──────────────────────────────────────────────── */
+
+  body {
+    padding: 0;
+    font-size: 14px;
+  }
+
+  /* Empêche le zoom auto sur les inputs (iOS) */
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Cartes principales : supprimer la largeur fixe 800px */
+  .app-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 0 !important;
+    padding: 14px !important;
+    box-sizing: border-box;
+  }
+
+  /* Colonnes .row → empilées */
+  .row {
+    flex-direction: column;
+  }
+
+  /* Écrans avec largeur inline fixe */
+  #ecran-fouille,
+  #ecran-marchand {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Cibles tactiles minimales */
+  button {
+    min-height: 40px;
+  }
+
+  .next-btn {
+    padding: 12px 16px !important;
+    font-size: 0.95em !important;
+  }
+
+  /* Boutons fixes dans les coins */
+  #btn-audio {
+    top: 8px !important;
+    right: 8px !important;
+  }
+  #btn-patch-notes {
+    top: 8px !important;
+    left: 8px !important;
+  }
+
+  /* Masquer le bouton MJ sur mobile (interface réservée PC) */
+  #btn-patch-notes + div,
+  [onclick="ouvrirInterfaceMJ()"] {
+    display: none !important;
+  }
+
+  /* ── Écran Combat ─────────────────────────────────────────── */
+
+  .combat-header {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .combat-header-titre {
+    font-size: 1em;
+    letter-spacing: 0.08em;
+  }
+
+  /* Initiative : plus compacte, scroll horizontal déjà actif */
+  .combat-ordre-bar {
+    padding: 5px 8px;
+    gap: 3px;
+  }
+
+  .combat-tour-pill {
+    font-size: 0.68em;
+    padding: 3px 5px;
+    min-width: 44px;
+  }
+
+  /* Corps : 2 colonnes → empilées verticalement */
+  .combat-body {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .combat-col {
+    flex: none;
+    width: 100%;
+    padding: 8px 10px;
+    overflow-y: visible;
+  }
+
+  .combat-col.ennemis {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(139, 0, 0, 0.4);
+  }
+
+  .combat-separateur {
+    display: none;
+  }
+
+  /* Cartes compactes */
+  .combat-ennemi-card,
+  .combat-joueur-card,
+  .compagnon-card-combat {
+    padding: 7px 9px;
+    margin-bottom: 7px;
+  }
+
+  .combat-ennemi-nom,
+  .combat-joueur-nom {
+    font-size: 0.83em;
+  }
+
+  /* XP leds plus petites */
+  .xp-led {
+    width: 10px;
+    height: 6px;
+  }
+
+  /* ── Panneau actions (sorts / attaque) ────────────────────── */
+
+  .combat-actions-panel {
+    max-height: 40vh;
+    flex-direction: column;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  /* Boutons d'action : pleine largeur, touch-friendly */
+  .combat-sort-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .combat-sort-btn .sort-meta {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  /* Boutons de cible */
+  .combat-cible-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 0.9em;
+    width: 100%;
+  }
+
+  .combat-annuler-btn {
+    min-height: 38px;
+    padding: 8px 16px;
+    font-size: 0.85em;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* ── Log de combat ────────────────────────────────────────── */
+
+  .combat-log {
+    max-height: 72px;
+    font-size: 0.75em;
+  }
+
+  /* ── Footer ───────────────────────────────────────────────── */
+
+  .combat-footer {
+    padding: 6px 12px;
+  }
+
+  #combat-statut {
+    font-size: 0.7em;
+  }
+
+  .combat-btn-mj {
+    padding: 8px 20px;
+    font-size: 0.85em;
+  }
+
+  /* ── Modales : ancrage bas pleine largeur ─────────────────── */
+
+  #modal-journal,
+  #modal-patchnotes {
+    align-items: flex-end !important;
+  }
+
+  #modal-journal > div,
+  #modal-patchnotes > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh !important;
+    border-radius: 14px 14px 0 0 !important;
+    margin: 0 !important;
+  }
+
+  /* ── Inventaire ───────────────────────────────────────────── */
+
+  /* Grille inventaire : moins de colonnes */
+  .inventaire-grille,
+  #inventaire-grille {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  /* ── Carte ────────────────────────────────────────────────── */
+
+  #carte-canvas,
+  #carte-img {
+    max-width: 100%;
+    height: auto;
+  }
+
+}
+
+/* ── iPhone notch / home bar (safe area) ──────────────────── */
+@supports (padding: max(0px)) {
+  @media (max-width: 768px) {
+    .combat-footer {
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    body {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}

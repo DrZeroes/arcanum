@@ -1411,6 +1411,15 @@ function activerEcouteurCombat() {
             if (nouveauCombat || !ecranVisible) {
                 window._combatPremierCoupFait = false;
                 window._actionsRapides = { tourKey: -1, max: 1, restantes: 0 };
+                // Marquer les ennemis du combat comme "vus" dans le bestiaire
+                if (nouveauCombat && data.ennemis) {
+                    const _now = Date.now();
+                    (data.ennemis || []).forEach(e => {
+                        if (!e.id) return;
+                        const _refVu = db.ref('parties/' + sessionActuelle + '/bestiaire/' + e.id + '/premierVu');
+                        _refVu.once('value', s => { if (!s.val()) _refVu.set(_now); });
+                    });
+                }
                 if (typeof ouvrirEcranCombat === 'function') {
                     ouvrirEcranCombat();
                 } else {
@@ -1835,6 +1844,193 @@ function envoyerCadeauSecurise(idDestinataire, itemIndex) {
 
 
 // ==========================================
+// 5b. PHASE DE LOOT POST-COMBAT
+// ==========================================
+
+function activerEcouteurLootPhase() {
+    const ref = db.ref('parties/' + sessionActuelle + '/loot_phase');
+    ref.off();
+    ref.on('value', snap => {
+        const data = snap.val();
+        if (!data || !data.actif) {
+            const modal = document.getElementById('modal-loot-phase');
+            if (modal) modal.remove();
+            return;
+        }
+        _afficherModalLoot(data);
+    });
+}
+
+function _afficherModalLoot(data) {
+    let modal = document.getElementById('modal-loot-phase');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-loot-phase';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+
+    const playerID = window.perso ? window.perso.nom.replace(/\s+/g, '_') : null;
+    const items = data.items || [];
+    const joueurs = data.joueurs || {};
+    const ordre = data.ordre_pick;
+    const pickActuel = data.pick_actuel || 0;
+    const itemsRestants = items.filter(it => !it.pris);
+
+    let html = '<div style="background:#1a1208;border:2px solid #d4af37;border-radius:8px;padding:20px;max-width:500px;width:94%;max-height:85vh;overflow-y:auto;">';
+    html += '<h3 style="color:#d4af37;margin:0 0 12px;text-align:center;">⚔ Pillage du butin</h3>';
+
+    // Phase 1 : Lancer le dé
+    if (!ordre) {
+        const monJoueur = playerID ? joueurs[playerID] : null;
+        const dejeLance = monJoueur && monJoueur.de !== null;
+
+        html += '<p style="color:#ccc;margin:0 0 8px;">Chaque joueur lance un d100 (+bonus de compétences) pour déterminer l\'ordre de pillage.</p>';
+        html += '<div style="margin:8px 0;">';
+        Object.values(joueurs).forEach(j => {
+            const etat = j.de !== null ? `✅ ${j.score} (d${j.de}+${j.bonus})` : '⏳ En attente…';
+            html += `<div style="color:${j.de !== null ? '#a0d8a0' : '#aaa'};padding:2px 0;">${j.nom} — ${etat}</div>`;
+        });
+        html += '</div>';
+
+        if (playerID && !dejeLance) {
+            const bonus = monJoueur?.bonus || 0;
+            html += `<div style="margin-top:12px;text-align:center;"><p style="color:#d4af37;">Votre bonus : +${bonus}</p>`;
+            html += `<button onclick="_lancerDeLoot()" style="padding:10px 24px;background:#8b4513;color:#d4af37;border:1px solid #d4af37;border-radius:6px;font-size:1.1em;cursor:pointer;">🎲 Lancer le dé</button></div>`;
+        } else if (dejeLance) {
+            html += `<p style="color:#a0d8a0;text-align:center;">✅ Votre dé : ${monJoueur.score} (d${monJoueur.de}+${monJoueur.bonus})</p>`;
+        }
+
+    // Phase 2 : Sélection du butin
+    } else {
+        if (itemsRestants.length === 0 || pickActuel >= items.length) {
+            html += '<p style="color:#a0d8a0;text-align:center;font-size:1.2em;">🏆 Pillage terminé !</p>';
+            html += '<ul style="color:#ccc;padding-left:18px;">';
+            items.forEach(it => {
+                if (it.parJoueur) html += `<li>${it.nom} → ${it.parJoueur}</li>`;
+            });
+            html += '</ul>';
+            if (window.estMJ) {
+                html += '<div style="text-align:center;margin-top:12px;"><button onclick="_terminerLootPhase()" style="padding:8px 20px;background:#4a2;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Fermer</button></div>';
+            }
+        } else {
+            const N = ordre.length;
+            const cPickerID = ordre[pickActuel % N];
+            const cPicker = joueurs[cPickerID];
+            const estMonTour = playerID && cPickerID === playerID;
+
+            html += '<div style="margin-bottom:10px;">';
+            html += `<p style="color:#d4af37;font-size:1.05em;text-align:center;">Tour ${pickActuel + 1} — ${cPicker?.nom || cPickerID} choisit</p>`;
+            html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
+            ordre.forEach((id, i) => {
+                const j = joueurs[id];
+                const actif = i === (pickActuel % N);
+                html += `<span style="padding:2px 8px;border-radius:4px;font-size:0.85em;background:${actif ? '#8b4513' : '#2a1a08'};color:${actif ? '#d4af37' : '#aaa'};">${i + 1}. ${j?.nom || id} (${j?.score})</span>`;
+            });
+            html += '</div></div>';
+
+            html += '<div style="margin-bottom:10px;">';
+            items.forEach((it, idx) => {
+                if (it.pris) {
+                    html += `<div style="color:#555;padding:4px 0;text-decoration:line-through;">${it.nom} → ${it.parJoueur}</div>`;
+                } else if (estMonTour) {
+                    html += `<button onclick="_prendreItemLoot(${idx})" style="display:block;width:100%;text-align:left;margin:3px 0;padding:8px 12px;background:#2a1508;color:#d4af37;border:1px solid #6b3d00;border-radius:4px;cursor:pointer;">🎒 ${it.nom} <span style="color:#888;font-size:0.85em;">(${it.source})</span></button>`;
+                } else {
+                    html += `<div style="color:#ccc;padding:4px 8px;">${it.nom} <span style="color:#888;font-size:0.85em;">(${it.source})</span></div>`;
+                }
+            });
+            html += '</div>';
+        }
+    }
+
+    html += '</div>';
+    modal.innerHTML = html;
+}
+
+window._lancerDeLoot = function() {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs/' + playerID).once('value', snap => {
+        const j = snap.val();
+        if (!j || j.de !== null) return;
+        const de = Math.floor(Math.random() * 100) + 1;
+        const score = de + (j.bonus || 0);
+        db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs/' + playerID).update({ de, score });
+
+        // Quand tous les joueurs ont lancé → calculer l'ordre (premier détecteur)
+        db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs').once('value', snap2 => {
+            const tous = snap2.val() || {};
+            const tousLances = Object.values(tous).every(jj => jj.de !== null);
+            if (!tousLances) return;
+            db.ref('parties/' + sessionActuelle + '/loot_phase/ordre_pick').once('value', snapOrdre => {
+                if (snapOrdre.val()) return; // quelqu'un l'a déjà écrit
+                const ordre = Object.entries(tous)
+                    .sort((a, b) => (b[1].score || 0) - (a[1].score || 0))
+                    .map(([id]) => id);
+                db.ref('parties/' + sessionActuelle + '/loot_phase/ordre_pick').set(ordre);
+            });
+        });
+    });
+};
+
+window._prendreItemLoot = function(idx) {
+    if (!window.perso || !window.perso.nom) return;
+    const playerID = window.perso.nom.replace(/\s+/g, '_');
+    const lootRef = db.ref('parties/' + sessionActuelle + '/loot_phase');
+    lootRef.once('value', snap => {
+        const data = snap.val();
+        if (!data || !data.actif) return;
+        const ordre = data.ordre_pick || [];
+        const pickActuel = data.pick_actuel || 0;
+        if (ordre[pickActuel % ordre.length] !== playerID) return;
+        const item = (data.items || [])[idx];
+        if (!item || item.pris) return;
+
+        const nomJoueur = window.perso.nom;
+        const updates = {};
+        updates['items/' + idx + '/pris'] = true;
+        updates['items/' + idx + '/parJoueur'] = nomJoueur;
+        updates['pick_actuel'] = pickActuel + 1;
+        lootRef.update(updates);
+
+        if (item.id === 'OR_PIECES') {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/modif_argent').set({ valeur: item.qte || 0, de: 'butin' });
+        } else {
+            db.ref('parties/' + sessionActuelle + '/joueurs/' + playerID + '/cadeau').set({ id: item.id, qte: 1, expediteur: 'Butin de combat' });
+        }
+
+        // Clôture automatique si tous les items pris
+        const itemsMAJ = (data.items || []).map((it, i) => i === idx ? { ...it, pris: true } : it);
+        const pickSuivant = pickActuel + 1;
+        if (itemsMAJ.every(it => it.pris) || pickSuivant >= itemsMAJ.length) {
+            setTimeout(() => _terminerLootPhase(), 3000);
+        }
+    });
+};
+
+window._terminerLootPhase = function() {
+    db.ref('parties/' + sessionActuelle + '/loot_phase').remove();
+};
+
+function activerEcouteurEnnemisUniques() {
+    const ref = db.ref('parties/' + sessionActuelle + '/ennemis_uniques');
+    ref.off();
+    ref.on('child_added', snap => {
+        const data = snap.val();
+        if (!data) return;
+        if (typeof _toast === 'function') _toast(`☠ Ennemi unique terrassé : ${data.nom} !`, 'success');
+        // Rafraîchir le journal si l'onglet ennemis_uniques est ouvert
+        const modal = document.getElementById('modal-journal');
+        if (modal && modal.style.display !== 'none') {
+            const btn = document.getElementById('jt-ennemis_uniques');
+            if (btn && btn.style.fontWeight === 'bold') {
+                if (typeof ouvrirJournal === 'function') ouvrirJournal('ennemis_uniques');
+            }
+        }
+    });
+}
+
+// ==========================================
 // 6. INITIALISATION MOTEUR
 // ==========================================
 
@@ -1851,6 +2047,8 @@ function demarrerMoteurMulti() {
     // (combat, musique MJ, alertes — reçus par tous les joueurs connectés)
     activerEcouteurCombat();
     activerEcouteurCombatLog();
+    activerEcouteurLootPhase();
+    activerEcouteurEnnemisUniques();
     activerEcouteurMusiqueMJ();
     activerEcouteurAlertesMJ();
     activerEcouteurKick();

@@ -36,6 +36,7 @@
             <button onclick="ouvrirJournal('antecedent')" id="jt-antecedent" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Antécédent</button>
             <button onclick="ouvrirJournal('stats')"    id="jt-stats"     style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📊 Statistiques</button>
             <button onclick="ouvrirJournal('succes')"   id="jt-succes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">🏆 Succès</button>
+            <button onclick="ouvrirJournal('ennemis_uniques')" id="jt-ennemis_uniques" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">☠ Bestiaire</button>
         </div>
         <!-- Contenu -->
         <div id="journal-contenu" style="overflow-y:auto;padding:16px;color:#ccc;font-size:0.88em;line-height:1.6;flex:1;"></div>
@@ -595,20 +596,15 @@
     <div id="mj-section-combat" class="mj-section" style="display:none;"></div>
 
     <div id="mj-section-codex" class="mj-section" style="display:none;">
-        <input type="text" id="recherche-codex-mj" placeholder="Rechercher..." onkeyup="filtrerCodexMJ()"
-               style="width: 100%; padding: 10px; margin-bottom: 6px; background: #111; color: #fff; border: 1px solid #ff9800;">
-        <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
-            <button onclick="genererEnnemisCodexMJ()" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Défaut</button>
-            <button onclick="genererEnnemisCodexMJ((a,b)=>a.niveau-b.niveau)" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Niv ↑</button>
-            <button onclick="genererEnnemisCodexMJ((a,b)=>b.niveau-a.niveau)" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Niv ↓</button>
-            <button onclick="genererEnnemisCodexMJ((a,b)=>(a.race||'').localeCompare(b.race||''))" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Race A→Z</button>
-            <button onclick="genererEnnemisCodexMJ((a,b)=>(a.nom||'').localeCompare(b.nom||''))" style="background:#1a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">Nom A→Z</button>
-        </div>
-        <div style="max-height: 55vh; overflow-y: auto; border: 1px solid #444;">
-            <table style="width: 100%; border-collapse: collapse;">
+        <input type="text" id="recherche-codex-mj" placeholder="🔍 Rechercher nom, race, zone..." oninput="filtrerCodexMJ()"
+               style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:6px;background:#111;color:#fff;border:1px solid #555;border-radius:4px;font-size:0.85em;">
+        <div id="mj-codex-filterbar" style="margin-bottom:6px;"></div>
+        <div style="max-height:55vh;overflow-y:auto;border:1px solid #333;border-radius:4px;">
+            <table style="width:100%;border-collapse:collapse;">
                 <tbody id="tbody-codex-mj"></tbody>
             </table>
         </div>
+        <div id="codex-ennemi-detail" style="display:none;margin-top:10px;background:#111;border:1px solid #8b0000;border-radius:6px;padding:14px;position:relative;"></div>
     </div>
 </div>
 

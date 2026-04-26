@@ -1,10 +1,73 @@
 // --- FONCTION MJ : OUVRIR LE CODEX ---
 
-// Fonction pour filtrer la recherche
+// Fonction pour filtrer la recherche (texte libre)
 function filtrerCodexMJ() {
-    let input = document.getElementById('recherche-codex-mj').value.toLowerCase();
-    let lignes = document.querySelectorAll('#tbody-codex-mj tr');
-    lignes.forEach(l => l.style.display = l.innerText.toLowerCase().includes(input) ? "" : "none");
+    const input = (document.getElementById('recherche-codex-mj')?.value || '').toLowerCase();
+    document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row').forEach(tr => {
+        const txt = tr.innerText.toLowerCase();
+        const cat = tr.dataset.cat || '';
+        const niv = parseInt(tr.dataset.niv) || 0;
+        const uniq = tr.dataset.uniq === '1';
+        const minNiv = parseInt(document.getElementById('mjf-niv-min')?.value) || 0;
+        const maxNiv = parseInt(document.getElementById('mjf-niv-max')?.value) || 999;
+        const uniqOnly = document.getElementById('mjf-uniq')?.checked;
+        const catSel = window._mjCatFilter || null;
+        let show = true;
+        if (input && !txt.includes(input)) show = false;
+        if (uniqOnly && !uniq) show = false;
+        if (catSel && cat !== catSel) show = false;
+        if (niv < minNiv || niv > maxNiv) show = false;
+        tr.style.display = show ? '' : 'none';
+    });
+    // Montrer/cacher les headers de catégorie selon si au moins une ligne visible
+    document.querySelectorAll('#tbody-codex-mj tr.mj-cat-header').forEach(hdr => {
+        const cid = hdr.dataset.cid;
+        const anyVisible = [...document.querySelectorAll(`#tbody-codex-mj tr.mj-ennemi-row[data-cid="${cid}"]`)].some(r => r.style.display !== 'none');
+        hdr.style.display = anyVisible ? '' : 'none';
+    });
+}
+window._mjCatFilter = null;
+
+// ── Constantes catégories MJ ──────────────────────────────────────────────────
+const _MJ_RACE_TO_CAT = {
+    'Bête':'Bêtes','Lycanthrope':'Bêtes','Singe':'Singes',
+    'Mort-vivant':'Morts-vivants','Esprit':'Esprits','Démon':'Démons',
+    'Élémentaire':'Élémentaires','Araignée':'Araignées','Dragon':'Dragons',
+    'Golem':'Golems','Construct':'Constructs','Pestilentiel':'Pestilentiels',
+    'Animal':'Animaux','Insectoïde':'Insectoïdes',
+    'Plante':'Plantes','Artificiel':'Créatures Artificielles','Fée':'Fées',
+    'Troll':'Trolls','Humanoïde':'Humanoïdes',
+    'Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
+    'Humain':'Humains','Nain':'Nains','Elfe':'Elfes','Elfe Noir':'Elfes',
+    'Ork':'Orques','Orque':'Orques','Demi-Orc':'Orques',
+    'Demi-Ogre':'Demi-Ogres','Gnome':'Gnomes','Halfelin':'Halfelins'
+};
+const _MJ_CAT_ICONS = {
+    'Bêtes':'🐺','Singes':'🐒','Morts-vivants':'💀','Esprits':'👻','Démons':'😈',
+    'Élémentaires':'⚡','Araignées':'🕸','Dragons':'🐉','Golems':'🗿',
+    'Constructs':'⚙','Pestilentiels':'🦠','Animaux':'🐄','Insectoïdes':'🕷',
+    'Plantes':'🌿','Créatures Artificielles':'🤖','Fées':'🧚','Trolls':'🪨',
+    'Humanoïdes':'🧟','Kites':'🏹','Krags':'⛏','Reptiliens':'🦎',
+    'Humains':'🧑','Nains':'⚒','Elfes':'🧝','Orques':'💢',
+    'Demi-Ogres':'👊','Gnomes':'🔧','Halfelins':'🗡',
+    'Assassins de la Main':'🔪','Autres':'❓'
+};
+const _MJ_CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires',
+    'Araignées','Dragons','Golems','Constructs','Pestilentiels','Animaux','Insectoïdes',
+    'Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes',
+    'Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques',
+    'Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
+function _mjGetCat(id, def) {
+    if (id.startsWith('main_assassin_')) return 'Assassins de la Main';
+    const r = def.race || '';
+    if (r==='Araignée') return 'Araignées';
+    if (r==='Dragon') return 'Dragons';
+    if (r==='Golem') return 'Golems';
+    if (r==='Construct') return 'Constructs';
+    if (r==='Pestilentiel') return 'Pestilentiels';
+    if (r==='Animal') return 'Animaux';
+    if (r==='Insectoïde') return 'Insectoïdes';
+    return _MJ_RACE_TO_CAT[r] || 'Autres';
 }
 
 // Petite fonction pour donner un objet sans avoir à taper l'ID (depuis la liste)
@@ -194,68 +257,221 @@ function mjChargerEnnemi(idEnnemi) {
     const ennemi = (typeof ennemisData !== 'undefined') ? ennemisData[idEnnemi] : null;
     if (!ennemi) return;
 
-    const stats = ennemi.statsBase;
-    const fo = stats.FO, ini = stats.IN, cn = stats.CN;
-    const pvMax = (fo * 2) + ini;
-    const ftMax = (cn * 2) + ini;
+    const panel = document.getElementById('codex-ennemi-detail');
+    if (!panel) return;
+
+    const stats = ennemi.statsBase || {};
+    const fo = stats.FO || 0, ini = stats.IN || 0, cn = stats.CN || 0;
+    const pvMax = (fo * 2) + ini + (ennemi.boostPV || 0);
+    const ftMax = (cn * 2) + ini + (ennemi.boostFT || 0);
 
     const lootStr = (ennemi.lootDrop || []).map(l => {
         const item = (typeof itemsData !== 'undefined') ? itemsData[l.id] : null;
-        return `${item ? item.nom : l.id} x${l.qte}`;
-    }).join(', ');
+        const pct = l.proba < 1 ? ` <span style="color:#888;font-size:0.85em;">(${Math.round(l.proba*100)}%)</span>` : '';
+        return `${item ? item.nom : l.id} ×${l.qte}${pct}`;
+    }).join('<br>');
 
-    const compStr = Object.entries(ennemi.compInvesties).map(([k, v]) => `${k}:${v}`).join(', ');
+    const compEntries = Object.entries(ennemi.compInvesties || {});
+    const compStr = compEntries.length ? compEntries.map(([k,v]) => `${k}: ${v}`).join(' · ') : '—';
 
-    alert(`⚔️ ${ennemi.nom} (${ennemi.race}, Niv.${ennemi.niveau})\n\n` +
-          `FO:${fo}  IN:${ini}  CN:${cn}  DX:${stats.DX}  CH:${stats.CH}\n` +
-          `PV:${pvMax}  FT:${ftMax}  XP:${ennemi.xp}  Or:${ennemi.argent}\n\n` +
-          `Compétences: ${compStr}\n\n` +
-          `Butin: ${lootStr || 'Rien'}\n\n` +
-          `${ennemi.antecedent}`);
+    const magieEntries = Object.entries(ennemi.magieBase || {});
+    const magieStr = magieEntries.length ? magieEntries.map(([k,v]) => `${k} niv.${v}`).join(', ') : null;
+
+    const zonesStr = (ennemi.zones || []).join(', ') || null;
+
+    const uniqueBadge = ennemi.unique
+        ? `<span style="background:#4a1a7a;color:#ce93d8;border:1px solid #9c27b0;border-radius:3px;padding:1px 7px;font-size:0.75em;margin-left:8px;">★ UNIQUE</span>`
+        : '';
+
+    const res = ennemi.resistances || {};
+    const resDefs = [
+        { key: 'resPhys',   label: 'Physique', color: '#78909c' },
+        { key: 'resMagie',  label: 'Magie',    color: '#9c27b0' },
+        { key: 'resFeu',    label: 'Feu',       color: '#f44336' },
+        { key: 'resPoison', label: 'Poison',    color: '#4caf50' },
+        { key: 'resElec',   label: 'Électricité', color: '#ffc107' },
+    ];
+
+    const resHtml = Object.keys(res).length
+        ? `<div style="margin-top:12px; border-top:1px solid #333; padding-top:10px;">
+            <div style="color:#ff9800; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">⚔ Résistances <span style="color:#555;font-size:0.85em;">(MJ uniquement)</span></div>
+            ${resDefs.map(d => {
+                const val = res[d.key] || 0;
+                const barW = Math.min(val, 100);
+                const textColor = val === 0 ? '#f44336' : val >= 75 ? '#a5d6a7' : '#ccc';
+                return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+                    <span style="color:#aaa; font-size:0.78em; width:76px; flex-shrink:0;">${d.label}</span>
+                    <div style="flex:1; background:#222; border-radius:3px; height:8px; overflow:hidden;">
+                        <div style="width:${barW}%; background:${d.color}; height:100%; opacity:0.85;"></div>
+                    </div>
+                    <span style="color:${textColor}; font-size:0.82em; width:34px; text-align:right;">${val}%</span>
+                </div>`;
+            }).join('')}
+           </div>`
+        : '';
+
+    panel.style.display = 'block';
+    panel.innerHTML = `
+        <button onclick="document.getElementById('codex-ennemi-detail').style.display='none'"
+            style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:1.1em;cursor:pointer;">✕</button>
+        <div style="display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap;">
+            ${ennemi.portrait ? `<img src="docs/img/portraits/${ennemi.portrait}" onerror="this.style.display='none'"
+                style="width:64px;height:64px;object-fit:contain;border:1px solid #333;border-radius:4px;background:#0a0a0a;">` : ''}
+            <div style="flex:1; min-width:180px;">
+                <div style="font-size:1.05em; font-weight:bold; color:#e57373;">${ennemi.nom}${uniqueBadge}</div>
+                <div style="color:#aaa; font-size:0.82em; margin-top:2px;">${ennemi.race || ''} · Niveau ${ennemi.niveau}</div>
+                <div style="display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;">
+                    <span style="color:#ef9a9a;">❤ PV ${pvMax}</span>
+                    <span style="color:#80cbc4;">✦ FT ${ftMax}</span>
+                    <span style="color:#fff176;">✦ XP ${ennemi.xp}</span>
+                    ${ennemi.argent ? `<span style="color:#ffd54f;">◈ ${ennemi.argent} or</span>` : ''}
+                </div>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:6px; margin-top:12px; background:#0d0d0d; border-radius:4px; padding:8px;">
+            ${['FO','CN','DX','IN','CH'].map(s =>
+                `<div style="text-align:center;">
+                    <div style="color:#888; font-size:0.7em;">${s}</div>
+                    <div style="color:#fff; font-size:1em; font-weight:bold;">${stats[s] || 0}</div>
+                </div>`).join('')}
+            ${stats.MA ? `<div style="text-align:center;"><div style="color:#888;font-size:0.7em;">MA</div><div style="color:#ce93d8;font-size:1em;font-weight:bold;">${stats.MA}</div></div>` : ''}
+        </div>
+        ${magieStr ? `<div style="margin-top:8px;color:#ce93d8;font-size:0.82em;">🔮 ${magieStr}</div>` : ''}
+        ${compEntries.length ? `<div style="margin-top:6px;color:#aaa;font-size:0.82em;">Compétences : ${compStr}</div>` : ''}
+        ${zonesStr ? `<div style="margin-top:6px;color:#80cbc4;font-size:0.8em;">📍 ${zonesStr}</div>` : ''}
+        <div style="margin-top:10px; border-top:1px solid #333; padding-top:8px;">
+            <div style="color:#ff9800; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Butin</div>
+            <div style="color:#ccc; font-size:0.85em; line-height:1.6;">${lootStr || '<span style="color:#555;">Aucun</span>'}</div>
+        </div>
+        ${resHtml}
+    `;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function genererEnnemisCodexMJ(triFn) {
+function genererEnnemisCodexMJ() {
     const tbody = document.getElementById('tbody-codex-mj');
     if (!tbody || typeof ennemisData === 'undefined') return;
     tbody.innerHTML = '';
 
-    // Collect + sort
-    let liste = Object.entries(ennemisData).map(([id, e]) => ({ id, ...e }));
-    if (triFn) liste.sort(triFn);
+    // Injecter les filtres dans le conteneur au-dessus si pas déjà fait
+    const filterBar = document.getElementById('mj-codex-filterbar');
+    if (filterBar && !filterBar.dataset.init) {
+        filterBar.dataset.init = '1';
+        // Construire boutons catégories
+        const cats = [...new Set(Object.entries(ennemisData).filter(([,e])=>!e.unique).map(([id,e])=>_mjGetCat(id,e)))];
+        cats.sort((a,b)=>(_MJ_CAT_ORDER.indexOf(a)<0?999:_MJ_CAT_ORDER.indexOf(a))-(_MJ_CAT_ORDER.indexOf(b)<0?999:_MJ_CAT_ORDER.indexOf(b)));
+        filterBar.innerHTML = `
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
+                <button id="mjf-uniq-btn" onclick="
+                    var cb=document.getElementById('mjf-uniq');cb.checked=!cb.checked;
+                    this.style.background=cb.checked?'#2a003a':'#1a0a0a';
+                    this.style.color=cb.checked?'#ce93d8':'#999';
+                    filtrerCodexMJ();"
+                    style="background:#1a0a0a;color:#999;border:1px solid #3a1a5a;padding:3px 9px;cursor:pointer;border-radius:4px;font-size:0.78em;">★ Uniques</button>
+                <input id="mjf-uniq" type="checkbox" style="display:none;" oninput="filtrerCodexMJ()">
+                <input id="mjf-niv-min" type="number" min="1" max="30" placeholder="Niv min"
+                    style="width:68px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:4px;font-size:0.78em;" oninput="filtrerCodexMJ()">
+                <input id="mjf-niv-max" type="number" min="1" max="30" placeholder="Niv max"
+                    style="width:68px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:4px;font-size:0.78em;" oninput="filtrerCodexMJ()">
+                <button onclick="window._mjCatFilter=null;document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';});filtrerCodexMJ();"
+                    style="background:#111;color:#aaa;border:1px solid #333;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:0.78em;">Tout</button>
+                ${cats.map(cat=>`<button class="mjf-cat-btn" onclick="
+                    var sel=window._mjCatFilter==='${cat}'?null:'${cat}';window._mjCatFilter=sel;
+                    document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';});
+                    if(sel){this.style.background='#2a1800';this.style.color='#ffb74d';}
+                    filtrerCodexMJ();"
+                    style="background:#111;color:#999;border:1px solid #333;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:0.78em;white-space:nowrap;">
+                    ${_MJ_CAT_ICONS[cat]||'❓'} ${cat}</button>`).join('')}
+            </div>`;
+    }
 
-    for (const e of liste) {
-        const fo = e.statsBase?.FO || 0, ini = e.statsBase?.IN || 0, cn = e.statsBase?.CN || 0;
-        const pvMax = (fo * 2) + ini + (e.boostPV || 0);
-        const ftMax = (cn * 2) + ini + (e.boostFT || 0);
+    Promise.all([
+        db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value'),
+        db.ref('parties/' + sessionActuelle + '/bestiaire').once('value')
+    ]).then(([snapUniques, snapBestiaire]) => {
+        const battuMap = snapUniques.val() || {};
+        const killsMap = snapBestiaire.val() || {};
 
-        const lootStr = (e.lootDrop || []).map(l => {
-            const item = (typeof itemsData !== 'undefined') ? itemsData[l.id] : null;
-            return item ? item.nom : l.id;
-        }).join(', ');
+        // Grouper par catégorie
+        const grouped = {};
+        const uniqueEntries = [];
+        for (const [id, def] of Object.entries(ennemisData)) {
+            if (def.unique) { uniqueEntries.push([id, def]); continue; }
+            const cat = _mjGetCat(id, def);
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push([id, def]);
+        }
+        const sortedCats = Object.keys(grouped).sort((a,b)=>{
+            const ia=_MJ_CAT_ORDER.indexOf(a),ib=_MJ_CAT_ORDER.indexOf(b);
+            return (ia<0?999:ia)-(ib<0?999:ib);
+        });
 
-        const raceLabel = e.race || '—';
-        const zoneLabel = (e.zones || []).join(', ') || 'Bestaire';
-
-        tbody.innerHTML += `
-            <tr style="border-bottom:1px solid #1a110b;">
-                <td style="padding:8px 10px;">
-                    <span style="color:#e57373; font-weight:bold; font-size:0.9em;">${e.nom}</span>
-                    <div style="color:#555; font-size:0.72em; margin-top:2px;">${raceLabel} — Niv.${e.niveau} — XP: ${e.xp || 0}</div>
+        const renderRow = (id, def, catKey, isUniq) => {
+            const fo = def.statsBase?.FO||0, ini=def.statsBase?.IN||0, cn=def.statsBase?.CN||0;
+            const pvMax = (fo*2)+ini+(def.boostPV||0);
+            const ftMax = (cn*2)+ini+(def.boostFT||0);
+            const lootStr = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;return it?it.nom:l.id;}).join(', ');
+            const nomColor = isUniq ? '#ce93d8' : '#e57373';
+            const rowBg = isUniq ? 'background:rgba(156,39,176,0.05);' : '';
+            let battuBadge = '';
+            if (isUniq) {
+                const bd = battuMap[id];
+                battuBadge = bd
+                    ? `<span style="background:#1a3a1a;color:#4caf50;border:1px solid #2e7d32;border-radius:3px;padding:1px 5px;font-size:0.72em;margin-left:4px;">✅ ${new Date(bd.date).toLocaleDateString('fr-FR')}</span>`
+                    : `<span style="background:#1a0a0a;color:#555;border:1px solid #3a1a1a;border-radius:3px;padding:1px 5px;font-size:0.72em;margin-left:4px;">☆</span>`;
+            }
+            const nbKills = isUniq ? (battuMap[id] ? 1 : 0) : (killsMap[id]?.nbKills || 0);
+            const killBadge = nbKills > 0
+                ? `<span style="background:#1a2a1a;color:#81c784;border:1px solid #2e5a2e;border-radius:3px;padding:1px 6px;font-size:0.72em;margin-left:4px;">⚔ ${nbKills}×</span>`
+                : `<span style="background:#111;color:#444;border:1px solid #222;border-radius:3px;padding:1px 6px;font-size:0.72em;margin-left:4px;">—</span>`;
+            const cid = isUniq ? 'uniques' : 'cat_'+catKey.replace(/[^a-z0-9]/gi,'_');
+            return `<tr class="mj-ennemi-row" data-cat="${catKey}" data-niv="${def.niveau}" data-uniq="${isUniq?'1':'0'}" data-cid="${cid}" style="border-bottom:1px solid #1a110b;${rowBg}">
+                <td style="padding:7px 10px;">
+                    <span style="color:${nomColor};font-weight:bold;font-size:0.88em;">${def.nom}</span>${battuBadge}${killBadge}
+                    <div style="color:#555;font-size:0.7em;margin-top:1px;">${def.race||'—'} · Niv.${def.niveau} · XP ${def.xp||0}</div>
                 </td>
-                <td style="padding:8px 10px; font-size:0.78em;">
-                    <span style="color:#e57373;">❤ ${pvMax}</span> &nbsp;
-                    <span style="color:#64b5f6;">⚡ ${ftMax}</span><br>
-                    <span style="color:#666;">FO:${fo} DX:${e.statsBase?.DX || 0} IN:${ini}</span><br>
-                    <span style="color:#4a3a18; font-size:0.9em;">💰 ${lootStr}</span>
+                <td style="padding:7px 10px;font-size:0.77em;">
+                    <span style="color:#e57373;">❤ ${pvMax}</span> &nbsp;<span style="color:#64b5f6;">⚡ ${ftMax}</span><br>
+                    <span style="color:#666;">FO:${fo} DX:${def.statsBase?.DX||0} IN:${ini}</span>
+                    ${lootStr?`<br><span style="color:#6a5020;">💰 ${lootStr}</span>`:''}
                 </td>
-                <td style="padding:8px 10px; text-align:right; vertical-align:middle;">
-                    <div style="color:#555;font-size:0.7em;margin-bottom:4px;">${zoneLabel}</div>
-                    <button onclick="mjChargerEnnemi('${e.id}')" style="background:#2a0a0a; color:#e57373; border:1px solid #8b0000; padding:5px 10px; cursor:pointer; border-radius:3px; font-size:0.8em;">
-                        ⚔ Stats
-                    </button>
+                <td style="padding:7px 10px;text-align:right;vertical-align:middle;">
+                    <div style="color:#444;font-size:0.68em;margin-bottom:3px;">${(def.zones||[]).slice(0,2).join(', ')||''}</div>
+                    <button onclick="mjChargerEnnemi('${id}')" style="background:#2a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.78em;">⚔ Stats</button>
                 </td>
             </tr>`;
-    }
+        };
+
+        let html = '';
+
+        // Section uniques
+        if (uniqueEntries.length) {
+            html += `<tr class="mj-cat-header" data-cid="uniques" style="cursor:pointer;background:#0a0a1a;" onclick="var v=document.getElementById('mj-cat-toggle-uniques');v.textContent=v.textContent==='▾'?'▴':'▾';document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row[data-cid=\\'uniques\\']').forEach(r=>r.style.display=r.style.display==='none'?'':'none');">
+                <td colspan="3" style="padding:6px 10px;color:#ce93d8;font-size:0.75em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #3a1a5a;">
+                    ★ ENNEMIS UNIQUES <span style="color:#555;font-weight:normal;">(${uniqueEntries.length})</span>
+                    <span id="mj-cat-toggle-uniques" style="float:right;color:#555;">▾</span>
+                </td>
+            </tr>`;
+            uniqueEntries.sort((a,b)=>a[1].niveau-b[1].niveau).forEach(([id,def])=>{ html += renderRow(id, def, '★ Uniques', true); });
+        }
+
+        // Sections par catégorie
+        for (const cat of sortedCats) {
+            const entries = grouped[cat].sort((a,b)=>a[1].niveau-b[1].niveau);
+            const icon = _MJ_CAT_ICONS[cat] || '❓';
+            const cid = 'cat_'+cat.replace(/[^a-z0-9]/gi,'_');
+            html += `<tr class="mj-cat-header" data-cid="${cid}" style="cursor:pointer;background:#0a0a0a;" onclick="var v=document.getElementById('mjct-${cid}');v.textContent=v.textContent==='▾'?'▴':'▾';document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row[data-cid=\\'${cid}\\']').forEach(r=>r.style.display=r.style.display==='none'?'':'none');">
+                <td colspan="3" style="padding:5px 10px;color:#888;font-size:0.73em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #1e1410;">
+                    ${icon} ${cat.toUpperCase()} <span style="color:#555;font-weight:normal;">(${entries.length})</span>
+                    <span id="mjct-${cid}" style="float:right;color:#555;">▾</span>
+                </td>
+            </tr>`;
+            entries.forEach(([id,def])=>{ html += renderRow(id, def, cat, false); });
+        }
+
+        tbody.innerHTML = html;
+        filtrerCodexMJ();
+    });
 }
 
 function genererNPCsMJ() {
@@ -727,48 +943,114 @@ function mjAfficherInterfaceCombat() {
             return;
         }
 
-        // Build enemy list with optional sort
-        window._mjRafraichirCombatListe = function(triFn) {
+        // Filtres combat
+        window._cbtCatFilter = null;
+
+        window._mjRafraichirCombatListe = function() {
+            const search = (document.getElementById('cbt-search')?.value || '').toLowerCase();
+            const minNiv = parseInt(document.getElementById('cbt-niv-min')?.value) || 0;
+            const maxNiv = parseInt(document.getElementById('cbt-niv-max')?.value) || 999;
+            const uniqOnly = document.getElementById('cbt-uniq')?.checked;
+            const catSel = window._cbtCatFilter;
+
             let liste = Object.entries(ennemisData).map(([id, e]) => ({ id, ...e }));
-            if (triFn) liste.sort(triFn);
-            let lignes = '';
+            liste = liste.filter(e => {
+                if (search && !e.nom.toLowerCase().includes(search) && !(e.race||'').toLowerCase().includes(search)) return false;
+                if (uniqOnly && !e.unique) return false;
+                if (catSel && _mjGetCat(e.id, e) !== catSel) return false;
+                if (e.niveau < minNiv || e.niveau > maxNiv) return false;
+                return true;
+            });
+            liste.sort((a,b) => {
+                if (a.unique && !b.unique) return -1;
+                if (!a.unique && b.unique) return 1;
+                return a.niveau - b.niveau;
+            });
+
+            // Grouper par catégorie
+            const grouped = {};
             for (const e of liste) {
-                const fo  = (e.statsBase?.FO || 0) + (e.statsInvesties?.FO || 0);
-                const ini = (e.statsBase?.IN || 0) + (e.statsInvesties?.IN || 0);
-                const pvMax = (fo * 2) + ini + (e.boostPV || 0);
-                lignes += `
-                    <tr style="border-bottom:1px solid #2a1d12;">
-                        <td style="padding:6px 10px; color:#ddd; font-size:0.85em;">${e.nom}
-                            <span style="color:#666; font-size:0.75em;"> Niv.${e.niveau} ❤${pvMax}</span>
-                        </td>
-                        <td style="padding:6px 8px; text-align:center;">
-                            <input type="number" id="qty-${e.id}" min="0" max="9" value="${_combatSelection[e.id] || 0}"
-                                style="width:45px; background:#111; color:#fff; border:1px solid #444; padding:3px; text-align:center; border-radius:3px;"
-                                onchange="_combatSelection['${e.id}'] = parseInt(this.value)||0">
-                        </td>
-                        <td style="padding:6px 8px; color:#888; font-size:0.72em;">${e.race || '—'}</td>
-                    </tr>`;
+                const cat = e.unique ? '★ Uniques' : _mjGetCat(e.id, e);
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(e);
             }
+            const sortedCats = Object.keys(grouped).sort((a,b) => {
+                if (a==='★ Uniques') return -1;
+                if (b==='★ Uniques') return 1;
+                const ia=_MJ_CAT_ORDER.indexOf(a),ib=_MJ_CAT_ORDER.indexOf(b);
+                return (ia<0?999:ia)-(ib<0?999:ib);
+            });
+
+            let lignes = '';
+            for (const cat of sortedCats) {
+                const isUniq = cat === '★ Uniques';
+                const icon = isUniq ? '★' : (_MJ_CAT_ICONS[cat]||'❓');
+                const hdrColor = isUniq ? '#ce93d8' : '#888';
+                const hdrBg = isUniq ? '#0a0a1a' : '#0a0a0a';
+                const hdrBorder = isUniq ? '#3a1a5a' : '#1e1410';
+                lignes += `<tr style="background:${hdrBg};"><td colspan="3" style="padding:5px 10px;color:${hdrColor};font-size:0.72em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid ${hdrBorder};">${icon} ${cat.toUpperCase()} (${grouped[cat].length})</td></tr>`;
+                for (const e of grouped[cat]) {
+                    const fo = (e.statsBase?.FO||0)+(e.statsInvesties?.FO||0);
+                    const ini = (e.statsBase?.IN||0)+(e.statsInvesties?.IN||0);
+                    const pvMax = (fo*2)+ini+(e.boostPV||0);
+                    const nomColor = e.unique ? '#ce93d8' : '#ddd';
+                    lignes += `<tr style="border-bottom:1px solid #1e1410;${e.unique?'background:rgba(156,39,176,0.04);':''}">
+                        <td style="padding:5px 10px;">
+                            <span style="color:${nomColor};font-size:0.84em;">${e.nom}</span>
+                            <span style="color:#555;font-size:0.72em;"> · Niv.${e.niveau} · ❤${pvMax}</span>
+                            <div style="color:#4a4a4a;font-size:0.68em;">${e.race||'—'}</div>
+                        </td>
+                        <td style="padding:5px 8px;text-align:center;">
+                            <input type="number" id="qty-${e.id}" min="0" max="9" value="${_combatSelection[e.id]||0}"
+                                style="width:42px;background:#111;color:#fff;border:1px solid #444;padding:3px;text-align:center;border-radius:3px;font-size:0.85em;"
+                                onchange="_combatSelection['${e.id}']=parseInt(this.value)||0">
+                        </td>
+                        <td style="padding:5px 8px;color:#555;font-size:0.68em;text-align:right;">${(e.zones||[]).slice(0,1).join('')}</td>
+                    </tr>`;
+                }
+            }
+            if (!lignes) lignes = `<tr><td colspan="3" style="padding:16px;text-align:center;color:#555;font-size:0.85em;">Aucun ennemi correspondant</td></tr>`;
             const tbl = document.getElementById('tbl-combat-ennemis');
             if (tbl) tbl.innerHTML = lignes;
         };
+
+        // Construire boutons catégories pour le combat
+        const cbtCats = [...new Set(Object.entries(ennemisData).filter(([,e])=>!e.unique).map(([id,e])=>_mjGetCat(id,e)))];
+        cbtCats.sort((a,b)=>(_MJ_CAT_ORDER.indexOf(a)<0?999:_MJ_CAT_ORDER.indexOf(a))-(_MJ_CAT_ORDER.indexOf(b)<0?999:_MJ_CAT_ORDER.indexOf(b)));
+        const catBtns = cbtCats.map(cat=>`<button class="cbt-cat-btn" onclick="
+            var sel=window._cbtCatFilter==='${cat}'?null:'${cat}';window._cbtCatFilter=sel;
+            document.querySelectorAll('.cbt-cat-btn').forEach(b=>{b.style.background='#1a0808';b.style.color='#999';b.style.borderColor='#3a1a1a';});
+            if(sel){this.style.background='#1a1000';this.style.color='#ffb74d';this.style.borderColor='#8b5000';}
+            window._mjRafraichirCombatListe();"
+            style="background:#1a0808;color:#999;border:1px solid #3a1a1a;padding:3px 7px;cursor:pointer;border-radius:3px;font-size:0.74em;white-space:nowrap;">
+            ${_MJ_CAT_ICONS[cat]||'❓'} ${cat}</button>`).join('');
+
         const banniereRencontre = rencontreCtx
             ? `<div style="background:#2a1000;border:1px solid #ff6b6b;border-radius:6px;padding:8px 12px;margin-bottom:10px;color:#ff9966;font-size:0.88em;">👹 <strong>Rencontre :</strong> ${rencontreCtx}</div>`
             : '';
 
         section.innerHTML = `
             ${banniereRencontre}
-            <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                <button onclick="window._mjRafraichirCombatListe()" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Défaut</button>
-                <button onclick="window._mjRafraichirCombatListe((a,b)=>a.niveau-b.niveau)" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Niv ↑</button>
-                <button onclick="window._mjRafraichirCombatListe((a,b)=>b.niveau-a.niveau)" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Niv ↓</button>
-                <button onclick="window._mjRafraichirCombatListe((a,b)=>(a.race||'').localeCompare(b.race||''))" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Race A→Z</button>
-                <button onclick="window._mjRafraichirCombatListe((a,b)=>(a.nom||'').localeCompare(b.nom||''))" style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">Nom A→Z</button>
+            <div style="margin-bottom:6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+                <input id="cbt-search" type="text" placeholder="🔍 Nom / race..." oninput="window._mjRafraichirCombatListe()"
+                    style="flex:1;min-width:120px;background:#111;color:#fff;border:1px solid #555;padding:4px 8px;border-radius:3px;font-size:0.8em;">
+                <input id="cbt-niv-min" type="number" min="1" max="30" placeholder="Niv min"
+                    style="width:65px;background:#111;color:#fff;border:1px solid #555;padding:4px 6px;border-radius:3px;font-size:0.78em;" oninput="window._mjRafraichirCombatListe()">
+                <input id="cbt-niv-max" type="number" min="1" max="30" placeholder="Niv max"
+                    style="width:65px;background:#111;color:#fff;border:1px solid #555;padding:4px 6px;border-radius:3px;font-size:0.78em;" oninput="window._mjRafraichirCombatListe()">
+                <button id="cbt-uniq-btn" onclick="var cb=document.getElementById('cbt-uniq');cb.checked=!cb.checked;this.style.background=cb.checked?'#2a003a':'#1a0808';this.style.color=cb.checked?'#ce93d8':'#999';window._mjRafraichirCombatListe();"
+                    style="background:#1a0808;color:#999;border:1px solid #3a1a5a;padding:4px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">★ Uniques</button>
+                <input id="cbt-uniq" type="checkbox" style="display:none;">
             </div>
-            <div style="max-height:50vh; overflow-y:auto; border:1px solid #333; border-radius:4px; margin-bottom:14px;">
-                <table style="width:100%; border-collapse:collapse;"><tbody id="tbl-combat-ennemis"></tbody></table>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px;">
+                <button onclick="window._cbtCatFilter=null;document.querySelectorAll('.cbt-cat-btn').forEach(b=>{b.style.background='#1a0808';b.style.color='#999';b.style.borderColor='#3a1a1a';});window._mjRafraichirCombatListe();"
+                    style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 8px;cursor:pointer;border-radius:3px;font-size:0.74em;">Tout</button>
+                ${catBtns}
             </div>
-            <button onclick="mjLancerCombat()" style="width:100%; background:#8b0000; color:white; border:none; padding:12px; cursor:pointer; font-size:1em; font-weight:bold; border-radius:4px; letter-spacing:0.05em;">
+            <div style="max-height:45vh;overflow-y:auto;border:1px solid #333;border-radius:4px;margin-bottom:10px;">
+                <table style="width:100%;border-collapse:collapse;"><tbody id="tbl-combat-ennemis"></tbody></table>
+            </div>
+            <button onclick="mjLancerCombat()" style="width:100%;background:#8b0000;color:white;border:none;padding:12px;cursor:pointer;font-size:1em;font-weight:bold;border-radius:4px;letter-spacing:0.05em;">
                 ⚔ LANCER LE COMBAT
             </button>`;
         window._mjRafraichirCombatListe();
@@ -943,7 +1225,8 @@ function mjLancerCombat() {
                     statsBase: c.statsBase || null,
                     statsInvesties: c.statsInvesties || null,
                     magieInvesties: c.magieInvesties || null,
-                    inventaire: c.inventaire || null
+                    inventaire: c.inventaire || null,
+                    equipement: c.equipement || {}
                 });
             });
         }

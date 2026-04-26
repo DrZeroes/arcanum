@@ -111,15 +111,88 @@ function _verifierFinCombat(ennemisMAJ) {
     if (!tousKO) return;
     db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('victoire');
     if (window.estMJ) {
-        setTimeout(() => {
-            db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
-            if (window.donjonActif) {
-                const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
-                refDonjon.child('pause').remove();
-                refDonjon.child('rencontre_en_attente').remove();
+        const now = Date.now();
+        ennemisMAJ.forEach(e => {
+            const def = (typeof ennemisData !== 'undefined' && e.id) ? ennemisData[e.id] : null;
+            if (def?.unique) {
+                db.ref('parties/' + sessionActuelle + '/ennemis_uniques/' + e.id).set({
+                    nom: e.nom || def.nom,
+                    date: now
+                });
             }
-        }, 4000);
+            if (e.id) {
+                const refB = db.ref('parties/' + sessionActuelle + '/bestiaire/' + e.id);
+                refB.once('value', snap => {
+                    const cur = snap.val() || {};
+                    refB.set({ nbKills: (cur.nbKills || 0) + 1, premierVu: cur.premierVu || now });
+                });
+            }
+        });
+        setTimeout(() => _demarrerLootPhase(ennemisMAJ), 4000);
     }
+}
+
+function _demarrerLootPhase(ennemisKO) {
+    const SLOTS_EQUIP = ['main_droite', 'main_gauche', 'tete', 'corps', 'jambes', 'pieds', 'amulette', 'anneau'];
+    const items = [];
+    let orTotal = 0;
+
+    ennemisKO.forEach(e => {
+        // Équipement : 50% de chance par slot
+        if (e.equipement) {
+            SLOTS_EQUIP.forEach(slot => {
+                const eq = e.equipement[slot];
+                if (eq && eq.id && Math.random() < 0.5) {
+                    const def = (typeof itemsData !== 'undefined') ? itemsData[eq.id] : null;
+                    items.push({ id: eq.id, nom: def ? def.nom : eq.id, qte: 1, source: e.nom, pris: false, parJoueur: null });
+                }
+            });
+        }
+        // lootDrop : proba par unité (défaut 1)
+        if (e.lootDrop) {
+            e.lootDrop.forEach(drop => {
+                const proba = drop.proba ?? 1;
+                const qte = drop.qte || 1;
+                let qteLoote = 0;
+                for (let i = 0; i < qte; i++) { if (Math.random() < proba) qteLoote++; }
+                if (qteLoote === 0) return;
+                if (drop.id === 'OR_PIECES') {
+                    orTotal += qteLoote;
+                } else {
+                    const alreadyIn = items.some(it => it.id === drop.id && it.source === e.nom);
+                    if (!alreadyIn) {
+                        const def = (typeof itemsData !== 'undefined') ? itemsData[drop.id] : null;
+                        items.push({ id: drop.id, nom: def ? def.nom : drop.id, qte: qteLoote, source: e.nom, pris: false, parJoueur: null });
+                    }
+                }
+            });
+        }
+    });
+
+    if (orTotal > 0) items.unshift({ id: 'OR_PIECES', nom: 'Or (' + orTotal + ' pièces)', qte: orTotal, source: 'ennemis', pris: false, parJoueur: null });
+
+    db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+    if (window.donjonActif) {
+        const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+        refDonjon.child('pause').remove();
+        refDonjon.child('rencontre_en_attente').remove();
+    }
+
+    if (items.length === 0) return;
+
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
+        const joueurs = snap.val() || {};
+        const joueursLoot = {};
+        Object.entries(joueurs).forEach(([id, j]) => {
+            if (j.estMJ) return;
+            const ci = j.compInvesties || {};
+            const bonus = (ci.marchandage || 0) + (ci.discretion || 0) + (ci.vol || 0) + (ci.persuasion || 0);
+            joueursLoot[id] = { nom: j.nom || id, de: null, score: null, bonus };
+        });
+        db.ref('parties/' + sessionActuelle + '/loot_phase').set({
+            actif: true, items, joueurs: joueursLoot, ordre_pick: null, pick_actuel: 0, timestamp: Date.now()
+        });
+    });
 }
 
 /**
@@ -1136,6 +1209,29 @@ function ouvrirCiblesSortCombat(nomSort) {
     }
 }
 
+// ── Résistances magiques et élémentaires ─────────────────────
+
+const _ECOLE_TO_RES_ELEM = { 'Feu': 'resFeu', 'Energie': 'resElec' };
+
+function _getEcoleSort(nomSort) {
+    if (typeof magieData === 'undefined') return null;
+    for (const ecole in magieData) {
+        if ((magieData[ecole].sorts || []).some(s => s.nom === nomSort)) return ecole;
+    }
+    return null;
+}
+
+function _calculerResistanceSortEnnemi(ennemi, ecole) {
+    const res = ennemi.resistances || {};
+    const resMagie = res.resMagie || 0;
+    const elemKey = _ECOLE_TO_RES_ELEM[ecole];
+    const resElem = elemKey ? (res[elemKey] || 0) : 0;
+    if (resElem === 0) return resMagie;
+    const grande = Math.max(resMagie, resElem);
+    const petite = Math.min(resMagie, resElem);
+    return Math.min(100, grande + petite * 0.5);
+}
+
 // ── Finalisation du sort ──────────────────────────────────────
 
 function finaliserSortCombat(cibleId, typeCible) {
@@ -1198,6 +1294,16 @@ function finaliserSortCombat(cibleId, typeCible) {
             if (!sortResiste && degats > 0 && ennemisMAJ[idx].effets?.retrecissement) {
                 degats = Math.round(degats * ennemisMAJ[idx].effets.retrecissement.facteur);
             }
+            // Résistance magique + élémentaire
+            let _resLabel = '';
+            if (!sortResiste && degats > 0) {
+                const _ecoleSort = _getEcoleSort(s.nom);
+                const _resPct = _calculerResistanceSortEnnemi(ennemisMAJ[idx], _ecoleSort);
+                if (_resPct > 0) {
+                    degats = Math.max(0, Math.round(degats * (1 - _resPct / 100)));
+                    _resLabel = ` [rés. ${Math.round(_resPct)}%]`;
+                }
+            }
             ennemisMAJ[idx].pvActuel = Math.max(0, ennemisMAJ[idx].pvActuel - degats);
             if (degats > 0) {
                 _gagnerXP(ennemisMAJ[idx].pvActuel <= 0 ? 6 : 1);
@@ -1205,7 +1311,7 @@ function finaliserSortCombat(cibleId, typeCible) {
             }
             msg = sortResiste
                 ? `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom} — ⛔ Sort résisté !`
-                : `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
+                : `${window.perso.nom} lance ${s.nom} sur ${ennemisMAJ[idx].nom}${critLabel}${_resLabel} : ${degats} dégâts ! (PV restants : ${ennemisMAJ[idx].pvActuel})`;
         }
 
         let ordreMAJSort = _marquerKODansOrdre(data.ordre_jeu || [], ennemisMAJ);
@@ -2544,6 +2650,13 @@ function mjAttaqueMonstreCompagnon(instanceId, compIdx, ownerID, compNom) {
     if (crit.type === 'echec') { degatsFinaux = 0; critLabel = ' ⚠ ÉCHEC CRITIQUE'; }
     else if (crit.type === 'critique') { degatsFinaux = Math.round(degats * 1.5); critLabel = ' ⚡ CRITIQUE ×1.5 !'; }
 
+    // Réduction par armure du compagnon
+    const compCible = ordre.find(p => p.type === 'compagnon' && p.compIdx === compIdx && p.ownerID === ownerID);
+    if (compCible && degatsFinaux > 0) {
+        const armureComp = _armureTotal(compCible);
+        degatsFinaux = Math.max(0, degatsFinaux - armureComp);
+    }
+
     // Appliquer dégâts dans ordre_jeu
     const ordreMAJ = ordre.map(p => {
         if (p.type === 'compagnon' && p.compIdx === compIdx && p.ownerID === ownerID) {
@@ -2578,9 +2691,10 @@ function mjAttaqueCompagnonEnnemi(instanceId) {
     const idx = ennemisMAJ.findIndex(e => e.instanceId === instanceId);
     if (idx === -1) return;
 
-    const de    = Math.ceil(Math.random() * 6);
-    const bonus = Math.floor((compagnon.niveau || 1) / 2);
-    let degats  = Math.max(1, de + bonus);
+    const foComp = (compagnon.statsBase?.FO || 5) + (compagnon.statsInvesties?.FO || 0);
+    const foMod  = Math.max(0, foComp - 10);
+    const arme   = _degatsArme(compagnon);
+    let degats   = Math.max(1, arme.de + foMod);
 
     // Jet critique du compagnon (même système que les joueurs, sans background)
     const crit = _lancerCritique(null);
@@ -2601,7 +2715,7 @@ function mjAttaqueCompagnonEnnemi(instanceId) {
     const msgCourt2  = compagnon.nom + ' attaque ' + ennemisMAJ[idx].nom + critCourt2
         + (degats > 0 ? ' : ' + degats + ' dégâts !' : ' : attaque ratée !');
     const msgDetail2 = compagnon.nom + ' attaque ' + ennemisMAJ[idx].nom
-        + ' : 1d6(' + de + ')+' + bonus + '=' + degats + ' dég.' + critLabel
+        + ' : ' + arme.label + '+FO' + foMod + '=' + degats + ' dég.' + critLabel
         + ' [d100=' + crit.roll + '] (PV ennemi: ' + ennemisMAJ[idx].pvActuel + ')';
 
     if (degats > 0) _gagnerXPCompagnon(compagnon.ownerID, compagnon.compIdx, xpGain);
@@ -2708,6 +2822,12 @@ function mjPasserTourEnnemi(instanceId) {
         if (e.pvActuel <= 0) {
             const ordre = data.ordre_jeu || [];
             const ordreKO = _marquerKODansOrdre(ordre, ennemisMAJ);
+            // XP kill poison → tous les joueurs actifs
+            ordre.filter(p => p.type === 'joueur').forEach(p => {
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + p.id + '/modif_stat').set({
+                    stat: 'XP', valeur: 6, timestamp: Date.now()
+                });
+            });
             _verifierFinCombat(ennemisMAJ);
             db.ref('parties/' + sessionActuelle + '/combat_actif').update({
                 ennemis:     ennemisMAJ,

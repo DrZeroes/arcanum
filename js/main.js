@@ -985,7 +985,7 @@ function ouvrirJournal(onglet) {
     if (!modal || !contenu) return;
 
     // Surligner l'onglet actif
-    ['quetes', 'effets', 'antecedent', 'stats', 'succes'].forEach(id => {
+    ['quetes', 'effets', 'antecedent', 'stats', 'succes', 'ennemis_uniques'].forEach(id => {
         const btn = document.getElementById('jt-' + id);
         if (!btn) return;
         const actif = id === onglet;
@@ -1241,6 +1241,173 @@ function ouvrirJournal(onglet) {
             contenu.appendChild(catGrid);
             contenu.appendChild(panel);
         }
+
+    } else if (onglet === 'ennemis_uniques') {
+        contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>`;
+        Promise.all([
+            db.ref('parties/' + sessionActuelle + '/bestiaire').once('value'),
+            db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value')
+        ]).then(([bestSnap, uniqSnap]) => {
+            const bestiaireData = bestSnap.val() || {};
+            const uniquesBattus = uniqSnap.val() || {};
+            if (typeof ennemisData === 'undefined') {
+                contenu.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Données indisponibles.</p>';
+                return;
+            }
+            const RACE_TO_CAT = {
+                'Bête':'Bêtes','Lycanthrope':'Bêtes',
+                'Mort-vivant':'Morts-vivants','Esprit':'Esprits','Démon':'Démons',
+                'Élémentaire':'Élémentaires',
+                'Araignée':'Araignées','Dragon':'Dragons','Golem':'Golems',
+                'Construct':'Constructs','Pestilentiel':'Pestilentiels','Animal':'Animaux',
+                'Insectoïde':'Insectoïdes','Singe':'Singes',
+                'Plante':'Plantes','Artificiel':'Créatures Artificielles','Fée':'Fées',
+                'Troll':'Trolls','Humanoïde':'Humanoïdes',
+                'Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
+                'Humain':'Humains','Nain':'Nains',
+                'Elfe':'Elfes','Elfe Noir':'Elfes',
+                'Ork':'Orques','Orque':'Orques','Demi-Orc':'Orques',
+                'Demi-Ogre':'Demi-Ogres','Gnome':'Gnomes','Halfelin':'Halfelins'
+            };
+            const CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires','Insectoïdes','Araignées','Dragons','Golems','Constructs','Pestilentiels','Animaux','Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes','Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques','Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
+            const CAT_ICONS = {
+                'Bêtes':'🐺','Singes':'🐒','Morts-vivants':'💀','Esprits':'👻','Démons':'😈',
+                'Élémentaires':'⚡','Insectoïdes':'🕷','Araignées':'🕸','Dragons':'🐉',
+                'Golems':'🗿','Constructs':'⚙','Pestilentiels':'🦠','Animaux':'🐄',
+                'Plantes':'🌿','Créatures Artificielles':'🤖','Fées':'🧚','Trolls':'🪨',
+                'Humanoïdes':'🧟','Kites':'🏹','Krags':'⛏','Reptiliens':'🦎',
+                'Humains':'🧑','Nains':'⚒','Elfes':'🧝','Orques':'💢',
+                'Demi-Ogres':'👊','Gnomes':'🔧','Halfelins':'🗡',
+                'Assassins de la Main':'🔪','Autres':'❓'
+            };
+            const getCat = (id, def) => {
+                if (id.startsWith('main_assassin_')) return 'Assassins de la Main';
+                const race = def.race || '';
+                if (race === 'Araignée') return 'Araignées';
+                if (race === 'Dragon') return 'Dragons';
+                if (race === 'Golem') return 'Golems';
+                if (race === 'Construct') return 'Constructs';
+                if (race === 'Pestilentiel') return 'Pestilentiels';
+                if (race === 'Animal') return 'Animaux';
+                if (race === 'Insectoïde') return 'Insectoïdes';
+                return RACE_TO_CAT[race] || 'Autres';
+            };
+
+            const renderCard = (id, def) => {
+                const entry = bestiaireData[id] || {};
+                const k = entry.nbKills || 0;
+                const isVu = !!entry.premierVu;
+                const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                const imgBlur = k === 0 ? 'filter:blur(5px);opacity:0.35;' : '';
+                const nomAff = k >= 1 ? def.nom : (isVu ? '????' : '???');
+                const nomColor = k >= 1 ? '#e57373' : '#555';
+                let badge = k > 0
+                    ? `<span style="background:#0d1f0d;color:#4caf50;border:1px solid #2e7d32;border-radius:3px;padding:1px 5px;font-size:0.7em;margin-left:4px;">☠ ×${k}</span>`
+                    : (isVu ? `<span style="background:#1a1a2a;color:#7c4a8a;border:1px solid #4a2a5a;border-radius:3px;padding:1px 5px;font-size:0.7em;margin-left:4px;">Vu</span>` : '');
+                let details = '';
+                if (k >= 1) {
+                    const zonesStr = (def.zones || []).join(', ') || '—';
+                    details += `<div style="font-size:0.77em;color:#999;margin-top:3px;">Niv.${def.niveau} · ${def.race}</div>`;
+                    details += `<div style="font-size:0.74em;color:#80cbc4;margin-top:2px;">📍 ${zonesStr}</div>`;
+                }
+                if (k >= 3) {
+                    const st = def.statsBase || {};
+                    details += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;font-size:0.76em;">${['FO','CN','DX','IN','CH'].map(x=>`<span style="color:#aaa;">${x}:<b style="color:#fff;">${st[x]||0}</b></span>`).join('')}</div>`;
+                    const equip = Object.entries(def.equipement||{}).filter(([,v])=>v).map(([,v])=>{const it=typeof itemsData!=='undefined'?itemsData[v.id]:null;return it?it.nom:v.id;});
+                    if (equip.length) details += `<div style="font-size:0.73em;color:#ce93d8;margin-top:3px;">⚔ ${equip.join(', ')}</div>`;
+                    const loot = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;const pct=l.proba<1?` (${Math.round(l.proba*100)}%)`:'';return `${it?it.nom:l.id} ×${l.qte}${pct}`;});
+                    details += loot.length
+                        ? `<div style="font-size:0.73em;color:#ffd54f;margin-top:3px;">💰 ${loot.join(', ')}</div>`
+                        : `<div style="font-size:0.73em;color:#555;margin-top:3px;">💰 Aucun loot</div>`;
+                }
+                if (k >= 5) {
+                    const magie = Object.entries(def.magieBase||{});
+                    if (magie.length) details += `<div style="font-size:0.73em;color:#ce93d8;margin-top:3px;">🔮 ${magie.map(([e,n])=>`${e} niv.${n}`).join(', ')}</div>`;
+                    const res = def.resistances||{};
+                    if (Object.keys(res).length) {
+                        const RC={resPhys:'#78909c',resMagie:'#9c27b0',resFeu:'#f44336',resPoison:'#4caf50',resElec:'#ffc107'};
+                        const RL={resPhys:'Phy',resMagie:'Mag',resFeu:'Feu',resPoison:'Poi',resElec:'Élec'};
+                        details += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.73em;">${Object.entries(res).map(([rk,rv])=>`<span style="color:${RC[rk]||'#aaa'}">${RL[rk]||rk}:<b>${rv}%</b></span>`).join('')}</div>`;
+                    }
+                }
+                const uBadge = def.unique ? `<span style="color:#9c27b0;font-size:0.7em;margin-left:3px;">★</span>` : '';
+                return `<div style="display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #1e1e1e;border-radius:5px;margin-bottom:5px;background:#090909;">
+                    ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}flex-shrink:0;">`: '<div style="width:42px;height:42px;flex-shrink:0;"></div>'}
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;flex-wrap:wrap;"><span style="color:${nomColor};font-size:0.87em;font-weight:bold;">${nomAff}${uBadge}</span>${badge}</div>
+                        ${details}
+                        ${k===0&&!isVu?'<div style="font-size:0.72em;color:#3a3a3a;margin-top:3px;font-style:italic;">Non découvert</div>':''}
+                    </div>
+                </div>`;
+            };
+
+            let html = '';
+
+            // ── Ennemis Uniques (accordéon) ──────────────────────────────
+            const uniqueEntries = Object.entries(ennemisData).filter(([,e])=>e.unique);
+            if (uniqueEntries.length) {
+                const discUniq = uniqueEntries.filter(([id])=>(bestiaireData[id]?.nbKills||0)>0||uniquesBattus[id]||bestiaireData[id]?.premierVu).length;
+                const uniqContent = uniqueEntries.map(([id,def])=>{
+                    const k = bestiaireData[id]?.nbKills||0;
+                    const battu = uniquesBattus[id];
+                    const isVu = !!bestiaireData[id]?.premierVu||k>0;
+                    const nomAff = (k>=1||battu)?def.nom:(isVu?'????':'???');
+                    const imgSrc = def.portrait?`docs/img/portraits/${def.portrait}`:'';
+                    const imgBlur = (!battu&&k===0)?'filter:blur(5px);opacity:0.3;':'';
+                    const statusEl = battu
+                        ? `<span style="color:#4caf50;font-size:0.76em;">✅ Terrassé le ${new Date(battu.date).toLocaleDateString('fr-FR')}</span>`
+                        : (isVu
+                            ? `<span style="color:#f57c00;font-size:0.76em;">⚠ Rencontré — non terrassé</span>`
+                            : `<span style="color:#555;font-size:0.76em;font-style:italic;">☆ Non rencontré</span>`);
+                    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #3a1a5a;border-radius:5px;margin-bottom:6px;background:rgba(156,39,176,0.05);">
+                        ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #4a2a5a;${imgBlur}flex-shrink:0;">`:''}
+                        <div style="flex:1;"><div style="color:#ce93d8;font-weight:bold;font-size:0.9em;">${nomAff}</div><div style="margin-top:3px;">${statusEl}</div>${(k>=1||battu)?`<div style="font-size:0.74em;color:#aaa;margin-top:2px;">Niv.${def.niveau} · ${def.race}</div>`:''}</div>
+                    </div>`;
+                }).join('');
+                html += `<div style="margin-bottom:5px;">
+                    <button onclick="var el=document.getElementById('bcat_uniques');el.style.display=el.style.display==='none'?'block':'none';"
+                        style="background:#0d0020;border:1px solid #3a1a5a;color:#ce93d8;padding:6px 10px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:6px;font-size:0.85em;font-weight:bold;">
+                        <span>★</span><span>Ennemis Uniques</span>
+                        <span style="color:${discUniq>0?'#4caf50':'#555'};font-size:0.8em;margin-left:4px;">${discUniq}/${uniqueEntries.length} ▾</span>
+                    </button>
+                    <div id="bcat_uniques" style="display:none;padding:6px 2px 2px 2px;">${uniqContent}</div>
+                </div>`;
+            }
+
+            // ── Catégories ───────────────────────────────────────────────
+            const categories = {};
+            Object.entries(ennemisData).forEach(([id,def])=>{
+                if (def.unique) return;
+                const cat = getCat(id,def);
+                if (!categories[cat]) categories[cat]=[];
+                categories[cat].push([id,def]);
+            });
+            const sortedCats = Object.keys(categories).sort((a,b)=>{
+                const ia=CAT_ORDER.indexOf(a),ib=CAT_ORDER.indexOf(b);
+                return (ia<0?999:ia)-(ib<0?999:ib);
+            });
+            html += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">`;
+            sortedCats.forEach(cat=>{
+                const enemies = categories[cat];
+                const disc = enemies.filter(([id])=>(bestiaireData[id]?.nbKills||0)>0||bestiaireData[id]?.premierVu).length;
+                const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
+                const icon = CAT_ICONS[cat] || '❓';
+                html += `<button onclick="var el=document.getElementById('${cid}');el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.barr').textContent=el.style.display==='none'?'▾':'▴';"
+                    style="background:#111;border:1px solid #2a2a2a;color:#ccc;padding:5px 9px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:5px;font-size:0.82em;white-space:nowrap;">
+                    <span>${icon}</span><span>${cat}</span>
+                    <span style="color:${disc>0?'#4caf50':'#555'};font-size:0.78em;">${disc}/${enemies.length}</span>
+                    <span class="barr" style="color:#555;font-size:0.8em;">▾</span>
+                </button>`;
+            });
+            html += `</div>`;
+            sortedCats.forEach(cat=>{
+                const enemies = categories[cat];
+                const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
+                html += `<div id="${cid}" style="display:none;padding:6px 2px 2px 2px;margin-top:4px;">${enemies.map(([id,def])=>renderCard(id,def)).join('')}</div>`;
+            });
+
+            contenu.innerHTML = html || '<p style="color:#555;text-align:center;padding:20px;">Aucun ennemi découvert.</p>';
+        });
     }
 
     modal.style.display = 'flex';

@@ -595,6 +595,7 @@ const itemsData = {
     "BIJ32": { nom: "Amulette de Pelojian", desc: "Amulette de mage aux propriétés de résistance magique.", type: "armure", rarete: "7", poids: 0.05, prix: 700, equipable: "amulette", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: { resMagie: 40, align: 15 }, prerequis: {}, lootable: true, nbUsages: null },
     "BIJ33": { nom: "Collier serpentin", desc: "Collier à venin de serpent. Dangereux mais fascinant.", type: "armure", rarete: "6", poids: 0.05, prix: 400, equipable: "amulette", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: { resPoison: 30, align: -10 }, prerequis: {}, lootable: true, nbUsages: null },
     "BIJ34": { nom: "Doigt de Mannox", desc: "Relique macabre conférant une précision au corps-à-corps et une résistance au poison.", type: "armure", rarete: "8", poids: 0.05, prix: 800, equipable: "amulette", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: { resPoison: 20, bonusComp: { melee: 2 } }, prerequis: {}, lootable: true, nbUsages: null },
+    "BIJ35": { nom: "Amulette de la main", desc: "Étrange amulette gravée du symbole d'une main.", type: "armure", rarete: "2", poids: 0.05, prix: 800, equipable: "amulette", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0, stats: { resMagie: 10 }, prerequis: {}, lootable: false, nbUsages: null },
 
 
     // ---------------- MUNITIONS (MUN) ----------------
@@ -825,6 +826,13 @@ const itemsData = {
         stats: {  }, prerequis: {}, lootable: false, nbUsages: null
     },
     
+    "XXX05": {
+        nom: "Essence RARE de Luciole de Volar", desc: "Une lueur éthérée captive dans un flacon de cristal. Émanée d'un Feu Follet ancestral de Volar, elle est d'une extrême rareté.",
+        type: "objet_quete", rarete: "10", poids: 0.05, prix: 0,
+        equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
+        stats: {}, prerequis: {}, lootable: true, nbUsages: null
+    },
+
     "XXX06": {
         nom: "Botte de Elisa Pionnier", desc: "Une vieille botte usée mais solide, portant les initiales 'E.P.' gravées à l'intérieur. Elle semble aller à n'importe quel pied.",
         type: "objet_quete", rarete: "7", poids: 1.2, prix: 0,

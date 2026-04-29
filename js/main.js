@@ -984,6 +984,13 @@ function ouvrirJournal(onglet) {
     const contenu = document.getElementById('journal-contenu');
     if (!modal || !contenu) return;
 
+    // Cleanup listener bestiaire si on change d'onglet
+    if (window._bestiaireListenerRef) {
+        window._bestiaireListenerRef.off('value', window._bestiaireListenerFn);
+        window._bestiaireListenerRef = null;
+        window._bestiaireListenerFn = null;
+    }
+
     // Surligner l'onglet actif
     ['quetes', 'effets', 'antecedent', 'stats', 'succes', 'ennemis_uniques'].forEach(id => {
         const btn = document.getElementById('jt-' + id);
@@ -1244,12 +1251,14 @@ function ouvrirJournal(onglet) {
 
     } else if (onglet === 'ennemis_uniques') {
         contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>`;
-        Promise.all([
-            db.ref('parties/' + sessionActuelle + '/bestiaire').once('value'),
-            db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value')
-        ]).then(([bestSnap, uniqSnap]) => {
+        const _refBest = db.ref('parties/' + sessionActuelle + '/bestiaire');
+        const _refUniq = db.ref('parties/' + sessionActuelle + '/ennemis_uniques');
+        let _uniquesBattus = {};
+        _refUniq.once('value', s => { _uniquesBattus = s.val() || {}; });
+
+        const _renderBestiaire = (bestSnap) => {
             const bestiaireData = bestSnap.val() || {};
-            const uniquesBattus = uniqSnap.val() || {};
+            const uniquesBattus = _uniquesBattus;
             if (typeof ennemisData === 'undefined') {
                 contenu.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Données indisponibles.</p>';
                 return;
@@ -1362,18 +1371,37 @@ function ouvrirJournal(onglet) {
                 const uniqContent = uniqueEntries.map(([id,def])=>{
                     const k = bestiaireData[id]?.nbKills||0;
                     const battu = uniquesBattus[id];
-                    const isVu = !!bestiaireData[id]?.premierVu||k>0;
-                    const nomAff = (k>=1||battu)?def.nom:(isVu?'????':'???');
-                    const imgSrc = def.portrait?`docs/img/portraits/${def.portrait}`:'';
-                    const imgBlur = (!battu&&k===0)?'filter:blur(5px);opacity:0.3;':'';
+                    const debloque = battu || k >= 1;
+                    const isVu = !!bestiaireData[id]?.premierVu || k > 0;
+                    const nomAff = debloque ? def.nom : (isVu ? '????' : '???');
+                    const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                    const imgBlur = !debloque ? 'filter:blur(5px);opacity:0.3;' : '';
                     const statusEl = battu
                         ? `<span style="color:#4caf50;font-size:0.76em;">✅ Terrassé le ${new Date(battu.date).toLocaleDateString('fr-FR')}</span>`
-                        : (isVu
-                            ? `<span style="color:#f57c00;font-size:0.76em;">⚠ Rencontré — non terrassé</span>`
-                            : `<span style="color:#555;font-size:0.76em;font-style:italic;">☆ Non rencontré</span>`);
+                        : (debloque
+                            ? `<span style="color:#4caf50;font-size:0.76em;">✅ Vaincu</span>`
+                            : (isVu
+                                ? `<span style="color:#f57c00;font-size:0.76em;">⚠ Rencontré — non terrassé</span>`
+                                : `<span style="color:#555;font-size:0.76em;font-style:italic;">☆ Non rencontré</span>`));
+                    let uniqDetails = '';
+                    if (debloque) {
+                        uniqDetails += `<div style="font-size:0.74em;color:#aaa;margin-top:2px;">Niv.${def.niveau} · ${def.race}</div>`;
+                        const st = def.statsBase || {};
+                        uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.76em;">${['FO','CN','DX','IN','CH'].map(x=>`<span style="color:#aaa;">${x}:<b style="color:#fff;">${st[x]||0}</b></span>`).join('')}</div>`;
+                        const res = def.resistances || {};
+                        if (Object.keys(res).length) {
+                            const RC={resPhys:'#78909c',resMagie:'#9c27b0',resFeu:'#f44336',resPoison:'#4caf50',resElec:'#ffc107'};
+                            const RL={resPhys:'Phy',resMagie:'Mag',resFeu:'Feu',resPoison:'Poi',resElec:'Élec'};
+                            uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.73em;">${Object.entries(res).map(([rk,rv])=>`<span style="color:${RC[rk]||'#aaa'}">${RL[rk]||rk}:<b>${rv}%</b></span>`).join('')}</div>`;
+                        }
+                        const magie = Object.entries(def.magieBase||{});
+                        if (magie.length) uniqDetails += `<div style="font-size:0.73em;color:#ce93d8;margin-top:3px;">🔮 ${magie.map(([e,n])=>`${e} niv.${n}`).join(', ')}</div>`;
+                        const loot = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;const pct=l.proba<1?` (${Math.round(l.proba*100)}%)`:'';return `${it?it.nom:l.id} ×${l.qte}${pct}`;});
+                        if (loot.length) uniqDetails += `<div style="font-size:0.73em;color:#ffd54f;margin-top:3px;">💰 ${loot.join(', ')}</div>`;
+                    }
                     return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #3a1a5a;border-radius:5px;margin-bottom:6px;background:rgba(156,39,176,0.05);">
                         ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #4a2a5a;${imgBlur}flex-shrink:0;">`:''}
-                        <div style="flex:1;"><div style="color:#ce93d8;font-weight:bold;font-size:0.9em;">${nomAff}</div><div style="margin-top:3px;">${statusEl}</div>${(k>=1||battu)?`<div style="font-size:0.74em;color:#aaa;margin-top:2px;">Niv.${def.niveau} · ${def.race}</div>`:''}</div>
+                        <div style="flex:1;"><div style="color:#ce93d8;font-weight:bold;font-size:0.9em;">${nomAff}</div><div style="margin-top:3px;">${statusEl}</div>${uniqDetails}</div>
                     </div>`;
                 }).join('');
                 html += `<div style="margin-bottom:5px;">
@@ -1419,7 +1447,11 @@ function ouvrirJournal(onglet) {
             });
 
             contenu.innerHTML = html || '<p style="color:#555;text-align:center;padding:20px;">Aucun ennemi découvert.</p>';
-        });
+        };
+
+        window._bestiaireListenerRef = _refBest;
+        window._bestiaireListenerFn = _renderBestiaire;
+        _refBest.on('value', _renderBestiaire);
     }
 
     modal.style.display = 'flex';

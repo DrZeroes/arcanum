@@ -26,7 +26,7 @@
         <!-- En-tête -->
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;border-bottom:1px solid #2a1a4a;">
             <h2 style="color:#b39ddb;margin:0;font-size:1.1em;">📖 Journal</h2>
-            <button onclick="document.getElementById('modal-journal').style.display='none'"
+            <button onclick="document.getElementById('modal-journal').style.display='none';if(window._bestiaireListenerRef){window._bestiaireListenerRef.off('value',window._bestiaireListenerFn);window._bestiaireListenerRef=null;window._bestiaireListenerFn=null;}"
                 style="background:transparent;border:none;color:#888;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
         </div>
         <!-- Onglets -->

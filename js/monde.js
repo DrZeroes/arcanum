@@ -921,6 +921,20 @@ const ennemisData = {
         zones: ["Col de Hardin"]
     },
 
+    // Créé par IA - stats estimées
+    "bull": {
+        nom: "Taureau", niveau: 5,
+        race: "Bête",
+        statsBase: {FO:15, CN:12, DX:8, IN:3, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/bull.png",
+        pvActuel: 44, ftActuel: 42, boostPV: 16, boostFT: 16,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 125, argent: 0,
+        lootDrop: [{id:"COMP14", qte:1, proba:0.5}],
+        resistances: {resPhys:20, resMagie:0, resFeu:20, resPoison:20, resElec:10}
+    },
+
     "black_defiler": {
         nom: "Profanateur Noir", niveau: 25,
         race: "Mort-vivant",
@@ -991,6 +1005,22 @@ const ennemisData = {
         lootDrop: [{id:"COMP73", qte:1, proba:0.3}, {id:"COMP84", qte:1, proba:0.3}],
         resistances: {resPhys:20, resMagie:10, resFeu:50, resPoison:10, resElec:10},
         zones: ["Abîmes de Bangellian"]
+    },
+
+    // Créé par IA - stats estimées
+    "cernunnos": {
+        nom: "Cernunnos", niveau: 35,
+        race: "Esprit",
+        statsBase: {FO:18, CN:16, DX:14, IN:18, CH:8, MA:50},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nature":8, "Mental":4},
+        portrait: "npc-ennemis/monstres/cernunnos.png",
+        pvActuel: 112, ftActuel: 130, boostPV: 62, boostFT: 80,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 875, argent: 0,
+        lootDrop: [{id:"COMP05", qte:1, proba:0.5}, {id:"TEC03", qte:1, proba:0.4}],
+        resistances: {resPhys:40, resMagie:50, resFeu:20, resPoison:40, resElec:40},
+        zones: ["Forêt Mystique"]
     },
 
     "death_latern": {
@@ -1169,6 +1199,36 @@ const ennemisData = {
         resistances: {resPhys:80, resMagie:10, resFeu:0, resPoison:100, resElec:10}
     },
 
+    // Créé par IA - stats estimées
+    "green_demon": {
+        nom: "Démon Vert", niveau: 18,
+        race: "Démon",
+        statsBase: {FO:14, CN:12, DX:14, IN:10, CH:3, MA:20},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Nécromancie noire":3},
+        portrait: "npc-ennemis/monstres/green_demon.png",
+        pvActuel: 70, ftActuel: 72, boostPV: 38, boostFT: 42,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 450, argent: 0,
+        lootDrop: [{id:"COMP50", qte:1, proba:0.4}, {id:"COMP67", qte:1, proba:0.3}],
+        resistances: {resPhys:25, resMagie:20, resFeu:30, resPoison:50, resElec:15}
+    },
+
+    // Créé par IA - stats estimées
+    "red_demon": {
+        nom: "Démon Rouge", niveau: 28,
+        race: "Démon",
+        statsBase: {FO:18, CN:16, DX:13, IN:12, CH:4, MA:30},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Feu":5},
+        portrait: "npc-ennemis/monstres/red_demon.png",
+        pvActuel: 96, ftActuel: 100, boostPV: 52, boostFT: 60,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 700, argent: 0,
+        lootDrop: [{id:"COMP73", qte:1, proba:0.4}, {id:"COMP84", qte:1, proba:0.3}],
+        resistances: {resPhys:30, resMagie:20, resFeu:75, resPoison:20, resElec:20}
+    },
+
     "hell_creeper": {
         nom: "Rampant des Enfers", niveau: 15,
         race: "Démon",
@@ -1194,6 +1254,36 @@ const ennemisData = {
         xp: 375, argent: 0,
         lootDrop: [{id:"COMP50", qte:1, proba:0.5}],
         resistances: {resPhys:15, resMagie:10, resFeu:20, resPoison:30, resElec:10}
+    },
+
+    // Créé par IA - stats estimées
+    "imp": {
+        nom: "Diablotin", niveau: 8,
+        race: "Démon",
+        statsBase: {FO:6, CN:5, DX:18, IN:14, CH:4, MA:20},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Mental":3},
+        portrait: "npc-ennemis/monstres/imp.png",
+        pvActuel: 36, ftActuel: 40, boostPV: 18, boostFT: 22,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 200, argent: 0,
+        lootDrop: [{id:"OR_PIECES", qte:3, proba:0.5}, {id:"COMP50", qte:1, proba:0.3}],
+        resistances: {resPhys:10, resMagie:25, resFeu:30, resPoison:20, resElec:10}
+    },
+
+    // Créé par IA - stats estimées
+    "infernal_araya": {
+        nom: "Araya Infernal", niveau: 22,
+        race: "Démon",
+        statsBase: {FO:16, CN:15, DX:13, IN:9, CH:3, MA:15},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/infernal_araya.png",
+        pvActuel: 80, ftActuel: 84, boostPV: 44, boostFT: 48,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 550, argent: 0,
+        lootDrop: [{id:"COMP73", qte:1, proba:0.4}, {id:"OR_PIECES", qte:5, proba:0.5}],
+        resistances: {resPhys:30, resMagie:15, resFeu:50, resPoison:20, resElec:15},
+        zones: ["Abîmes de Bangellian"]
     },
 
     "kite_berserker": {
@@ -1374,6 +1464,36 @@ const ennemisData = {
         xp: 500, argent: 0,
         lootDrop: [{id:"COMP01", qte:1, proba:0.7}, {id:"COMP26", qte:1, proba:0.5}, {id:"COMP72", qte:1, proba:0.5}],
         resistances: {resPhys:30, resMagie:15, resFeu:0, resPoison:100, resElec:10}
+    },
+
+    // Créé par IA - stats estimées
+    "mechanical_warrior": {
+        nom: "Guerrier Mécanique", niveau: 25,
+        race: "Artificiel",
+        statsBase: {FO:18, CN:16, DX:14, IN:8, CH:1, TC:100},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/mechanical_warrior.png",
+        biGenre: true,
+        pvActuel: 86, ftActuel: 92, boostPV: 48, boostFT: 56,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:{id:"AM37"}, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"COMP01", qte:1, proba:0.7}, {id:"COMP19", qte:1, proba:0.5}, {id:"COMP26", qte:1, proba:0.5}],
+        resistances: {resPhys:50, resMagie:80, resFeu:30, resPoison:100, resElec:10}
+    },
+
+    // Créé par IA - stats estimées
+    "mutant": {
+        nom: "Mutant", niveau: 12,
+        race: "Humanoïde",
+        statsBase: {FO:14, CN:11, DX:11, IN:5, CH:2},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/mutant.png",
+        biGenre: true,
+        pvActuel: 54, ftActuel: 50, boostPV: 26, boostFT: 22,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 300, argent: 0,
+        lootDrop: [{id:"COMP14", qte:1, proba:0.4}, {id:"COMP50", qte:1, proba:0.3}],
+        resistances: {resPhys:20, resMagie:10, resFeu:10, resPoison:30, resElec:10}
     },
 
     "plaguish_maiden": {
@@ -1667,6 +1787,36 @@ const ennemisData = {
         resistances: {resPhys:25, resMagie:10, resFeu:10, resPoison:30, resElec:5}
     },
 
+    // Créé par IA - stats estimées
+    "arachne": {
+        nom: "Arachné", niveau: 25,
+        race: "Araignée",
+        statsBase: {FO:15, CN:13, DX:17, IN:12, CH:1, MA:20},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Mental":4, "Nature":2},
+        portrait: "npc-ennemis/monstres/arachne.png",
+        pvActuel: 84, ftActuel: 88, boostPV: 50, boostFT: 54,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 625, argent: 0,
+        lootDrop: [{id:"TEC03", qte:1, proba:0.5}, {id:"COMP50", qte:1, proba:0.6}],
+        resistances: {resPhys:25, resMagie:20, resFeu:10, resPoison:40, resElec:15}
+    },
+
+    // Créé par IA - stats estimées
+    "spider_queen": {
+        nom: "Reine des Araignées", niveau: 30,
+        race: "Araignée",
+        statsBase: {FO:18, CN:16, DX:18, IN:14, CH:2, MA:25},
+        statsInvesties: {}, compInvesties: {},
+        magieBase: {"Mental":5, "Nature":2},
+        portrait: "npc-ennemis/monstres/spider_queen.png",
+        pvActuel: 104, ftActuel: 110, boostPV: 62, boostFT: 66,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 750, argent: 0,
+        lootDrop: [{id:"TEC03", qte:1, proba:0.6}, {id:"COMP50", qte:1, proba:0.7}, {id:"COMP67", qte:1, proba:0.3}],
+        resistances: {resPhys:35, resMagie:25, resFeu:10, resPoison:50, resElec:15}
+    },
+
     "stone_monkey": {
         nom: "Singe de Pierre", niveau: 8,
         race: "Singe",
@@ -1825,6 +1975,21 @@ const ennemisData = {
         xp: 175, argent: 0,
         lootDrop: [{id:"COMP14", qte:1, proba:0.5}, {id:"TEC06", qte:1, proba:0.3}],
         resistances: {resPhys:10, resMagie:0, resFeu:10, resPoison:10, resElec:5}
+    },
+
+    // Créé par IA - stats estimées
+    "werewolf": {
+        nom: "Loup-Garou", niveau: 20,
+        race: "Lycanthrope",
+        statsBase: {FO:17, CN:14, DX:15, IN:7, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/werewolf.png",
+        biGenre: true,
+        pvActuel: 74, ftActuel: 72, boostPV: 34, boostFT: 34,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"COMP14", qte:1, proba:0.5}, {id:"TEC06", qte:1, proba:0.4}],
+        resistances: {resPhys:35, resMagie:10, resFeu:10, resPoison:20, resElec:10}
     },
 
     "yeti": {
@@ -2382,6 +2547,20 @@ const ennemisData = {
     },
 
     // Créé par IA - stats estimées
+    "cougar": {
+        nom: "Puma", niveau: 10,
+        race: "Bête",
+        statsBase: {FO:12, CN:10, DX:16, IN:4, CH:3},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/cougar.png",
+        pvActuel: 50, ftActuel: 48, boostPV: 20, boostFT: 20,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
+        xp: 250, argent: 0,
+        lootDrop: [{id:"COMP14", qte:1, proba:0.5}, {id:"TEC06", qte:1, proba:0.3}],
+        resistances: {resPhys:15, resMagie:5, resFeu:10, resPoison:10, resElec:5}
+    },
+
+    // Créé par IA - stats estimées
     "swamp_ape": {
         nom: "Singe des Marais", niveau: 12,
         race: "Singe",
@@ -2522,6 +2701,21 @@ const ennemisData = {
         xp: 375, argent: 0,
         lootDrop: [],
         resistances: {resPhys:60, resMagie:30, resFeu:30, resPoison:100, resElec:30}
+    },
+
+    // Créé par IA - stats estimées
+    "cyber_mutant": {
+        nom: "Mutant Cybernétique", niveau: 20,
+        race: "Humanoïde",
+        statsBase: {FO:16, CN:14, DX:12, IN:6, CH:2, TC:50},
+        statsInvesties: {}, compInvesties: {},
+        portrait: "npc-ennemis/monstres/cyber_mutant.png",
+        biGenre: true,
+        pvActuel: 74, ftActuel: 78, boostPV: 38, boostFT: 42,
+        equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:{id:"AM37"}, main_gauche:null},
+        xp: 500, argent: 0,
+        lootDrop: [{id:"COMP01", qte:1, proba:0.5}, {id:"COMP19", qte:1, proba:0.4}, {id:"COMP14", qte:1, proba:0.3}],
+        resistances: {resPhys:40, resMagie:30, resFeu:20, resPoison:30, resElec:20}
     },
 
     // ─── HUMANOÏDES / DÉMONS ───

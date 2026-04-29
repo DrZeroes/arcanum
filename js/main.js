@@ -984,13 +984,6 @@ function ouvrirJournal(onglet) {
     const contenu = document.getElementById('journal-contenu');
     if (!modal || !contenu) return;
 
-    // Cleanup listener bestiaire si on change d'onglet
-    if (window._bestiaireListenerRef) {
-        window._bestiaireListenerRef.off('value', window._bestiaireListenerFn);
-        window._bestiaireListenerRef = null;
-        window._bestiaireListenerFn = null;
-    }
-
     // Surligner l'onglet actif
     ['quetes', 'effets', 'antecedent', 'stats', 'succes', 'ennemis_uniques'].forEach(id => {
         const btn = document.getElementById('jt-' + id);
@@ -1251,14 +1244,12 @@ function ouvrirJournal(onglet) {
 
     } else if (onglet === 'ennemis_uniques') {
         contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>`;
-        const _refBest = db.ref('parties/' + sessionActuelle + '/bestiaire');
-        const _refUniq = db.ref('parties/' + sessionActuelle + '/ennemis_uniques');
-        let _uniquesBattus = {};
-        _refUniq.once('value', s => { _uniquesBattus = s.val() || {}; });
-
-        const _renderBestiaire = (bestSnap) => {
+        Promise.all([
+            db.ref('parties/' + sessionActuelle + '/bestiaire').once('value'),
+            db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value')
+        ]).then(([bestSnap, uniqSnap]) => {
             const bestiaireData = bestSnap.val() || {};
-            const uniquesBattus = _uniquesBattus;
+            const uniquesBattus = uniqSnap.val() || {};
             if (typeof ennemisData === 'undefined') {
                 contenu.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Données indisponibles.</p>';
                 return;
@@ -1447,11 +1438,7 @@ function ouvrirJournal(onglet) {
             });
 
             contenu.innerHTML = html || '<p style="color:#555;text-align:center;padding:20px;">Aucun ennemi découvert.</p>';
-        };
-
-        window._bestiaireListenerRef = _refBest;
-        window._bestiaireListenerFn = _renderBestiaire;
-        _refBest.on('value', _renderBestiaire);
+        });
     }
 
     modal.style.display = 'flex';

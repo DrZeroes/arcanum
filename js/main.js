@@ -1298,6 +1298,7 @@ function ouvrirJournal(onglet) {
                 const k = entry.nbKills || 0;
                 const isVu = !!entry.premierVu;
                 const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                const imgSrcF = def.biGenre && def.portrait ? `docs/img/portraits/${def.portrait.replace('.png','f.png')}` : '';
                 const imgBlur = k === 0 ? 'filter:blur(5px);opacity:0.35;' : '';
                 const nomAff = k >= 1 ? def.nom : (isVu ? '????' : '???');
                 const nomColor = k >= 1 ? '#e57373' : '#555';
@@ -1331,8 +1332,19 @@ function ouvrirJournal(onglet) {
                     }
                 }
                 const uBadge = def.unique ? `<span style="color:#9c27b0;font-size:0.7em;margin-left:3px;">★</span>` : '';
+                const pid = 'bpic_'+id;
+                const portraitsHtml = imgSrcF && k >= 1
+                    ? `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;gap:2px;">
+                        <img id="${pid}" src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}">
+                        <div style="display:flex;align-items:center;gap:2px;">
+                            <button onclick="var i=document.getElementById('${pid}');i.src='${imgSrc}';" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">◀</button>
+                            <span style="color:#444;font-size:0.6em;">♂♀</span>
+                            <button onclick="var i=document.getElementById('${pid}');i.src='${imgSrcF}';" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">▶</button>
+                        </div>
+                       </div>`
+                    : (imgSrc ? `<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}flex-shrink:0;">` : '<div style="width:42px;height:42px;flex-shrink:0;"></div>');
                 return `<div style="display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #1e1e1e;border-radius:5px;margin-bottom:5px;background:#090909;">
-                    ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}flex-shrink:0;">`: '<div style="width:42px;height:42px;flex-shrink:0;"></div>'}
+                    ${portraitsHtml}
                     <div style="flex:1;min-width:0;">
                         <div style="display:flex;align-items:center;flex-wrap:wrap;"><span style="color:${nomColor};font-size:0.87em;font-weight:bold;">${nomAff}${uBadge}</span>${badge}</div>
                         ${details}

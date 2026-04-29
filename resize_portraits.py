@@ -20,7 +20,7 @@ for root, dirs, files in os.walk(SRC):
         if not fname.lower().endswith(".png"):
             continue
         src_path = os.path.join(root, fname)
-        dst_path = os.path.join(DST, fname.lower())
+        dst_path = os.path.join(DST, fname)
 
         try:
             with Image.open(src_path) as img:

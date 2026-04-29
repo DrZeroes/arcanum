@@ -1417,27 +1417,39 @@ function ouvrirJournal(onglet) {
                 const ia=CAT_ORDER.indexOf(a),ib=CAT_ORDER.indexOf(b);
                 return (ia<0?999:ia)-(ib<0?999:ib);
             });
-            html += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">`;
+            // Pré-calcul des contenus par catégorie
+            const catContents = {};
+            sortedCats.forEach(cat=>{
+                const enemies = categories[cat];
+                const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
+                catContents[cid] = enemies.map(([id,def])=>renderCard(id,def)).join('');
+            });
+            html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">`;
             sortedCats.forEach(cat=>{
                 const enemies = categories[cat];
                 const disc = enemies.filter(([id])=>(bestiaireData[id]?.nbKills||0)>0||bestiaireData[id]?.premierVu).length;
                 const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
                 const icon = CAT_ICONS[cat] || '❓';
-                html += `<button onclick="var el=document.getElementById('${cid}');el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.barr').textContent=el.style.display==='none'?'▾':'▴';"
-                    style="background:#111;border:1px solid #2a2a2a;color:#ccc;padding:5px 9px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:5px;font-size:0.82em;white-space:nowrap;">
+                html += `<button id="btn_${cid}" onclick="(function(cid,btn){
+                        var zone=document.getElementById('bcat-zone');
+                        var prev=window._bcatActif;
+                        if(prev){var pb=document.getElementById('btn_'+prev);if(pb){pb.style.background='#111';pb.style.borderColor='#2a2a2a';pb.style.color='#ccc';}}
+                        if(prev===cid){zone.style.display='none';window._bcatActif=null;return;}
+                        window._bcatActif=cid;
+                        btn.style.background='#1a1030';btn.style.borderColor='#7c4dff';btn.style.color='#b39ddb';
+                        zone.innerHTML=window._bcatContents[cid]||'';
+                        zone.style.display='block';
+                    })('${cid}',this)"
+                    class="bcat-btn" style="background:#111;border:1px solid #2a2a2a;color:#ccc;padding:4px 8px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:4px;font-size:0.8em;white-space:nowrap;">
                     <span>${icon}</span><span>${cat}</span>
-                    <span style="color:${disc>0?'#4caf50':'#555'};font-size:0.78em;">${disc}/${enemies.length}</span>
-                    <span class="barr" style="color:#555;font-size:0.8em;">▾</span>
+                    <span style="color:${disc>0?'#4caf50':'#555'};font-size:0.75em;">${disc}/${enemies.length}</span>
                 </button>`;
             });
-            html += `</div>`;
-            sortedCats.forEach(cat=>{
-                const enemies = categories[cat];
-                const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
-                html += `<div id="${cid}" style="display:none;padding:6px 2px 2px 2px;margin-top:4px;">${enemies.map(([id,def])=>renderCard(id,def)).join('')}</div>`;
-            });
+            html += `</div><div id="bcat-zone" style="display:none;margin-top:6px;"></div>`;
 
             contenu.innerHTML = html || '<p style="color:#555;text-align:center;padding:20px;">Aucun ennemi découvert.</p>';
+            window._bcatActif = null;
+            window._bcatContents = catContents;
         });
     }
 

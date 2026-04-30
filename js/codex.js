@@ -37,14 +37,14 @@ const _MJ_RACE_TO_CAT = {
     'Animal':'Animaux','Insectoïde':'Insectoïdes',
     'Plante':'Plantes','Artificiel':'Créatures Artificielles','Fée':'Fées',
     'Troll':'Trolls','Humanoïde':'Humanoïdes',
-    'Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
+    'Araya':'Arayas','Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
     'Humain':'Humains','Nain':'Nains','Elfe':'Elfes','Elfe Noir':'Elfes',
     'Ork':'Orques','Orque':'Orques','Demi-Orc':'Orques',
     'Demi-Ogre':'Demi-Ogres','Gnome':'Gnomes','Halfelin':'Halfelins'
 };
 const _MJ_CAT_ICONS = {
     'Bêtes':'🐺','Singes':'🐒','Morts-vivants':'💀','Esprits':'👻','Démons':'😈',
-    'Élémentaires':'⚡','Araignées':'🕸','Dragons':'🐉','Golems':'🗿',
+    'Élémentaires':'⚡','Araignées':'🕸','Arayas':'🪼','Dragons':'🐉','Golems':'🗿',
     'Constructs':'⚙','Pestilentiels':'🦠','Animaux':'🐄','Insectoïdes':'🕷',
     'Plantes':'🌿','Créatures Artificielles':'🤖','Fées':'🧚','Trolls':'🪨',
     'Humanoïdes':'🧟','Kites':'🏹','Krags':'⛏','Reptiliens':'🦎',
@@ -53,7 +53,7 @@ const _MJ_CAT_ICONS = {
     'Assassins de la Main':'🔪','Autres':'❓'
 };
 const _MJ_CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires',
-    'Araignées','Dragons','Golems','Constructs','Pestilentiels','Animaux','Insectoïdes',
+    'Araignées','Arayas','Dragons','Golems','Constructs','Pestilentiels','Animaux','Insectoïdes',
     'Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes',
     'Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques',
     'Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
@@ -905,48 +905,13 @@ function mjAfficherInterfaceCombat() {
     const section = document.getElementById('mj-section-combat');
     if (!section || typeof ennemisData === 'undefined') return;
     _combatSelection = {};
+    window._cbtCatFilter = null;
 
     // Contexte rencontre donjon (si vient d'une rencontre)
     const rencontreCtx = window._rencontreDonjonContexte || null;
     window._rencontreDonjonContexte = null;
 
-    // Vérifie si un combat est déjà en cours
-    db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
-        const enCours = snap.val();
-
-        if (enCours && enCours.actif) {
-            const ordre      = enCours.ordre_jeu || [];
-            const tourIdx    = (enCours.tour_actuel || 0) % (ordre.length || 1);
-            const participant = ordre[tourIdx];
-            const ordreHtml  = ordre.map((p, i) =>
-                '<span style="color:' + (i === tourIdx ? '#ff6b6b' : '#555') + '; font-size:0.78em;">'
-                + (i === tourIdx ? '▶ ' : '') + p.nom + ' ⚡' + p.vitesse + '</span>'
-            ).join(' › ');
-
-            const ennemisHtml = (enCours.ennemis || []).map(e =>
-                (e.pvActuel <= 0 ? '☠ ' : '') + e.nom + ' — PV ' + e.pvActuel + '/' + e.pvMax
-            ).join('<br>');
-
-            section.innerHTML =
-                '<div style="background:rgba(139,0,0,0.2); border:1px solid #8b0000; border-radius:6px; padding:16px; margin-bottom:12px;">'
-                + '<div style="color:#ff6b6b; font-size:1.05em; font-weight:bold; margin-bottom:10px;">⚔ COMBAT EN COURS</div>'
-                + '<div style="margin-bottom:10px; line-height:1.8;">' + ordreHtml + '</div>'
-                + '<div style="color:#aaa; font-size:0.8em; margin-bottom:12px; border-top:1px solid #333; padding-top:8px;">' + ennemisHtml + '</div>'
-                + '<div style="color:#888; font-size:0.8em; margin-bottom:12px;">Tour : <strong style="color:#d4af37;">'
-                + (participant ? participant.nom : '?') + '</strong>'
-                + (participant && participant.type === 'ennemi' ? ' (ennemi — vous jouez)' : '') + '</div>'
-                + '<div style="display:flex; gap:8px;">'
-                + '<button onclick="mjTourSuivant()" style="flex:1; background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">▶ Tour suivant</button>'
-                + '<button onclick="ouvrirEcranCombat()" style="flex:1; background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:8px; cursor:pointer; border-radius:4px;">👁 Voir combat</button>'
-                + '<button onclick="mjTerminerCombat()" style="flex:1; background:#3a0000; color:#ff6b6b; border:1px solid #8b0000; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">🛑 Terminer</button>'
-                + '</div></div>';
-            return;
-        }
-
-        // Filtres combat
-        window._cbtCatFilter = null;
-
-        window._mjRafraichirCombatListe = function() {
+    window._mjRafraichirCombatListe = function() {
             const search = (document.getElementById('cbt-search')?.value || '').toLowerCase();
             const minNiv = parseInt(document.getElementById('cbt-niv-min')?.value) || 0;
             const maxNiv = parseInt(document.getElementById('cbt-niv-max')?.value) || 999;
@@ -1036,6 +1001,7 @@ function mjAfficherInterfaceCombat() {
             : '';
 
         section.innerHTML = `
+            <div id="cbt-combat-actif-banner"></div>
             ${banniereRencontre}
             <div style="margin-bottom:6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
                 <input id="cbt-search" type="text" placeholder="🔍 Nom / race..." oninput="window._mjRafraichirCombatListe()"
@@ -1060,6 +1026,37 @@ function mjAfficherInterfaceCombat() {
                 ⚔ LANCER LE COMBAT
             </button>`;
         window._mjRafraichirCombatListe();
+
+    // Vérifier si un combat est déjà en cours (asynchrone, après rendu de la liste)
+    db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
+        const enCours = snap.val();
+        if (!enCours || !enCours.actif) return;
+
+        const ordre      = enCours.ordre_jeu || [];
+        const tourIdx    = (enCours.tour_actuel || 0) % (ordre.length || 1);
+        const participant = ordre[tourIdx];
+        const ordreHtml  = ordre.map((p, i) =>
+            '<span style="color:' + (i === tourIdx ? '#ff6b6b' : '#555') + '; font-size:0.78em;">'
+            + (i === tourIdx ? '▶ ' : '') + p.nom + ' ⚡' + p.vitesse + '</span>'
+        ).join(' › ');
+        const ennemisHtml = (enCours.ennemis || []).map(e =>
+            (e.pvActuel <= 0 ? '☠ ' : '') + e.nom + ' — PV ' + e.pvActuel + '/' + e.pvMax
+        ).join('<br>');
+
+        const banner = document.getElementById('cbt-combat-actif-banner');
+        if (banner) banner.innerHTML =
+            '<div style="background:rgba(139,0,0,0.2); border:1px solid #8b0000; border-radius:6px; padding:16px; margin-bottom:12px;">'
+            + '<div style="color:#ff6b6b; font-size:1.05em; font-weight:bold; margin-bottom:10px;">⚔ COMBAT EN COURS</div>'
+            + '<div style="margin-bottom:10px; line-height:1.8;">' + ordreHtml + '</div>'
+            + '<div style="color:#aaa; font-size:0.8em; margin-bottom:12px; border-top:1px solid #333; padding-top:8px;">' + ennemisHtml + '</div>'
+            + '<div style="color:#888; font-size:0.8em; margin-bottom:12px;">Tour : <strong style="color:#d4af37;">'
+            + (participant ? participant.nom : '?') + '</strong>'
+            + (participant && participant.type === 'ennemi' ? ' (ennemi — vous jouez)' : '') + '</div>'
+            + '<div style="display:flex; gap:8px;">'
+            + '<button onclick="mjTourSuivant()" style="flex:1; background:#1a3a1a; color:#4caf50; border:1px solid #4caf50; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">▶ Tour suivant</button>'
+            + '<button onclick="ouvrirEcranCombat()" style="flex:1; background:#1a1a3a; color:#9575cd; border:1px solid #7c4dff; padding:8px; cursor:pointer; border-radius:4px;">👁 Voir combat</button>'
+            + '<button onclick="mjTerminerCombat()" style="flex:1; background:#3a0000; color:#ff6b6b; border:1px solid #8b0000; padding:8px; cursor:pointer; border-radius:4px; font-weight:bold;">🛑 Terminer</button>'
+            + '</div></div>';
     });
 }
 

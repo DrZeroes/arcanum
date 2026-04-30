@@ -951,36 +951,34 @@ function mjAfficherInterfaceCombat() {
                 const isUniq = cat === '★ Uniques';
                 const icon = isUniq ? '★' : (_MJ_CAT_ICONS[cat]||'❓');
                 const hdrColor = isUniq ? '#ce93d8' : '#888';
-                const hdrBg = isUniq ? '#0a0a1a' : '#0a0a0a';
+                const hdrBg = isUniq ? 'rgba(60,0,100,0.15)' : 'rgba(0,0,0,0.4)';
                 const hdrBorder = isUniq ? '#3a1a5a' : '#1e1410';
-                lignes += `<tr style="background:${hdrBg};"><td colspan="3" style="padding:5px 10px;color:${hdrColor};font-size:0.72em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid ${hdrBorder};">${icon} ${cat.toUpperCase()} (${grouped[cat].length})</td></tr>`;
+                lignes += `<div style="width:100%;background:${hdrBg};padding:4px 8px;color:${hdrColor};font-size:0.7em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid ${hdrBorder};border-top:1px solid ${hdrBorder};margin-top:3px;">${icon} ${cat.toUpperCase()} (${grouped[cat].length})</div>`;
                 for (const e of grouped[cat]) {
                     const fo = (e.statsBase?.FO||0)+(e.statsInvesties?.FO||0);
                     const ini = (e.statsBase?.IN||0)+(e.statsInvesties?.IN||0);
                     const pvMax = (fo*2)+ini+(e.boostPV||0);
-                    const nomColor = e.unique ? '#ce93d8' : '#ddd';
-                    lignes += `<tr style="border-bottom:1px solid #1e1410;${e.unique?'background:rgba(156,39,176,0.04);':''}">
-                        <td style="padding:5px 10px;">
-                            <span style="color:${nomColor};font-size:0.84em;">${e.nom}</span>
-                            <span style="color:#555;font-size:0.72em;"> · Niv.${e.niveau} · ❤${pvMax}</span>
-                            <div style="color:#4a4a4a;font-size:0.68em;">${e.race||'—'}</div>
-                        </td>
-                        <td style="padding:5px 8px;text-align:center;">
-                            <div style="display:inline-flex;align-items:center;gap:3px;">
-                                <button onclick="var v=Math.max(0,(parseInt(document.getElementById('qty-${e.id}').value)||0)-1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
-                                    style="width:22px;height:22px;background:#2a0a0a;border:1px solid #5a2a2a;color:#ff8a80;border-radius:3px;cursor:pointer;font-size:0.9em;line-height:1;padding:0;">−</button>
-                                <input type="number" id="qty-${e.id}" min="0" max="20" value="${_combatSelection[e.id]||0}"
-                                    style="width:34px;background:#111;color:#fff;border:1px solid #444;padding:2px;text-align:center;border-radius:3px;font-size:0.85em;"
-                                    onchange="_combatSelection['${e.id}']=parseInt(this.value)||0">
-                                <button onclick="var v=Math.min(20,(parseInt(document.getElementById('qty-${e.id}').value)||0)+1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
-                                    style="width:22px;height:22px;background:#0a2a0a;border:1px solid #2a5a2a;color:#a5d6a7;border-radius:3px;cursor:pointer;font-size:0.9em;line-height:1;padding:0;">+</button>
+                    const nomColor = e.unique ? '#ce93d8' : '#ccc';
+                    const zones = (e.zones||[]).slice(0,2).join(', ');
+                    lignes += `<div style="flex:1;min-width:200px;max-width:calc(50% - 3px);box-sizing:border-box;padding:4px 6px;border:1px solid ${e.unique?'#3a1a5a':'#1e1410'};border-radius:3px;background:${e.unique?'rgba(80,0,120,0.06)':'#0c0c0c'};">
+                        <div style="display:flex;align-items:center;gap:3px;">
+                            <div style="flex:1;min-width:0;">
+                                <span style="color:${nomColor};font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${e.nom}</span>
+                                <span style="color:#444;font-size:0.65em;">Niv.${e.niveau} ❤${pvMax}</span>
                             </div>
-                        </td>
-                        <td style="padding:5px 8px;color:#555;font-size:0.68em;text-align:right;">${(e.zones||[]).slice(0,1).join('')}</td>
-                    </tr>`;
+                            <button onclick="var v=Math.max(0,(parseInt(document.getElementById('qty-${e.id}').value)||0)-1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
+                                style="width:20px;height:20px;background:#2a0a0a;border:1px solid #5a2a2a;color:#ff8a80;border-radius:3px;cursor:pointer;font-size:0.85em;line-height:1;padding:0;flex-shrink:0;">−</button>
+                            <input type="number" id="qty-${e.id}" min="0" max="20" value="${_combatSelection[e.id]||0}"
+                                style="width:28px;background:#111;color:#fff;border:1px solid #444;padding:1px;text-align:center;border-radius:3px;font-size:0.8em;flex-shrink:0;"
+                                onchange="_combatSelection['${e.id}']=parseInt(this.value)||0">
+                            <button onclick="var v=Math.min(20,(parseInt(document.getElementById('qty-${e.id}').value)||0)+1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
+                                style="width:20px;height:20px;background:#0a2a0a;border:1px solid #2a5a2a;color:#a5d6a7;border-radius:3px;cursor:pointer;font-size:0.85em;line-height:1;padding:0;flex-shrink:0;">+</button>
+                        </div>
+                        <div style="color:#3a3a3a;font-size:0.63em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.race||'—'}${zones?' · '+zones:''}</div>
+                    </div>`;
                 }
             }
-            if (!lignes) lignes = `<tr><td colspan="3" style="padding:16px;text-align:center;color:#555;font-size:0.85em;">Aucun ennemi correspondant</td></tr>`;
+            if (!lignes) lignes = `<div style="padding:16px;text-align:center;color:#555;font-size:0.85em;width:100%;">Aucun ennemi correspondant</div>`;
             const tbl = document.getElementById('tbl-combat-ennemis');
             if (tbl) tbl.innerHTML = lignes;
         };
@@ -1020,7 +1018,7 @@ function mjAfficherInterfaceCombat() {
                 ${catBtns}
             </div>
             <div style="max-height:45vh;overflow-y:auto;border:1px solid #333;border-radius:4px;margin-bottom:10px;">
-                <table style="width:100%;border-collapse:collapse;"><tbody id="tbl-combat-ennemis"></tbody></table>
+                <div id="tbl-combat-ennemis" style="display:flex;flex-wrap:wrap;gap:3px;padding:4px;align-content:flex-start;"></div>
             </div>
             <button onclick="mjLancerCombat()" style="width:100%;background:#8b0000;color:white;border:none;padding:12px;cursor:pointer;font-size:1em;font-weight:bold;border-radius:4px;letter-spacing:0.05em;">
                 ⚔ LANCER LE COMBAT

@@ -101,8 +101,11 @@ function _afficherResultatCombat(resultat) {
         statut.style.fontWeight = 'bold';
     }
     if (panel) {
+        const btnFermer = !window.estMJ
+            ? `<div style="margin-top:16px;"><button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button></div>`
+            : '';
         panel.innerHTML = '<div style="text-align:center;font-size:2em;padding:24px;">'
-            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + '</div>';
+            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + btnFermer + '</div>';
     }
 }
 
@@ -296,7 +299,7 @@ function _afficherOrdreTour(data) {
             const eInst = (data.ennemis || []).find(e => e.instanceId === p.instanceId);
             const eId   = p.id || eInst?.id;
             const eDef  = (typeof ennemisData !== 'undefined' && eId) ? ennemisData[eId] : null;
-            if (eDef?.portrait) portraitUrl = 'docs/img/portraits/npc-ennemis/' + eDef.portrait;
+            if (eDef?.portrait) portraitUrl = 'docs/img/portraits/' + eDef.portrait;
         }
         const imgHtml = portraitUrl
             ? `<img src="${portraitUrl}" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:3px;display:block;margin:0 auto 2px;" onerror="this.style.display='none'">`
@@ -328,7 +331,7 @@ function _afficherEnnemis(data) {
         const portraitFile = (typeof ennemisData !== 'undefined' && e.id && ennemisData[e.id]?.portrait)
             ? ennemisData[e.id].portrait : null;
         const portraitHtml = portraitFile
-            ? `<img src="docs/img/portraits/npc-ennemis/${portraitFile}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid #333;" onerror="this.style.display='none'">`
+            ? `<img src="docs/img/portraits/${portraitFile}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid #333;" onerror="this.style.display='none'">`
             : '';
         // FT ennemi : affiché si disponible (initialisé après premier passe-tour)
         const ftMax    = e.ftMax    ?? null;
@@ -372,7 +375,7 @@ function _afficherEnnemis(data) {
                     return tags ? `<div style="margin-top:4px;">${tags}</div>` : '';
                 })()}
                 ${estMort ? '<div class="combat-mort-label">☠ Vaincu</div>' : ''}
-                </div></div>`;
+                </div></div></div>`;
     }).join('');
 }
 

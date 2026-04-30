@@ -1263,17 +1263,17 @@ function ouvrirJournal(onglet) {
                 'Insectoïde':'Insectoïdes','Singe':'Singes',
                 'Plante':'Plantes','Artificiel':'Créatures Artificielles','Fée':'Fées',
                 'Troll':'Trolls','Humanoïde':'Humanoïdes',
-                'Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
+                'Araya':'Arayas','Kite':'Kites','Krag':'Krags','Reptilien':'Reptiliens',
                 'Humain':'Humains','Nain':'Nains',
                 'Elfe':'Elfes','Elfe Noir':'Elfes',
                 'Ork':'Orques','Orque':'Orques','Demi-Orc':'Orques',
                 'Demi-Ogre':'Demi-Ogres','Gnome':'Gnomes','Halfelin':'Halfelins'
             };
-            const CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires','Insectoïdes','Araignées','Dragons','Golems','Constructs','Pestilentiels','Animaux','Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes','Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques','Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
+            const CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires','Insectoïdes','Araignées','Arayas','Dragons','Golems','Constructs','Pestilentiels','Animaux','Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes','Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques','Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
             const CAT_ICONS = {
                 'Bêtes':'🐺','Singes':'🐒','Morts-vivants':'💀','Esprits':'👻','Démons':'😈',
                 'Élémentaires':'⚡','Insectoïdes':'🕷','Araignées':'🕸','Dragons':'🐉',
-                'Golems':'🗿','Constructs':'⚙','Pestilentiels':'🦠','Animaux':'🐄',
+                'Arayas':'🪼','Golems':'🗿','Constructs':'⚙','Pestilentiels':'🦠','Animaux':'🐄',
                 'Plantes':'🌿','Créatures Artificielles':'🤖','Fées':'🧚','Trolls':'🪨',
                 'Humanoïdes':'🧟','Kites':'🏹','Krags':'⛏','Reptiliens':'🦎',
                 'Humains':'🧑','Nains':'⚒','Elfes':'🧝','Orques':'💢',

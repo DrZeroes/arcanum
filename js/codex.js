@@ -1001,9 +1001,15 @@ function mjAfficherInterfaceCombat() {
                             <div style="color:#4a4a4a;font-size:0.68em;">${e.race||'—'}</div>
                         </td>
                         <td style="padding:5px 8px;text-align:center;">
-                            <input type="number" id="qty-${e.id}" min="0" max="9" value="${_combatSelection[e.id]||0}"
-                                style="width:42px;background:#111;color:#fff;border:1px solid #444;padding:3px;text-align:center;border-radius:3px;font-size:0.85em;"
-                                onchange="_combatSelection['${e.id}']=parseInt(this.value)||0">
+                            <div style="display:inline-flex;align-items:center;gap:3px;">
+                                <button onclick="var v=Math.max(0,(parseInt(document.getElementById('qty-${e.id}').value)||0)-1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
+                                    style="width:22px;height:22px;background:#2a0a0a;border:1px solid #5a2a2a;color:#ff8a80;border-radius:3px;cursor:pointer;font-size:0.9em;line-height:1;padding:0;">−</button>
+                                <input type="number" id="qty-${e.id}" min="0" max="20" value="${_combatSelection[e.id]||0}"
+                                    style="width:34px;background:#111;color:#fff;border:1px solid #444;padding:2px;text-align:center;border-radius:3px;font-size:0.85em;"
+                                    onchange="_combatSelection['${e.id}']=parseInt(this.value)||0">
+                                <button onclick="var v=Math.min(20,(parseInt(document.getElementById('qty-${e.id}').value)||0)+1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
+                                    style="width:22px;height:22px;background:#0a2a0a;border:1px solid #2a5a2a;color:#a5d6a7;border-radius:3px;cursor:pointer;font-size:0.9em;line-height:1;padding:0;">+</button>
+                            </div>
                         </td>
                         <td style="padding:5px 8px;color:#555;font-size:0.68em;text-align:right;">${(e.zones||[]).slice(0,1).join('')}</td>
                     </tr>`;

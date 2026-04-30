@@ -4052,12 +4052,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya": {
-        nom: "Araya l'Éternelle", niveau: 18, race: "Humain",
-        unique: true,
+        nom: "Araya", niveau: 18, race: "Araya",
         statsBase: {FO:13, CN:12, DX:12, IN:17, MA:50, CH:10},
         statsInvesties: {}, compInvesties: {},
         magieBase: {"Feu":3, "Energie":2, "Mental":2},
-        portrait: "npc-ennemis/unique/araya.png",
+        portrait: "npc-ennemis/monstres/araya.png",
         pvActuel: 90, ftActuel: 90, boostPV: 40, boostFT: 40,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 1500, argent: 100,
@@ -4067,12 +4066,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_blessed": {
-        nom: "Araya Bénie", niveau: 20, race: "Humain",
-        unique: true,
+        nom: "Araya Bénie", niveau: 20, race: "Araya",
         statsBase: {FO:13, CN:13, DX:13, IN:18, MA:55, CH:12},
         statsInvesties: {}, compInvesties: {},
         magieBase: {"Feu":3, "Energie":2, "Mental":3, "Nature":1},
-        portrait: "npc-ennemis/unique/araya_blessed.png",
+        portrait: "npc-ennemis/monstres/araya_blessed.png",
         pvActuel: 98, ftActuel: 98, boostPV: 46, boostFT: 46,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 2000, argent: 150,
@@ -4082,12 +4080,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_cursed": {
-        nom: "Araya Maudite", niveau: 19, race: "Humain",
-        unique: true,
+        nom: "Araya Maudite", niveau: 19, race: "Araya",
         statsBase: {FO:14, CN:12, DX:12, IN:17, MA:50, CH:5},
         statsInvesties: {}, compInvesties: {},
-        magieBase: {"Nécromancien":3, "Feu":2, "Mental":1},
-        portrait: "npc-ennemis/unique/araya_cursed.png",
+        magieBase: {"Nécromancie noire":3, "Feu":2, "Mental":1},
+        portrait: "npc-ennemis/monstres/araya_cursed.png",
         pvActuel: 94, ftActuel: 94, boostPV: 42, boostFT: 42,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 1800, argent: 80,
@@ -4097,12 +4094,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_ascended": {
-        nom: "Araya Ascendante", niveau: 22, race: "Humain",
-        unique: true,
+        nom: "Araya Ascendante", niveau: 22, race: "Araya",
         statsBase: {FO:14, CN:14, DX:14, IN:20, MA:60, CH:14},
         statsInvesties: {}, compInvesties: {},
         magieBase: {"Feu":4, "Energie":3, "Mental":3, "Nature":2},
-        portrait: "npc-ennemis/unique/araya_ascended.png",
+        portrait: "npc-ennemis/monstres/araya_ascended.png",
         pvActuel: 110, ftActuel: 112, boostPV: 52, boostFT: 54,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 3000, argent: 200,
@@ -4112,12 +4108,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_fallen": {
-        nom: "Araya Déchue", niveau: 17, race: "Humain",
-        unique: true,
+        nom: "Araya Déchue", niveau: 17, race: "Araya",
         statsBase: {FO:12, CN:11, DX:11, IN:15, MA:45, CH:4},
         statsInvesties: {}, compInvesties: {},
-        magieBase: {"Nécromancien":4, "Mental":2},
-        portrait: "npc-ennemis/unique/araya_fallen.png",
+        magieBase: {"Nécromancie noire":4, "Mental":2},
+        portrait: "npc-ennemis/monstres/araya_fallen.png",
         pvActuel: 84, ftActuel: 84, boostPV: 36, boostFT: 36,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 1400, argent: 60,
@@ -4127,12 +4122,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_shadow": {
-        nom: "Ombre d'Araya", niveau: 16, race: "Esprit",
-        unique: true,
+        nom: "Ombre d'Araya", niveau: 16, race: "Araya",
         statsBase: {FO:10, CN:10, DX:15, IN:16, MA:45, CH:8},
         statsInvesties: {}, compInvesties: {},
-        magieBase: {"Mental":3, "Nécromancien":2},
-        portrait: "npc-ennemis/unique/araya_shadow.png",
+        magieBase: {"Mental":3, "Nécromancie noire":2},
+        portrait: "npc-ennemis/monstres/araya_shadow.png",
         pvActuel: 76, ftActuel: 74, boostPV: 32, boostFT: 30,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 1200, argent: 0,
@@ -4142,12 +4136,11 @@ const ennemisData = {
     },
     // Créé par IA - stats estimées
     "araya_spirit": {
-        nom: "Esprit d'Araya", niveau: 18, race: "Esprit",
-        unique: true,
+        nom: "Esprit d'Araya", niveau: 18, race: "Araya",
         statsBase: {FO:8, CN:10, DX:16, IN:18, MA:55, CH:10},
         statsInvesties: {}, compInvesties: {},
         magieBase: {"Mental":4, "Energie":2, "Feu":1},
-        portrait: "npc-ennemis/unique/araya_spirit.png",
+        portrait: "npc-ennemis/monstres/araya_spirit.png",
         pvActuel: 86, ftActuel: 80, boostPV: 38, boostFT: 34,
         equipement: {tete:null, torse:null, gants:null, bottes:null, anneau:null, amulette:null, main_droite:null, main_gauche:null},
         xp: 1600, argent: 0,

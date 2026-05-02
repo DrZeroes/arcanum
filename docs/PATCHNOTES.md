@@ -2,6 +2,68 @@
 
 ---
 
+## v1.0 — Mai 2026
+
+### Bestiaire — vu-non-tué
+
+- Quand `premierVu` est défini mais `nbKills === 0`, le nom et le portrait du monstre sont maintenant visibles (plus de `????`)
+- Couleur du nom différenciée : rouge foncé si vu seulement (vs rouge vif si tué)
+
+### Codex MJ — Ennemis : refonte affichage
+
+- Grille multi-colonnes (cartes flex-wrap, 2 par ligne) au lieu de la table
+- Barre de filtres dynamique : recherche texte, toggle Uniques, niveau min/max
+- Toggle **🐺 Par Espèce / 📍 Par Zone** — groupement dynamique avec entêtes de catégorie
+- Chaque carte : nom, badges tués/vus, Niv/PV/FT/XP, bouton ⚔ Stats, sous-titre race · zones · loot
+
+### Succès — Critiques & Dé
+
+**Combat :**
+- `critique_5/10/50` (`coups_critiques`) — Coup de Maître / Lame Acérée / Perfection Mortelle
+- `echec_crit_5/10/50` (`echecs_critiques`) — Maladroit / Catastrophique / Désastre Ambulant
+- Comptés automatiquement dans `lancerAttaqueMelee` après le tirage `_lancerCritique`
+
+**Dé d'accueil (d20) :**
+- `de_1_une_fois` / `de_1_cinq` (`de_as_1`) — Pas de Chance / Maudit
+- `de_10_une_fois` / `de_10_cinq` (`de_as_10`) — Dans la Moyenne / Régulier
+- `de_deux_1_suite` / `de_deux_10_suite` — Double Fléau / Double Médiocrité (streak en mémoire `window._dernierRollD20`)
+
+### Filtre zone — onglet Combat
+
+- Toggle **🐺 Espèce / 📍 Zone** ajouté dans la barre de filtres de l'onglet Combat MJ
+- Même logique de groupement que le Codex Ennemis
+
+### Combat de Rêve
+
+- Nouvel onglet **💤 Rêve** dans le journal joueur
+- Affiche tous les monstres déjà rencontrés (vus ou tués, hors uniques)
+- Bouton ▶ sur chaque carte → lance un combat solo contre ce monstre
+- Sans XP, sans loot, sans argent, sans comptage bestiaire ni stats de session, sans achievements
+- Firebase `combat_actif` avec `reve: true` + `reve_initiateur` → seul l'initiateur entre en combat
+- Résultat : badge "💤 Combat de Rêve — sans conséquences" + bouton Fermer automatique
+- Combat nettoyé (supprimé de Firebase) automatiquement 4 s après victoire ou défaite
+
+### Codex MJ — Marchands / Coffres / Lieux / Musique : grille multi-colonnes
+
+- Tous les onglets utilisent désormais une grille flex-wrap (2 cartes par ligne) au lieu d'une liste simple
+- Chaque carte : id en monospace, nom, bouton d'action pleine largeur
+- Boutons **🌐 ALL Lieux** et **♻️ RAZ Lieux** déplacés dans l'onglet Lieux uniquement (retirés de l'en-tête global)
+
+### Marchands — stock partagé & limité
+
+- Inventaire et argent du marchand stockés dans Firebase (`parties/{session}/marchands_stock/{id}`)
+- Initialisé depuis `marchandsData` à la première ouverture ; partagé entre tous les joueurs
+- Chaque achat/vente/identification met à jour le stock commun en temps réel
+- Bouton ♻️ (MJ) : réinitialise l'inventaire ET l'argent à leur valeur de base
+
+### Codex MJ — Coffres & Marchands : Voir / Envoyer
+
+- **👁 Voir** : modal d'aperçu du contenu — pour les marchands, affiche stock actuel vs inventaire complet en tableau 3 colonnes (vert = intact, orange = partiel, rouge ❌ = épuisé) ; modal s'ouvre immédiatement (⏳) sans attendre Firebase
+- **📤 Envoyer** : sélection du joueur destinataire ; coffre → `fouille_active`, marchand → `marchand_actif`
+- **♻️** sur la carte et dans le modal Voir : réinitialise stock + argent
+
+---
+
 ## v0.11 — Avril 2026
 
 ### Effets de Rang (Apprenti / Expert / Maître) — 16 compétences

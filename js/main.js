@@ -177,6 +177,17 @@ function lancerD20Accueil() {
             el.classList.add('pop');
             if (isCrit) el.classList.add('crit');
             btn.classList.remove('rolling');
+            // Succès liés au dé d'accueil
+            if (typeof _incStatPartie === 'function' && typeof _debloquerSucces === 'function') {
+                if (roll === 1) {
+                    _incStatPartie('de_as_1', 1);
+                    if (window._dernierRollD20 === 1) _debloquerSucces('de_deux_1_suite');
+                } else if (roll === 10) {
+                    _incStatPartie('de_as_10', 1);
+                    if (window._dernierRollD20 === 10) _debloquerSucces('de_deux_10_suite');
+                }
+                window._dernierRollD20 = roll;
+            }
         }
     }, 60);
 }
@@ -851,36 +862,51 @@ function ouvrirPatchNotes(onglet) {
 
     if (onglet === 'todo') {
         contenu.innerHTML = `
-            <div style="margin-bottom:16px;">
-                <h3 style="color:#4caf50;margin:0 0 8px;font-size:0.95em;">✅ Terminé</h3>
-                <ul style="margin:0;padding-left:18px;color:#666;font-size:0.88em;line-height:1.7;">
-                    <li>Magie temporaire (buffs 3 tours)</li>
-                    <li>Bénédictions & Malédictions (MJ → joueur)</li>
-                    <li>Système de Quêtes complet</li>
-                    <li>Exploration de Donjon (grille, brouillard, événements)</li>
-                    <li>Coffres : persistance multi-joueurs, clavier ZQSD/flèches</li>
-                    <li>Quêtes : journal 4 onglets, tri statut/date, couleurs complètes</li>
-                    <li>Poison : bypass armure, ne peut pas tuer (surplus → FT)</li>
-                    <li>Level up : soin complet PV + FT</li>
-                    <li>Don d'or via modal (même UI que don d'objet)</li>
-                    <li>Refonte sorts de combat — Cat. 1 (dégâts), 2 (CC), 3 (buffs groupe/indiv.), 4 (initiative)</li>
-                    <li>Détection pièges : chance de base sans compétence</li>
-                    <li>Succès Steam-like (57 succès, 13 catégories)</li>
-                    <li>31 compagnons avec portraits, équipement, fiche complète</li>
-                    <li>Modal MJ don compagnon, RAZ, mémoire de progression</li>
-                    <li>Portraits dans frise d'action et onglet Groupe</li>
-                    <li>Sorts Cat. 5 — Incarnations Air, Pierre, Feu (buffPersistant)</li>
-                    <li>Sort Déverrouillage magique (donjon)</li>
-                    <li>Pièges sur coffres/portes (déclenchement à l'ouverture)</li>
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+                <h3 style="color:#9c7fd4;margin:0 0 8px;font-size:0.95em;">🗺 Donjon</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Étages multiples (escaliers, transition entre niveaux)</li>
+                    <li>Événements aléatoires enrichis (PNJ errant, autel, inscription)</li>
+                    <li>Mini-carte mémorisée (cases visitées restent visibles après brouillard)</li>
+                    <li>Portes secrètes</li>
                 </ul>
             </div>
-            <div>
-                <h3 style="color:#f0b429;margin:0 0 8px;font-size:0.95em;">🔜 À faire</h3>
-                <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.88em;line-height:1.7;">
-                    <li>Incarnation d'Eau (compléter Cat. 5)</li>
-                    <li>Sort Détection de l'invisible (Cat. 6)</li>
-                    <li>Attribution XP pour kills par poison</li>
-                    <li>Équipement compagnon propagé dans les calculs de dégâts en combat</li>
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+                <h3 style="color:#ef9a9a;margin:0 0 8px;font-size:0.95em;">⚔ Combat</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Sorts de Cat. 6+ (offensive/défensive avancée)</li>
+                    <li>Effets de statut supplémentaires (brûlure, électrocution, saignement)</li>
+                    <li>IA ennemie variée (fuyards, soigneurs, ciblage prioritaire)</li>
+                    <li>Résurrection en combat (sort ou consommable)</li>
+                </ul>
+            </div>
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+                <h3 style="color:#4fc3f7;margin:0 0 8px;font-size:0.95em;">👥 Multijoueur / MJ</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Chat en jeu (journal textuel temps réel entre joueurs)</li>
+                    <li>Notes de session MJ (bloc-notes persistant Firebase)</li>
+                    <li>Historique de combat (log post-combat consultable)</li>
+                </ul>
+            </div>
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+                <h3 style="color:#a5d6a7;margin:0 0 8px;font-size:0.95em;">📋 Journal / Progression</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Onglet Ennemis uniques dans le journal joueur (liste des boss vaincus)</li>
+                    <li>Statistiques cumulatives multi-sessions</li>
+                </ul>
+            </div>
+            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+                <h3 style="color:#ffd700;margin:0 0 8px;font-size:0.95em;">🛒 Économie</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Artisanat / réparation via PNJ ou matériaux lootés</li>
+                    <li>Bourse dynamique (prix variables selon offre/demande)</li>
+                </ul>
+            </div>
+            <div style="margin-bottom:0;">
+                <h3 style="color:#80cbc4;margin:0 0 8px;font-size:0.95em;">📱 UX</h3>
+                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
+                    <li>Support mobile amélioré (grilles combat/donjon sur petit écran)</li>
+                    <li>Raccourcis clavier en combat (1-9 pour actions)</li>
                 </ul>
             </div>`;
         modal.style.display = 'flex';
@@ -889,83 +915,85 @@ function ouvrirPatchNotes(onglet) {
 
     contenu.innerHTML = `
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
-            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.10 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Système de Compagnons complet, portraits, fiche, level-up, RAZ</p>
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v1.0 — Mai 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Bestiaire, Codex MJ Ennemis, Combat de Rêve, Succès dé & critiques</p>
             <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#d4af37;">🤝 31 Compagnons</strong> — équipement par défaut, portraits, règles spéciales (slots bloqués, arme obligatoire, prndSlot)</li>
-                <li><strong style="color:#b39ddb;">🖼 Portraits</strong> — miniatures dans la frise d'action (combat + donjon), cartes compagnon, onglet Groupe (48×48 joueur + 32×32 compagnons)</li>
-                <li><strong style="color:#81c784;">📋 Fiche complète</strong> — modal stats/compétences/magie/tech/équipement accessible joueur ET MJ</li>
-                <li><strong style="color:#4fc3f7;">🎁 Modal don MJ</strong> — portraits, recherche, compagnons déjà assignés grisés en temps réel</li>
-                <li><strong style="color:#ffb74d;">🌟 Level-up prérequis</strong> — plafonds (stats ≤ 10, comp ≤ 20, magie/tech ≤ 5) + stat gouvernante ≥ 7 avant skill</li>
-                <li><strong style="color:#ff9800;">🔄 RAZ compagnon</strong> (MJ) — remet à zéro progression + inventaire avec confirmation</li>
-                <li><strong style="color:#90a4ae;">💾 Mémoire de progression</strong> — niveau/XP/stats/équipement préservés au renvoi et à la réattribution</li>
-                <li><strong style="color:#ef9a9a;">🐛 Bugs</strong> — compagnons KO au début du combat, ennemis ne ciblaient pas les alliés, sorts buff ciblaient uniquement soi, équipement fiche ≠ équipement live</li>
+                <li><strong style="color:#ef9a9a;">🐾 Bestiaire</strong> — monstre vu-non-tué : nom + portrait désormais visibles (plus de ????)</li>
+                <li><strong style="color:#4fc3f7;">📖 Codex MJ — Ennemis</strong> — grille multi-colonnes ; filtre Espèce / Zone dans onglets Codex ET Combat</li>
+                <li><strong style="color:#80cbc4;">💤 Combat de Rêve</strong> — onglet Rêve dans le journal joueur ; affronte un ennemi déjà rencontré sans XP, loot, ni comptage</li>
+                <li><strong style="color:#ffd700;">🏆 Succès</strong> — 12 nouveaux : coups critiques ×3, échecs critiques ×3, dé accueil (1 / 5×1 / 10 / 5×10 / deux 1 suite / deux 10 suite)</li>
+                <li><strong style="color:#a5d6a7;">🗂 Codex MJ — Marchands / Coffres / Lieux / Musique</strong> — affichage en grille multi-colonnes ; boutons ALL Lieux / RAZ Lieux déplacés dans l'onglet Lieux uniquement</li>
+                <li><strong style="color:#ce93d8;">🛒 Marchands — stock partagé & limité</strong> — inventaire et argent stockés dans Firebase ; partagés entre tous les joueurs ; chaque achat/vente décrémente le stock commun</li>
+                <li><strong style="color:#80cbc4;">👁 Codex MJ — Coffres & Marchands</strong> — bouton Voir : aperçu du contenu (stock actuel vs inventaire complet pour marchands) ; bouton Envoyer : envoie le coffre/marchand à un joueur au choix ; bouton ♻️ : réinitialise le stock et l'argent</li>
+                <li><strong style="color:#ffb74d;">🔓 Bestiaire MJ — déverrouillage progressif</strong> — 3 paliers (×1 / ×3 / ×5 kills) pour révéler nom→équipement→magie/résistances ; badge ⚔ N/next sur les cartes ; ennemis uniques débloquables manuellement</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.10 — Avril 2026</h3>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>31 Compagnons</li>
+                <li>Portraits (frise, cartes compagnon, onglet Groupe)</li>
+                <li>Fiche complète joueur & MJ</li>
+                <li>Modal don MJ</li>
+                <li>Level-up prérequis</li>
+                <li>RAZ compagnon (MJ)</li>
+                <li>Mémoire de progression</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.9 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Système de Succès, refonte Codex objets</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#ffd700;">🏆 Succès</strong> — 5ᵉ onglet du journal ; 57 succès en 13 catégories (Combat, Magie, Survie, Exploration, Richesse, Équipe, Vol, Artisan, Maîtrise…) ; cartes colorées + date au déblocage ; accordéon par catégorie</li>
-                <li><strong style="color:#ffd700;">🏆 Maîtrise</strong> — 45 succès de maîtrise vérifiés au level-up : stats à 20, toutes les écoles de magie/tech complètes, tous les skills à 20</li>
-                <li><strong style="color:#ffd700;">🏆 MJ</strong> — débloquer / révoquer les succès par joueur depuis le Codex ; sync Firebase temps réel</li>
-                <li><strong style="color:#ef9a9a;">💣 Codex objets</strong> — Explosifs/grenades/pièges → type <em>explosif</em> (TEC) ; Énergie/Carburant → type <em>munition</em> (MUN) ; Bijoux → section Armures ; TEC14 donne +15 désamorçage</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>57 Succès en 13 catégories</li>
+                <li>45 Succès de Maîtrise (level-up)</li>
+                <li>Déblocage / révocation succès MJ</li>
+                <li>Refonte Codex objets (explosifs, munitions, bijoux)</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.8 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Refonte sorts de combat (Cat. 1→4), buffs de groupe, initiative avancée</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#ce93d8;">⚔ Sorts offensifs</strong> — Choc/Éclair/Boule de feu avec effets de zone ; Vapeurs toxiques (poison) ; Nuée d'insectes (ralenti) ; Désintégration/Suppression de la vie (ROLL kill)</li>
-                <li><strong style="color:#9575cd;">🧠 Contrôle / CC</strong> — Cauchemar (AoE push) ; Pétrification (immunité physique) ; Enchevêtrement (vitesse /2, maintien ROLL) ; Stase, Domination, Entrave ; Dissipation des sortilèges (efface tous les effets ennemis)</li>
-                <li><strong style="color:#66bb6a;">🛡 Buffs groupe</strong> — Mur de pierres/force (−20% phys) ; Mur de feu (riposte 30%) ; Bouclier mystique (−20% magie) ; Brouillard (+20 esquive) ; Régénération (+3 PV/tour) ; Sanctuaire (morts-vivants bloqués) — drain FT/tour, dissipation auto</li>
-                <li><strong style="color:#4fc3f7;">✨ Buffs individuels</strong> — Bouclier de protection (−25% phys, se brise) ; Hâte (×2 vitesse, 3 tours) ; Occultation (−10% dég, +10 esq) ; Résistance aux sortilèges (+25 RM) ; Invisibilité (caché des cibles, drain FT)</li>
-                <li><strong style="color:#fff176;">⏩ Initiative</strong> — Distorsion spatiale (choix ▲ Devant / ▼ Derrière au prochain round) ; Altération temporelle (AoE vitesse /2, annulable) ; Tempus Fugit (alliés ×3 + AoE ralenti, annulable)</li>
-                <li>Détection pièges : 10% de base sans compétence (portée adjacente uniquement)</li>
-                <li>Bandeau buffs de groupe actifs sous la frise d'initiative</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>Sorts offensifs de combat (Cat. 1→4)</li>
+                <li>Sorts de contrôle / CC</li>
+                <li>Buffs de groupe</li>
+                <li>Buffs individuels</li>
+                <li>Sorts d'initiative avancée</li>
+                <li>Détection pièges de base</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.7 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon (améliorations), quêtes, poison, level up, inventaire</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#4caf50;">📜 Journal</strong> — 4 onglets (Quêtes · Bénédictions · Antécédent · Stats) ; XP/or cachés joueur ; couleurs complètes (vert/rouge) ; tri par statut ou date ↑↓</li>
-                <li><strong style="color:#9c7fd4;">🗺 Donjon</strong> — clavier ZQSD + flèches ; coffres persistants (📭 uniquement si tout pris) ; bouton ré-interaction sur place ; crocheter/frapper coûte le tour ; items/sorts bloqués hors tour</li>
-                <li><strong style="color:#9c7fd4;">🗺 Donjon</strong> — rencontre met le jeu en pause (bandeau rouge joueur) jusqu'à l'action du MJ</li>
-                <li><strong style="color:#ff8080;">☠ Poison</strong> — bypass armure ; ne peut pas tuer (surplus sur FT) ; log de combat</li>
-                <li>Level up : soin complet PV + FT</li>
-                <li>Don d'or via modal joueur (sélection par bouton + champ montant)</li>
-                <li>Inventaire équipé : durabilité affichée une seule fois (plus de doublon)</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>Journal 4 onglets (Quêtes / Bénédictions / Antécédent / Stats)</li>
+                <li>Donjon amélioré (clavier, coffres persistants, tour requis)</li>
+                <li>Poison amélioré (bypass armure, surplus FT)</li>
+                <li>Level-up : soin complet PV + FT</li>
+                <li>Don d'or MJ</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.6 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon, quêtes, bénédictions, armes rapides, magie temporaire</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li><strong style="color:#9c7fd4;">🗺 Système de Donjon</strong> — MJ crée la grille et la lance ; joueurs se déplacent tour par tour avec brouillard de guerre ; pièges, coffres, découvertes, rencontres ; journal temps réel</li>
-                <li><strong style="color:#4caf50;">📜 Système de Quêtes</strong> — MJ : créer/valider/échouer depuis le Codex ; joueur : journal avec statuts colorés ; récompenses XP + or distribuées automatiquement</li>
-                <li><strong style="color:#ffd700;">✨ Bénédictions & Malédictions</strong> — le MJ attribue des effets (stats, PV/FT, compétences) ; badges colorés sur l'accueil et la fiche</li>
-                <li><strong style="color:#f0b429;">⚡ Armes & sorts rapides</strong> — dague, couteau, rapière, revolver, fusil, sort Blessure : attaque deux fois par tour</li>
-                <li><strong style="color:#80cbc4;">✨ Magie temporaire</strong> — sorts de stat, buff 3 tours, rapides, XP +2</li>
-                <li>Vol à la tire : recherche, catégories, or libre ; formule DX×3 + comp×4</li>
-                <li>Firebase sécurisé + correction auth race condition</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>Système de Donjon</li>
+                <li>Système de Quêtes</li>
+                <li>Bénédictions & Malédictions</li>
+                <li>Armes & sorts rapides</li>
+                <li>Magie temporaire</li>
+                <li>Vol à la tire</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.5 — Avril 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Poison, combat, multijoueur</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li>Poison : guérison avant dégâts, 15% PV max/tour</li>
-                <li>Mort en combat : résurrection requise ; défaite auto si tous KO</li>
-                <li>Corrections multijoueur (PV morts, soins MJ, doublons cartes)</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>Poison amélioré</li>
+                <li>Mort en combat & résurrection</li>
+                <li>Corrections multijoueur</li>
             </ul>
         </div>
         <div style="margin-bottom:20px;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v0.4 — Mars 2026</h3>
-            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Compagnons, combat phase 2</p>
-            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
-                <li>Système compagnons : stats, sorts, combat</li>
-                <li>Ordre de jeu DX, sorts/consommables en combat, critiques, éléments</li>
+            <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;">
+                <li>Système Compagnons</li>
+                <li>Combat phase 2</li>
             </ul>
         </div>`;
 
@@ -1299,9 +1327,9 @@ function ouvrirJournal(onglet) {
                 const isVu = !!entry.premierVu;
                 const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
                 const imgSrcF = def.biGenre && def.portrait ? `docs/img/portraits/${def.portrait.replace('.png','f.png')}` : '';
-                const imgBlur = k === 0 ? 'filter:blur(5px);opacity:0.35;' : '';
-                const nomAff = k >= 1 ? def.nom : (isVu ? '????' : '???');
-                const nomColor = k >= 1 ? '#e57373' : '#555';
+                const imgBlur = (k === 0 && !isVu) ? 'filter:blur(5px);opacity:0.35;' : '';
+                const nomAff = k >= 1 ? def.nom : (isVu ? def.nom : '???');
+                const nomColor = k >= 1 ? '#e57373' : (isVu ? '#8a4a4a' : '#555');
                 let badge = k > 0
                     ? `<span style="background:#0d1f0d;color:#4caf50;border:1px solid #2e7d32;border-radius:3px;padding:1px 5px;font-size:0.7em;margin-left:4px;">☠ ×${k}</span>`
                     : (isVu ? `<span style="background:#1a1a2a;color:#7c4a8a;border:1px solid #4a2a5a;border-radius:3px;padding:1px 5px;font-size:0.7em;margin-left:4px;">Vu</span>` : '');
@@ -1451,9 +1479,131 @@ function ouvrirJournal(onglet) {
             window._bcatActif = null;
             window._bcatContents = catContents;
         });
+
+    } else if (onglet === 'reve') {
+        contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>`;
+        db.ref('parties/' + sessionActuelle + '/bestiaire').once('value').then(snap => {
+            const bestiaireData = snap.val() || {};
+            if (typeof ennemisData === 'undefined') { contenu.innerHTML = '<p style="color:#555;text-align:center;">Données indisponibles.</p>'; return; }
+
+            // Monstres rencontrés (vu ou tué) – pas les uniques
+            const rencontres = Object.entries(ennemisData).filter(([id, def]) => {
+                if (def.unique) return false;
+                const e = bestiaireData[id] || {};
+                return e.premierVu || (e.nbKills || 0) > 0;
+            });
+
+            if (!rencontres.length) {
+                contenu.innerHTML = `<div style="text-align:center;padding:30px;color:#555;"><div style="font-size:2em;margin-bottom:10px;">💤</div><div>Tu n'as encore rencontré aucun ennemi.</div><div style="font-size:0.8em;margin-top:8px;color:#444;">Les monstres que tu affronte en combat apparaîtront ici.</div></div>`;
+                return;
+            }
+
+            rencontres.sort((a,b)=>a[1].niveau-b[1].niveau);
+
+            let html = `<div style="margin-bottom:12px;background:rgba(0,10,30,0.6);border:1px solid #1a2a4a;border-radius:6px;padding:10px 12px;">
+                <div style="color:#4fc3f7;font-size:0.9em;font-weight:bold;margin-bottom:4px;">💤 Combat de Rêve</div>
+                <div style="color:#666;font-size:0.78em;line-height:1.5;">Affronte un ennemi que tu as déjà rencontré. Sans XP, sans loot, sans conséquences.</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">`;
+
+            for (const [id, def] of rencontres) {
+                const fo=def.statsBase?.FO||0,ini=def.statsBase?.IN||0;
+                const pvMax=(fo*2)+ini+(def.boostPV||0);
+                const kills = bestiaireData[id]?.nbKills || 0;
+                const portrait = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                html += `<div style="flex:1;min-width:160px;max-width:calc(50% - 3px);box-sizing:border-box;padding:6px;border:1px solid #1e1410;border-radius:4px;background:#0c0c0c;display:flex;gap:6px;align-items:center;">
+                    ${portrait?`<img src="${portrait}" onerror="this.style.display='none'" style="width:36px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;border:1px solid #222;">`:'<div style="width:36px;flex-shrink:0;"></div>'}
+                    <div style="flex:1;min-width:0;">
+                        <div style="color:#ccc;font-size:0.82em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${def.nom}</div>
+                        <div style="color:#555;font-size:0.65em;">Niv.${def.niveau} · ❤${pvMax}${kills>0?` · ☠×${kills}`:' · Vu'}</div>
+                    </div>
+                    <button onclick="lancerCombatReve('${id}')" style="background:#001520;color:#4fc3f7;border:1px solid #0277bd;padding:3px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;flex-shrink:0;">▶</button>
+                </div>`;
+            }
+            html += `</div>`;
+            contenu.innerHTML = html;
+        });
     }
 
     modal.style.display = 'flex';
+}
+
+function lancerCombatReve(monsterId) {
+    if (!window.perso || !window.monPlayerId || !sessionActuelle) return;
+    const def = (typeof ennemisData !== 'undefined') ? ennemisData[monsterId] : null;
+    if (!def) return;
+    // Bloquer si un vrai combat ou un donjon est en cours
+    if (window.combatActif && !window.combatActif.reve) {
+        if (typeof _toast === 'function') _toast('⚔ Un combat est déjà en cours !', 'error');
+        return;
+    }
+    if (window.donjonActif) {
+        if (typeof _toast === 'function') _toast('🗺 Impossible pendant un donjon.', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('modal-journal');
+    if (modal) modal.style.display = 'none';
+
+    const p = window.perso;
+    const pvMaxJ = ((p.statsBase?.FO||0)*2) + (p.statsBase?.IN||0) + (p.boostPV||0);
+    const ftMaxJ = ((p.statsBase?.CN||0)*2) + (p.statsBase?.IN||0) + (p.boostFT||0);
+    const dxJ = (p.statsBase?.DX||0) + (p.statsInvesties?.DX||0);
+
+    const foE = (def.statsBase?.FO||0) + (def.statsInvesties?.FO||0);
+    const inE = (def.statsBase?.IN||0) + (def.statsInvesties?.IN||0);
+    const cnE = (def.statsBase?.CN||0) + (def.statsInvesties?.CN||0);
+    const dxE = (def.statsBase?.DX||0) + (def.statsInvesties?.DX||0);
+    const pvMaxE = (foE*2) + inE + (def.boostPV||0);
+    const ftMaxE = (cnE*2) + inE + (def.boostFT||0);
+
+    const instanceId = Date.now();
+    const ennemi = {
+        instanceId,
+        id: monsterId,
+        nom: def.nom,
+        race: def.race || '',
+        niveau: def.niveau || 1,
+        pvActuel: pvMaxE, pvMax: pvMaxE,
+        ftActuel: ftMaxE, ftMax: ftMaxE,
+        statsBase: def.statsBase || {},
+        statsInvesties: def.statsInvesties || {},
+        magieBase: def.magieBase || {},
+        res: def.res || {},
+        equipement: def.equipement || {},
+        lootDrop: def.lootDrop || [],
+        sortsConnus: (() => {
+            const mb = def.magieBase || {};
+            const sorts = [];
+            for (const [ecole, nb] of Object.entries(mb)) {
+                if (typeof magieData !== 'undefined' && magieData[ecole]?.sorts) {
+                    for (let k = 0; k < nb && k < magieData[ecole].sorts.length; k++) {
+                        sorts.push(magieData[ecole].sorts[k].nom);
+                    }
+                }
+            }
+            return sorts;
+        })()
+    };
+
+    const ordre = [
+        { type: 'joueur', id: window.monPlayerId, nom: p.nom, vitesse: dxJ },
+        { type: 'ennemi', instanceId, nom: def.nom, vitesse: dxE }
+    ].sort((a, b) => b.vitesse - a.vitesse || (a.type === 'joueur' ? -1 : 1));
+
+    db.ref('parties/' + sessionActuelle + '/combat_log').remove();
+    db.ref('parties/' + sessionActuelle + '/combat_actif').set({
+        actif: true,
+        reve: true,
+        reve_initiateur: window.monPlayerId,
+        ennemis: [ennemi],
+        ordre_jeu: ordre,
+        tour_actuel: 0,
+        joueurs_discrets: { [window.monPlayerId]: false },
+        timestamp: Date.now()
+    }).then(() => {
+        if (typeof _toast === 'function') _toast('💤 Combat de Rêve !', 'info');
+    });
 }
 
 function appliquerFondActuel() {

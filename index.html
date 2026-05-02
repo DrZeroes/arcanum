@@ -37,6 +37,7 @@
             <button onclick="ouvrirJournal('stats')"    id="jt-stats"     style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📊 Statistiques</button>
             <button onclick="ouvrirJournal('succes')"   id="jt-succes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">🏆 Succès</button>
             <button onclick="ouvrirJournal('ennemis_uniques')" id="jt-ennemis_uniques" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">☠ Bestiaire</button>
+            <button onclick="ouvrirJournal('reve')" id="jt-reve" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">💤 Rêve</button>
         </div>
         <!-- Contenu -->
         <div id="journal-contenu" style="overflow-y:auto;padding:16px;color:#ccc;font-size:0.88em;line-height:1.6;flex:1;"></div>
@@ -566,10 +567,6 @@
         <button onclick="allerAccueil()" style="background: #8b0000; border: 2px solid #555; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">&lt;</button>
     </div>
 
-    <div id="outils-test-mj" style="display: flex; gap: 10px; margin-bottom: 15px; background: rgba(255,152,0,0.1); padding: 10px; border-radius: 5px; border: 1px solid #ff9800;">
-        <button onclick="AllLieux()" style="flex: 1; background: #2e7d32; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold;">🌐 ALL Lieux (Test)</button>
-        <button onclick="RAZLieux()" style="flex: 1; background: #c62828; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-weight: bold;">♻️ RAZ Lieux (Reset)</button>
-    </div>
 
     <div style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
         <button onclick="switchOngletMJ('joueurs')" class="mj-tab-btn active">👥 Joueurs</button>
@@ -596,13 +593,9 @@
     <div id="mj-section-combat" class="mj-section" style="display:none;"></div>
 
     <div id="mj-section-codex" class="mj-section" style="display:none;">
-        <input type="text" id="recherche-codex-mj" placeholder="🔍 Rechercher nom, race, zone..." oninput="filtrerCodexMJ()"
-               style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:6px;background:#111;color:#fff;border:1px solid #555;border-radius:4px;font-size:0.85em;">
-        <div id="mj-codex-filterbar" style="margin-bottom:6px;"></div>
+        <div id="mj-codex-filterbar" style="margin-bottom:4px;"></div>
         <div style="max-height:55vh;overflow-y:auto;border:1px solid #333;border-radius:4px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tbody id="tbody-codex-mj"></tbody>
-            </table>
+            <div id="tbody-codex-mj" style="display:flex;flex-wrap:wrap;gap:3px;padding:4px;align-content:flex-start;"></div>
         </div>
         <div id="codex-ennemi-detail" style="display:none;margin-top:10px;background:#111;border:1px solid #8b0000;border-radius:6px;padding:14px;position:relative;"></div>
     </div>

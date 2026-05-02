@@ -83,6 +83,42 @@ function ramasserItem(id, qteAjoutee, identifie = true) {
 
 // --- MARCHAND ---
 let marchandActuel = null;
+let marchandActuelId = null;
+
+function _syncMarchandStock() {
+    if (!marchandActuelId || !marchandActuel) return;
+    db.ref('parties/' + sessionActuelle + '/marchands_stock/' + marchandActuelId).set({
+        inventaire: marchandActuel.inventaire,
+        argent: marchandActuel.argent
+    });
+}
+
+function _resetMarchandStock(id) {
+    if (!marchandsData[id]) return;
+    const fresh = JSON.parse(JSON.stringify(marchandsData[id]));
+    db.ref('parties/' + sessionActuelle + '/marchands_stock/' + id).set({
+        inventaire: fresh.inventaire,
+        argent: fresh.argent
+    });
+    if (marchandActuelId === id) { marchandActuel = fresh; updateMarchandUI(); }
+    if (typeof _toast === 'function') _toast('♻️ Stock réinitialisé : ' + fresh.nom, 'success');
+}
+
+function _chargerStockMarchand(id, callback) {
+    db.ref('parties/' + sessionActuelle + '/marchands_stock/' + id).once('value', snap => {
+        const stock = snap.val();
+        if (stock) {
+            marchandActuel = Object.assign({}, marchandsData[id], {
+                inventaire: stock.inventaire,
+                argent: stock.argent
+            });
+        } else {
+            marchandActuel = JSON.parse(JSON.stringify(marchandsData[id]));
+            _syncMarchandStock();
+        }
+        callback();
+    });
+}
 
 function ouvrirPromptMarchand() {
     const id = window._marchandActifId;
@@ -90,15 +126,14 @@ function ouvrirPromptMarchand() {
         if (typeof _toast === 'function') _toast('⛔ Aucun marchand disponible actuellement.', 'error');
         return;
     }
-    // Consommer l'autorisation Firebase
     const playerID = window.perso?.nom?.replace(/\s+/g, '_');
     if (playerID && typeof db !== 'undefined') {
         db.ref('parties/' + sessionActuelle + '/marchand_actif/' + playerID).remove();
     }
-    marchandActuel = marchandsData[id];
+    marchandActuelId = id;
     cacherTout();
     document.getElementById('ecran-marchand').style.display = 'block';
-    updateMarchandUI();
+    _chargerStockMarchand(id, updateMarchandUI);
 }
 
 function updateMarchandUI() {
@@ -270,6 +305,7 @@ function acheterItem(idx, prixUnitaire) {
     if (itemEnVente.qte <= 0) marchandActuel.inventaire.splice(idx, 1);
 
     autoSave();
+    _syncMarchandStock();
     updateMarchandUI();
 }
 
@@ -285,6 +321,7 @@ function marchandIdentifierObjet(idx, prix) {
     item.identifie = true;
     const def = itemsData[item.id];
     autoSave();
+    _syncMarchandStock();
     const props = (typeof _descStatsItem === 'function') ? _descStatsItem(def) : '';
     alert("✨ " + (def?.nom || item.id) + " identifié !" + props);
     updateMarchandUI();
@@ -317,15 +354,16 @@ function vendreItem(idx, prixUnitaire) {
     if (item.quantite <= 0) perso.inventaire.splice(idx, 1);
 
     autoSave();
+    _syncMarchandStock();
     updateMarchandUI();
 }
 
 // --- Petites fonctions de forçage pour le MJ ---
 function forcerOuvertureMarchand(id) {
-    marchandActuel = marchandsData[id];
+    marchandActuelId = id;
     cacherTout();
     document.getElementById('ecran-marchand').style.display = 'block';
-    updateMarchandUI();
+    _chargerStockMarchand(id, updateMarchandUI);
 }
 
 function forcerOuvertureCoffre(id) {

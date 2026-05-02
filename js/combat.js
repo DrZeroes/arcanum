@@ -101,11 +101,13 @@ function _afficherResultatCombat(resultat) {
         statut.style.fontWeight = 'bold';
     }
     if (panel) {
-        const btnFermer = !window.estMJ
+        const isReve = !!window.combatActif?.reve;
+        const btnFermer = (!window.estMJ || isReve)
             ? `<div style="margin-top:16px;"><button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button></div>`
             : '';
+        const reveBadge = isReve ? `<div style="font-size:0.5em;color:#4fc3f7;margin-top:4px;">💤 Combat de Rêve — sans conséquences</div>` : '';
         panel.innerHTML = '<div style="text-align:center;font-size:2em;padding:24px;">'
-            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + btnFermer + '</div>';
+            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + reveBadge + btnFermer + '</div>';
     }
 }
 
@@ -113,6 +115,13 @@ function _verifierFinCombat(ennemisMAJ) {
     const tousKO = ennemisMAJ.every(e => e.pvActuel <= 0);
     if (!tousKO) return;
     db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('victoire');
+    // Combat de Rêve : pas de kills, pas de loot, pas de stats
+    if (window.combatActif?.reve) {
+        setTimeout(() => {
+            if (window.combatActif?.reve) db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+        }, 4000);
+        return;
+    }
     if (window.estMJ) {
         const now = Date.now();
         ennemisMAJ.forEach(e => {
@@ -240,7 +249,11 @@ function _verifierDefaite(ordreActuel) {
         if (confirme) {
             _logCombat('💀 Tous les alliés sont tombés — DÉFAITE !');
             db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
-            if (window.estMJ) {
+            if (window.combatActif?.reve) {
+                setTimeout(() => {
+                    if (window.combatActif?.reve) db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+                }, 4000);
+            } else if (window.estMJ) {
                 setTimeout(() => {
                     db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
                     if (window.donjonActif) {
@@ -3555,6 +3568,8 @@ function lancerAttaqueMelee(instanceId) {
     _gagnerXP(_ennemiTue ? 6 : 1);
     if (typeof _incStatPartie === 'function') {
         _incStatPartie('attaques', 1);
+        if (crit.type === 'critique') _incStatPartie('coups_critiques', 1);
+        else if (critLabel === ' ⚠ ÉCHEC CRITIQUE') _incStatPartie('echecs_critiques', 1);
         if (degatsFinaux > 0) _incStatPartie('degats_ennemis', degatsFinaux);
         if (_ennemiTue) _incStatPartie('ennemis_tues', 1);
     }

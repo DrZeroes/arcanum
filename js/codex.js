@@ -1,32 +1,141 @@
 // --- FONCTION MJ : OUVRIR LE CODEX ---
 
-// Fonction pour filtrer la recherche (texte libre)
-function filtrerCodexMJ() {
-    const input = (document.getElementById('recherche-codex-mj')?.value || '').toLowerCase();
-    document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row').forEach(tr => {
-        const txt = tr.innerText.toLowerCase();
-        const cat = tr.dataset.cat || '';
-        const niv = parseInt(tr.dataset.niv) || 0;
-        const uniq = tr.dataset.uniq === '1';
-        const minNiv = parseInt(document.getElementById('mjf-niv-min')?.value) || 0;
-        const maxNiv = parseInt(document.getElementById('mjf-niv-max')?.value) || 999;
-        const uniqOnly = document.getElementById('mjf-uniq')?.checked;
-        const catSel = window._mjCatFilter || null;
-        let show = true;
-        if (input && !txt.includes(input)) show = false;
-        if (uniqOnly && !uniq) show = false;
-        if (catSel && cat !== catSel) show = false;
-        if (niv < minNiv || niv > maxNiv) show = false;
-        tr.style.display = show ? '' : 'none';
-    });
-    // Montrer/cacher les headers de catégorie selon si au moins une ligne visible
-    document.querySelectorAll('#tbody-codex-mj tr.mj-cat-header').forEach(hdr => {
-        const cid = hdr.dataset.cid;
-        const anyVisible = [...document.querySelectorAll(`#tbody-codex-mj tr.mj-ennemi-row[data-cid="${cid}"]`)].some(r => r.style.display !== 'none');
-        hdr.style.display = anyVisible ? '' : 'none';
-    });
-}
+// Redirige les anciens appels DOM-based vers le nouveau moteur de rendu
+function filtrerCodexMJ() { if (typeof _renderCodexEnemies === 'function') _renderCodexEnemies(); }
 window._mjCatFilter = null;
+window._mjCodexGroupBy = 'espece'; // 'espece' | 'zone'
+
+function _buildCodexEnemyFilters() {
+    const filterBar = document.getElementById('mj-codex-filterbar');
+    if (!filterBar || typeof ennemisData === 'undefined') return;
+    const isZone = window._mjCodexGroupBy === 'zone';
+    const prevSearch = document.getElementById('mjf-search')?.value || '';
+    let groupItems;
+    if (isZone) {
+        const zonesSet = new Set();
+        Object.values(ennemisData).filter(e=>!e.unique).forEach(e=>(e.zones||[]).forEach(z=>zonesSet.add(z)));
+        groupItems = [...zonesSet].sort((a,b)=>a.localeCompare(b,'fr'));
+        if (groupItems.length === 0) groupItems = ['Sans zone'];
+    } else {
+        groupItems = [...new Set(Object.entries(ennemisData).filter(([,e])=>!e.unique).map(([id,e])=>_mjGetCat(id,e)))];
+        groupItems.sort((a,b)=>(_MJ_CAT_ORDER.indexOf(a)<0?999:_MJ_CAT_ORDER.indexOf(a))-(_MJ_CAT_ORDER.indexOf(b)<0?999:_MJ_CAT_ORDER.indexOf(b)));
+    }
+    filterBar.innerHTML = `
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;align-items:center;">
+            <input id="mjf-search" type="text" placeholder="🔍 Nom / race / zone..." value="${prevSearch}" oninput="_renderCodexEnemies()"
+                style="flex:1;min-width:130px;background:#111;color:#fff;border:1px solid #555;padding:3px 8px;border-radius:4px;font-size:0.8em;">
+            <button id="mjf-uniq-btn" onclick="var cb=document.getElementById('mjf-uniq');cb.checked=!cb.checked;this.style.background=cb.checked?'#2a003a':'#1a0a0a';this.style.color=cb.checked?'#ce93d8':'#999';_renderCodexEnemies();"
+                style="background:#1a0a0a;color:#999;border:1px solid #3a1a5a;padding:3px 9px;cursor:pointer;border-radius:4px;font-size:0.78em;">★ Uniques</button>
+            <input id="mjf-uniq" type="checkbox" style="display:none;">
+            <input id="mjf-niv-min" type="number" min="1" max="30" placeholder="Niv min"
+                style="width:58px;background:#111;color:#fff;border:1px solid #444;padding:3px 5px;border-radius:4px;font-size:0.78em;" oninput="_renderCodexEnemies()">
+            <input id="mjf-niv-max" type="number" min="1" max="30" placeholder="Niv max"
+                style="width:58px;background:#111;color:#fff;border:1px solid #444;padding:3px 5px;border-radius:4px;font-size:0.78em;" oninput="_renderCodexEnemies()">
+            <button onclick="window._mjCodexGroupBy='espece';_buildCodexEnemyFilters();_renderCodexEnemies();"
+                style="background:${!isZone?'#1a1000':'#111'};color:${!isZone?'#ffb74d':'#666'};border:1px solid ${!isZone?'#8b5000':'#333'};padding:3px 7px;cursor:pointer;border-radius:4px;font-size:0.75em;">🐺 Espèce</button>
+            <button onclick="window._mjCodexGroupBy='zone';_buildCodexEnemyFilters();_renderCodexEnemies();"
+                style="background:${isZone?'#001520':'#111'};color:${isZone?'#4fc3f7':'#666'};border:1px solid ${isZone?'#0277bd':'#333'};padding:3px 7px;cursor:pointer;border-radius:4px;font-size:0.75em;">📍 Zone</button>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
+            <button onclick="window._mjCatFilter=null;document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';b.style.borderColor='#333';});_renderCodexEnemies();"
+                style="background:#111;color:#aaa;border:1px solid #333;padding:2px 8px;cursor:pointer;border-radius:4px;font-size:0.75em;">Tout</button>
+            ${groupItems.map(item=>`<button class="mjf-cat-btn" onclick="
+                var s=window._mjCatFilter==='${item.replace(/'/g,"\\'")}' ?null:'${item.replace(/'/g,"\\'")}';window._mjCatFilter=s;
+                document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';b.style.borderColor='#333';});
+                if(s){this.style.background='#2a1800';this.style.color='#ffb74d';this.style.borderColor='#8b5000';}
+                _renderCodexEnemies();"
+                style="background:#111;color:#999;border:1px solid #333;padding:2px 7px;cursor:pointer;border-radius:4px;font-size:0.74em;white-space:nowrap;">
+                ${isZone?'📍':(_MJ_CAT_ICONS[item]||'❓')} ${item}</button>`).join('')}
+        </div>`;
+}
+
+function _renderCodexEnemies() {
+    const container = document.getElementById('tbody-codex-mj');
+    if (!container || typeof ennemisData === 'undefined') return;
+    // Section ennemis : remettre flex-wrap
+    container.style.flexDirection = '';
+    container.style.flexWrap = 'wrap';
+    container.style.alignContent = 'flex-start';
+    const search = (document.getElementById('mjf-search')?.value || '').toLowerCase();
+    const uniqOnly = document.getElementById('mjf-uniq')?.checked;
+    const minNiv = parseInt(document.getElementById('mjf-niv-min')?.value)||0;
+    const maxNiv = parseInt(document.getElementById('mjf-niv-max')?.value)||999;
+    const catSel = window._mjCatFilter;
+    const isZone = window._mjCodexGroupBy === 'zone';
+    const battuMap = window._mjCodexBattu || {};
+    const killsMap = window._mjCodexKills || {};
+
+    const renderCard = (id, def, isUniq) => {
+        const fo=def.statsBase?.FO||0,ini=def.statsBase?.IN||0,cn=def.statsBase?.CN||0;
+        const pvMax=(fo*2)+ini+(def.boostPV||0), ftMax=(cn*2)+ini+(def.boostFT||0);
+        const lootStr=(def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;return it?it.nom:l.id;}).join(', ');
+        const nomColor=isUniq?'#ce93d8':'#e57373';
+        const nbKillsRaw = killsMap[id]?.nbKills || 0;
+        const battuBadge = isUniq && battuMap[id] ? `<span style="color:#4caf50;font-size:0.62em;"> ✅</span>` : '';
+        const killBadge = isUniq ? '' : (() => {
+            const t = nbKillsRaw >= 5 ? 3 : nbKillsRaw >= 3 ? 2 : nbKillsRaw >= 1 ? 1 : 0;
+            const next = [1, 3, 5][t];
+            const col = t >= 3 ? '#81c784' : t >= 2 ? '#ffb74d' : t >= 1 ? '#80cbc4' : '#555';
+            return `<span style="color:${col};font-size:0.62em;"> ⚔${nbKillsRaw}${next ? '/'+next : '✓'}</span>`;
+        })();
+        const zones=(def.zones||[]).slice(0,2).join(', ');
+        return `<div style="flex:1;min-width:190px;max-width:calc(50% - 3px);box-sizing:border-box;padding:5px 7px;border:1px solid ${isUniq?'#3a1a5a':'#1e1410'};border-radius:3px;background:${isUniq?'rgba(80,0,120,0.07)':'#0c0c0c'};">
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="flex:1;min-width:0;">
+                    <span style="color:${nomColor};font-size:0.82em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${def.nom}${battuBadge}${killBadge}</span>
+                    <span style="color:#555;font-size:0.64em;">Niv.${def.niveau} · ❤${pvMax} ⚡${ftMax} · XP ${def.xp||0}</span>
+                </div>
+                <button onclick="mjChargerEnnemi('${id}')" style="background:#2a0a0a;color:#e57373;border:1px solid #8b0000;padding:2px 6px;cursor:pointer;border-radius:3px;font-size:0.72em;flex-shrink:0;">⚔</button>
+            </div>
+            <div style="color:#3a3a3a;font-size:0.62em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <span style="color:#444;">${def.race||'—'}</span>${zones?`<span style="color:#333;"> · ${zones}</span>`:''}${lootStr?`<span style="color:#4a3800;"> · 💰${lootStr}</span>`:''}
+            </div>
+        </div>`;
+    };
+
+    let allEntries = Object.entries(ennemisData).filter(([id, def]) => {
+        if (search) {
+            const hay = (def.nom+' '+(def.race||'')+' '+(def.zones||[]).join(' ')).toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        if (def.niveau < minNiv || def.niveau > maxNiv) return false;
+        return true;
+    });
+    const uniqueEntries = allEntries.filter(([,d])=>d.unique);
+    const normalEntries = allEntries.filter(([,d])=>!d.unique);
+
+    const grouped = {};
+    for (const [id, def] of normalEntries) {
+        const keys = isZone
+            ? ((def.zones||[]).length ? def.zones.slice(0,1) : ['Sans zone'])
+            : [_mjGetCat(id, def)];
+        for (const k of keys) { if (!grouped[k]) grouped[k]=[]; grouped[k].push([id,def]); }
+    }
+    const sortedGroups = Object.keys(grouped).sort((a,b)=>
+        isZone ? a.localeCompare(b,'fr') : ((_MJ_CAT_ORDER.indexOf(a)<0?999:_MJ_CAT_ORDER.indexOf(a))-(_MJ_CAT_ORDER.indexOf(b)<0?999:_MJ_CAT_ORDER.indexOf(b)))
+    );
+    const visibleGroups = catSel ? sortedGroups.filter(g=>g===catSel) : sortedGroups;
+
+    let html = '';
+    if (!catSel && !uniqOnly && uniqueEntries.length) {
+        html += `<div style="width:100%;background:rgba(60,0,100,0.15);padding:4px 8px;color:#ce93d8;font-size:0.7em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #3a1a5a;margin-top:2px;">★ ENNEMIS UNIQUES (${uniqueEntries.length})</div>`;
+        uniqueEntries.sort((a,b)=>a[1].niveau-b[1].niveau).forEach(([id,def])=>{html+=renderCard(id,def,true);});
+    }
+    if (!uniqOnly) {
+        for (const group of visibleGroups) {
+            const gEnt = grouped[group].sort((a,b)=>a[1].niveau-b[1].niveau);
+            const icon = isZone?'📍':(_MJ_CAT_ICONS[group]||'❓');
+            html += `<div style="width:100%;background:rgba(0,0,0,0.4);padding:4px 8px;color:#888;font-size:0.7em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #1e1410;margin-top:2px;">${icon} ${group.toUpperCase()} (${gEnt.length})</div>`;
+            gEnt.forEach(([id,def])=>{html+=renderCard(id,def,false);});
+        }
+    }
+    if (uniqOnly && uniqueEntries.length) {
+        html += `<div style="width:100%;background:rgba(60,0,100,0.15);padding:4px 8px;color:#ce93d8;font-size:0.7em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #3a1a5a;margin-top:2px;">★ ENNEMIS UNIQUES (${uniqueEntries.length})</div>`;
+        uniqueEntries.sort((a,b)=>a[1].niveau-b[1].niveau).forEach(([id,def])=>{html+=renderCard(id,def,true);});
+    }
+    if (!html) html = `<div style="padding:16px;text-align:center;color:#555;font-size:0.85em;width:100%;">Aucun ennemi trouvé</div>`;
+    container.innerHTML = html;
+}
 
 // ── Constantes catégories MJ ──────────────────────────────────────────────────
 const _MJ_RACE_TO_CAT = {
@@ -142,31 +251,22 @@ function mjDonnerObjetDirect(itemID) {
 
 function genererMusiquesMJ_Integrated() {
     const tbody = document.getElementById('tbody-codex-mj');
-    tbody.innerHTML = ""; 
+    tbody.innerHTML = '';
+    tbody.style.flexDirection = '';
+    tbody.style.flexWrap = 'wrap';
 
-    // 1. BOUTON STOP EN HAUT
-    let trStop = document.createElement('tr');
-    trStop.innerHTML = `
-        <td colspan="2" style="padding:15px; text-align:center; border-bottom: 2px solid #8b0000;">
-            <button onclick="mjArreterMusique()" 
-                    style="background:#8b0000; color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:5px; width:100%;">
-                ⏹ ARRÊTER LA MUSIQUE MJ (Tout le groupe)
-            </button>
-        </td>`;
-    tbody.appendChild(trStop);
+    const stopDiv = document.createElement('div');
+    stopDiv.style.cssText = 'width:100%;padding:8px 4px 10px;box-sizing:border-box;';
+    stopDiv.innerHTML = `<button onclick="mjArreterMusique()" style="background:#8b0000;color:white;border:none;padding:10px;cursor:pointer;font-weight:bold;border-radius:4px;width:100%;font-size:0.85em;">⏹ ARRÊTER LA MUSIQUE MJ (Tout le groupe)</button>`;
+    tbody.appendChild(stopDiv);
 
-    // 2. LA LISTE
     playlistMJ.forEach(piste => {
-        tbody.innerHTML += `
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 10px; color: #fff;">🎵 ${piste.nom}</td>
-                <td style="padding: 10px; text-align: right;">
-                    <button onclick="mjChangerMusique('${piste.fichier}')" 
-                            style="padding: 5px 12px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 3px;">
-                        ▶ Lancer
-                    </button>
-                </td>
-            </tr>`;
+        const card = document.createElement('div');
+        card.style.cssText = 'flex:1;min-width:180px;max-width:calc(50% - 3px);box-sizing:border-box;padding:6px 8px;border:1px solid #2a2a2a;border-radius:4px;background:#0c0c0c;display:flex;flex-direction:column;gap:4px;';
+        card.innerHTML = `
+            <div style="color:#fff;font-size:0.85em;flex:1;">🎵 ${piste.nom}</div>
+            <button onclick="mjChangerMusique('${piste.fichier}')" style="background:#2e7d32;color:#fff;border:1px solid #4caf50;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.78em;width:100%;">▶ Lancer</button>`;
+        tbody.appendChild(card);
     });
 }
 
@@ -179,6 +279,10 @@ function genererContenuCodexMJ(type) {
     const tbody = document.getElementById('tbody-codex-mj');
     if (!tbody) return;
     tbody.innerHTML = '';
+    // Reset layout — sections non-ennemis utilisent une colonne, ennemis utilise flex-wrap
+    tbody.style.flexDirection = 'column';
+    tbody.style.flexWrap = 'nowrap';
+    tbody.style.alignContent = '';
 
     if (type === 'items') {
         const LABELS_TYPE = {
@@ -193,7 +297,6 @@ function genererContenuCodexMJ(type) {
             objet_quete:   '📜 Objets de quête',
             argent:        '💰 Argent',
         };
-        // Grouper par type
         const groupes = {};
         for (let id in itemsData) {
             const t = itemsData[id].type || 'divers';
@@ -206,49 +309,59 @@ function genererContenuCodexMJ(type) {
             const items = groupes[t];
             const label = LABELS_TYPE[t] || t;
             const safeType = t.replace(/[^a-z0-9_]/g, '_');
-            const trHeader = document.createElement('tr');
-            trHeader.style.cssText = 'cursor:pointer;background:#1a1200;border-bottom:1px solid #3a2a00;';
-            trHeader.innerHTML = `<td colspan="3" style="padding:8px 12px;color:#d4af37;font-weight:bold;font-size:0.85em;">
-                ${label} <span style="color:#888;font-size:0.8em;">(${items.length})</span>
-                <span style="float:right;color:#666;">▼</span></td>`;
-            trHeader.addEventListener('click', () => {
-                tbody.querySelectorAll('tr[data-item-type="' + safeType + '"]').forEach(r => {
-                    r.style.display = r.style.display === 'none' ? '' : 'none';
+            const hdr = document.createElement('div');
+            hdr.style.cssText = 'cursor:pointer;background:#1a1200;border-bottom:1px solid #3a2a00;padding:8px 12px;color:#d4af37;font-weight:bold;font-size:0.85em;width:100%;box-sizing:border-box;';
+            hdr.innerHTML = `${label} <span style="color:#888;font-size:0.8em;">(${items.length})</span><span style="float:right;color:#666;">▼</span>`;
+            hdr.addEventListener('click', () => {
+                tbody.querySelectorAll('[data-item-type="' + safeType + '"]').forEach(r => {
+                    r.style.display = r.style.display === 'none' ? 'flex' : 'none';
                 });
             });
-            tbody.appendChild(trHeader);
+            tbody.appendChild(hdr);
             items.forEach(({ id, data }) => {
-                const tr = document.createElement('tr');
-                tr.dataset.itemType = safeType;
-                tr.style.cssText = 'display:none;border-bottom:1px solid #1a1a1a;';
-                tr.innerHTML = `
-                    <td style="padding:8px 10px;color:#ffb74d;font-family:monospace;font-size:0.8em;width:80px;">${id}</td>
-                    <td style="padding:8px 10px;color:#fff;">${data.nom}</td>
-                    <td style="padding:8px 10px;text-align:right;">
+                const row = document.createElement('div');
+                row.dataset.itemType = safeType;
+                row.style.cssText = 'display:none;align-items:center;border-bottom:1px solid #1a1a1a;width:100%;box-sizing:border-box;';
+                row.innerHTML = `
+                    <div style="padding:8px 10px;color:#ffb74d;font-family:monospace;font-size:0.8em;width:80px;flex-shrink:0;">${id}</div>
+                    <div style="padding:8px 10px;color:#fff;flex:1;">${data.nom}</div>
+                    <div style="padding:8px 10px;text-align:right;flex-shrink:0;">
                         <button style="background:#444;color:#ff9800;border:1px solid #ff9800;padding:5px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">🎁 Donner</button>
-                    </td>`;
-                tr.querySelector('button').addEventListener('click', (e) => {
+                    </div>`;
+                row.querySelector('button').addEventListener('click', (e) => {
                     e.stopPropagation();
                     mjDonnerObjetDirect(id);
                 });
-                tbody.appendChild(tr);
+                tbody.appendChild(row);
             });
         });
     }
     else if (type === 'marchands') {
+        tbody.style.flexDirection = '';
+        tbody.style.flexWrap = 'wrap';
         for (let id in marchandsData) {
-            ajouterLigneCodexMJ(id, marchandsData[id].nom, `forcerOuvertureMarchand('${id}')`, "💰 Ouvrir");
+            _mjCarteContenu(tbody, 'marchand', id, marchandsData[id].nom);
         }
-    } 
+    }
     else if (type === 'coffres') {
+        tbody.style.flexDirection = '';
+        tbody.style.flexWrap = 'wrap';
         for (let id in coffresFixes) {
-            ajouterLigneCodexMJ(id, coffresFixes[id].nom, `forcerOuvertureCoffre('${id}')`, "🔍 Fouiller");
+            _mjCarteContenu(tbody, 'coffre', id, coffresFixes[id].nom);
         }
     }
     else if (type === 'lieux') {
+        tbody.style.flexDirection = '';
+        tbody.style.flexWrap = 'wrap';
+        // Boutons utilitaires en tête, pleine largeur
+        const bar = document.createElement('div');
+        bar.style.cssText = 'width:100%;display:flex;gap:8px;padding:6px 4px 8px;box-sizing:border-box;';
+        bar.innerHTML = `
+            <button onclick="AllLieux()" style="flex:1;background:#2e7d32;color:white;border:none;padding:7px;cursor:pointer;border-radius:4px;font-size:0.8em;font-weight:bold;">🌐 ALL Lieux (Test)</button>
+            <button onclick="RAZLieux()" style="flex:1;background:#c62828;color:white;border:none;padding:7px;cursor:pointer;border-radius:4px;font-size:0.8em;font-weight:bold;">♻️ RAZ Lieux (Reset)</button>`;
+        tbody.appendChild(bar);
         for (let id in lieuxDecouverts) {
-            let l = lieuxDecouverts[id];
-            ajouterLigneCodexMJ(id, l.nom, `mjDecouvrirLieu('${id}')`, "📍 Révéler");
+            ajouterCarteCodexMJ(tbody, id, lieuxDecouverts[id].nom, `mjDecouvrirLieu('${id}')`, "📍 Révéler");
         }
     }
 }
@@ -344,133 +457,68 @@ function mjChargerEnnemi(idEnnemi) {
             <div style="color:#ccc; font-size:0.85em; line-height:1.6;">${lootStr || '<span style="color:#555;">Aucun</span>'}</div>
         </div>
         ${resHtml}
+        <div style="margin-top:12px;border-top:1px solid #333;padding-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="color:#ff9800;font-size:0.75em;text-transform:uppercase;letter-spacing:1px;">🔓 Bestiaire joueurs</div>
+                ${(() => {
+                    const k = (window._mjCodexKills?.[idEnnemi]?.nbKills) || 0;
+                    const vu = !!(window._mjCodexKills?.[idEnnemi]?.premierVu) || k > 0;
+                    const label = k >= 5 ? '<span style="color:#81c784;">🔮 Tout révélé</span>'
+                        : k >= 3 ? '<span style="color:#ffb74d;">🎒 Équipement (⚔'+k+'/5)</span>'
+                        : k >= 1 ? '<span style="color:#80cbc4;">📜 Nom+infos (⚔'+k+'/3)</span>'
+                        : vu ? '<span style="color:#9c27b0;">👁 Aperçu (0 kill)</span>'
+                        : '<span style="color:#555;">🔒 Non découvert</span>';
+                    return `<div style="font-size:0.72em;">${label}</div>`;
+                })()}
+            </div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}','vu')" style="background:#1a0a2a;color:#ce93d8;border:1px solid #6a1a9a;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">👁 Aperçu</button>
+                ${ennemi.unique ? `
+                <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',1)" style="background:#0d1f0d;color:#81c784;border:1px solid #2e7d32;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">✅ Révéler</button>
+                ` : `
+                <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',1)" style="background:#0a1a1a;color:#80cbc4;border:1px solid #00695c;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">📜 ×1 Nom</button>
+                <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',3)" style="background:#1a1000;color:#ffb74d;border:1px solid #8b5000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">🎒 ×3 Équip.</button>
+                <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',5)" style="background:#1a0a0a;color:#ef9a9a;border:1px solid #8b0000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">🔮 ×5 Tout</button>
+                `}
+            </div>
+        </div>
     `;
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function genererEnnemisCodexMJ() {
-    const tbody = document.getElementById('tbody-codex-mj');
-    if (!tbody || typeof ennemisData === 'undefined') return;
-    tbody.innerHTML = '';
-
-    // Injecter les filtres dans le conteneur au-dessus si pas déjà fait
-    const filterBar = document.getElementById('mj-codex-filterbar');
-    if (filterBar && !filterBar.dataset.init) {
-        filterBar.dataset.init = '1';
-        // Construire boutons catégories
-        const cats = [...new Set(Object.entries(ennemisData).filter(([,e])=>!e.unique).map(([id,e])=>_mjGetCat(id,e)))];
-        cats.sort((a,b)=>(_MJ_CAT_ORDER.indexOf(a)<0?999:_MJ_CAT_ORDER.indexOf(a))-(_MJ_CAT_ORDER.indexOf(b)<0?999:_MJ_CAT_ORDER.indexOf(b)));
-        filterBar.innerHTML = `
-            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
-                <button id="mjf-uniq-btn" onclick="
-                    var cb=document.getElementById('mjf-uniq');cb.checked=!cb.checked;
-                    this.style.background=cb.checked?'#2a003a':'#1a0a0a';
-                    this.style.color=cb.checked?'#ce93d8':'#999';
-                    filtrerCodexMJ();"
-                    style="background:#1a0a0a;color:#999;border:1px solid #3a1a5a;padding:3px 9px;cursor:pointer;border-radius:4px;font-size:0.78em;">★ Uniques</button>
-                <input id="mjf-uniq" type="checkbox" style="display:none;" oninput="filtrerCodexMJ()">
-                <input id="mjf-niv-min" type="number" min="1" max="30" placeholder="Niv min"
-                    style="width:68px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:4px;font-size:0.78em;" oninput="filtrerCodexMJ()">
-                <input id="mjf-niv-max" type="number" min="1" max="30" placeholder="Niv max"
-                    style="width:68px;background:#111;color:#fff;border:1px solid #444;padding:3px 6px;border-radius:4px;font-size:0.78em;" oninput="filtrerCodexMJ()">
-                <button onclick="window._mjCatFilter=null;document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';});filtrerCodexMJ();"
-                    style="background:#111;color:#aaa;border:1px solid #333;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:0.78em;">Tout</button>
-                ${cats.map(cat=>`<button class="mjf-cat-btn" onclick="
-                    var sel=window._mjCatFilter==='${cat}'?null:'${cat}';window._mjCatFilter=sel;
-                    document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';});
-                    if(sel){this.style.background='#2a1800';this.style.color='#ffb74d';}
-                    filtrerCodexMJ();"
-                    style="background:#111;color:#999;border:1px solid #333;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:0.78em;white-space:nowrap;">
-                    ${_MJ_CAT_ICONS[cat]||'❓'} ${cat}</button>`).join('')}
-            </div>`;
-    }
-
+    if (typeof ennemisData === 'undefined') return;
+    _buildCodexEnemyFilters();
     Promise.all([
         db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value'),
         db.ref('parties/' + sessionActuelle + '/bestiaire').once('value')
-    ]).then(([snapUniques, snapBestiaire]) => {
-        const battuMap = snapUniques.val() || {};
-        const killsMap = snapBestiaire.val() || {};
+    ]).then(([s1, s2]) => {
+        window._mjCodexBattu = s1.val() || {};
+        window._mjCodexKills = s2.val() || {};
+        _renderCodexEnemies();
+    });
+}
 
-        // Grouper par catégorie
-        const grouped = {};
-        const uniqueEntries = [];
-        for (const [id, def] of Object.entries(ennemisData)) {
-            if (def.unique) { uniqueEntries.push([id, def]); continue; }
-            const cat = _mjGetCat(id, def);
-            if (!grouped[cat]) grouped[cat] = [];
-            grouped[cat].push([id, def]);
+function _mjDeverrouillerBestiaire(monsterId, cible) {
+    const ref = db.ref('parties/' + sessionActuelle + '/bestiaire/' + monsterId);
+    ref.once('value', snap => {
+        const actuel = snap.val() || {};
+        const updates = {};
+        if (!actuel.premierVu) updates.premierVu = Date.now();
+        if (cible !== 'vu') {
+            const nbCible = parseInt(cible);
+            if ((actuel.nbKills || 0) < nbCible) updates.nbKills = nbCible;
         }
-        const sortedCats = Object.keys(grouped).sort((a,b)=>{
-            const ia=_MJ_CAT_ORDER.indexOf(a),ib=_MJ_CAT_ORDER.indexOf(b);
-            return (ia<0?999:ia)-(ib<0?999:ib);
-        });
-
-        const renderRow = (id, def, catKey, isUniq) => {
-            const fo = def.statsBase?.FO||0, ini=def.statsBase?.IN||0, cn=def.statsBase?.CN||0;
-            const pvMax = (fo*2)+ini+(def.boostPV||0);
-            const ftMax = (cn*2)+ini+(def.boostFT||0);
-            const lootStr = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;return it?it.nom:l.id;}).join(', ');
-            const nomColor = isUniq ? '#ce93d8' : '#e57373';
-            const rowBg = isUniq ? 'background:rgba(156,39,176,0.05);' : '';
-            let battuBadge = '';
-            if (isUniq) {
-                const bd = battuMap[id];
-                battuBadge = bd
-                    ? `<span style="background:#1a3a1a;color:#4caf50;border:1px solid #2e7d32;border-radius:3px;padding:1px 5px;font-size:0.72em;margin-left:4px;">✅ ${new Date(bd.date).toLocaleDateString('fr-FR')}</span>`
-                    : `<span style="background:#1a0a0a;color:#555;border:1px solid #3a1a1a;border-radius:3px;padding:1px 5px;font-size:0.72em;margin-left:4px;">☆</span>`;
-            }
-            const nbKills = isUniq ? (battuMap[id] ? 1 : 0) : (killsMap[id]?.nbKills || 0);
-            const killBadge = nbKills > 0
-                ? `<span style="background:#1a2a1a;color:#81c784;border:1px solid #2e5a2e;border-radius:3px;padding:1px 6px;font-size:0.72em;margin-left:4px;">⚔ ${nbKills}×</span>`
-                : `<span style="background:#111;color:#444;border:1px solid #222;border-radius:3px;padding:1px 6px;font-size:0.72em;margin-left:4px;">—</span>`;
-            const cid = isUniq ? 'uniques' : 'cat_'+catKey.replace(/[^a-z0-9]/gi,'_');
-            return `<tr class="mj-ennemi-row" data-cat="${catKey}" data-niv="${def.niveau}" data-uniq="${isUniq?'1':'0'}" data-cid="${cid}" style="border-bottom:1px solid #1a110b;${rowBg}">
-                <td style="padding:7px 10px;">
-                    <span style="color:${nomColor};font-weight:bold;font-size:0.88em;">${def.nom}</span>${battuBadge}${killBadge}
-                    <div style="color:#555;font-size:0.7em;margin-top:1px;">${def.race||'—'} · Niv.${def.niveau} · XP ${def.xp||0}</div>
-                </td>
-                <td style="padding:7px 10px;font-size:0.77em;">
-                    <span style="color:#e57373;">❤ ${pvMax}</span> &nbsp;<span style="color:#64b5f6;">⚡ ${ftMax}</span><br>
-                    <span style="color:#666;">FO:${fo} DX:${def.statsBase?.DX||0} IN:${ini}</span>
-                    ${lootStr?`<br><span style="color:#6a5020;">💰 ${lootStr}</span>`:''}
-                </td>
-                <td style="padding:7px 10px;text-align:right;vertical-align:middle;">
-                    <div style="color:#444;font-size:0.68em;margin-bottom:3px;">${(def.zones||[]).slice(0,2).join(', ')||''}</div>
-                    <button onclick="mjChargerEnnemi('${id}')" style="background:#2a0a0a;color:#e57373;border:1px solid #8b0000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.78em;">⚔ Stats</button>
-                </td>
-            </tr>`;
-        };
-
-        let html = '';
-
-        // Section uniques
-        if (uniqueEntries.length) {
-            html += `<tr class="mj-cat-header" data-cid="uniques" style="cursor:pointer;background:#0a0a1a;" onclick="var v=document.getElementById('mj-cat-toggle-uniques');v.textContent=v.textContent==='▾'?'▴':'▾';document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row[data-cid=\\'uniques\\']').forEach(r=>r.style.display=r.style.display==='none'?'':'none');">
-                <td colspan="3" style="padding:6px 10px;color:#ce93d8;font-size:0.75em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #3a1a5a;">
-                    ★ ENNEMIS UNIQUES <span style="color:#555;font-weight:normal;">(${uniqueEntries.length})</span>
-                    <span id="mj-cat-toggle-uniques" style="float:right;color:#555;">▾</span>
-                </td>
-            </tr>`;
-            uniqueEntries.sort((a,b)=>a[1].niveau-b[1].niveau).forEach(([id,def])=>{ html += renderRow(id, def, '★ Uniques', true); });
+        if (Object.keys(updates).length > 0) {
+            ref.update(updates);
+            // Mettre à jour le cache local MJ
+            if (!window._mjCodexKills) window._mjCodexKills = {};
+            window._mjCodexKills[monsterId] = Object.assign({}, actuel, updates);
         }
-
-        // Sections par catégorie
-        for (const cat of sortedCats) {
-            const entries = grouped[cat].sort((a,b)=>a[1].niveau-b[1].niveau);
-            const icon = _MJ_CAT_ICONS[cat] || '❓';
-            const cid = 'cat_'+cat.replace(/[^a-z0-9]/gi,'_');
-            html += `<tr class="mj-cat-header" data-cid="${cid}" style="cursor:pointer;background:#0a0a0a;" onclick="var v=document.getElementById('mjct-${cid}');v.textContent=v.textContent==='▾'?'▴':'▾';document.querySelectorAll('#tbody-codex-mj tr.mj-ennemi-row[data-cid=\\'${cid}\\']').forEach(r=>r.style.display=r.style.display==='none'?'':'none');">
-                <td colspan="3" style="padding:5px 10px;color:#888;font-size:0.73em;font-weight:bold;letter-spacing:1px;border-bottom:1px solid #1e1410;">
-                    ${icon} ${cat.toUpperCase()} <span style="color:#555;font-weight:normal;">(${entries.length})</span>
-                    <span id="mjct-${cid}" style="float:right;color:#555;">▾</span>
-                </td>
-            </tr>`;
-            entries.forEach(([id,def])=>{ html += renderRow(id, def, cat, false); });
-        }
-
-        tbody.innerHTML = html;
-        filtrerCodexMJ();
+        const nom = (typeof ennemisData !== 'undefined') ? (ennemisData[monsterId]?.nom || monsterId) : monsterId;
+        if (typeof _toast === 'function') _toast('🔓 ' + nom + ' déverrouillé.', 'success');
+        // Rafraîchir le panneau détail pour mettre à jour l'état affiché
+        mjChargerEnnemi(monsterId);
     });
 }
 
@@ -906,6 +954,7 @@ function mjAfficherInterfaceCombat() {
     if (!section || typeof ennemisData === 'undefined') return;
     _combatSelection = {};
     window._cbtCatFilter = null;
+    window._cbtGroupBy = window._cbtGroupBy || 'espece';
 
     // Contexte rencontre donjon (si vient d'une rencontre)
     const rencontreCtx = window._rencontreDonjonContexte || null;
@@ -932,16 +981,21 @@ function mjAfficherInterfaceCombat() {
                 return a.niveau - b.niveau;
             });
 
-            // Grouper par catégorie
+            // Grouper par catégorie ou par zone
+            const byZone = window._cbtGroupBy === 'zone';
             const grouped = {};
             for (const e of liste) {
-                const cat = e.unique ? '★ Uniques' : _mjGetCat(e.id, e);
+                let cat;
+                if (e.unique) cat = '★ Uniques';
+                else if (byZone) cat = (e.zones||[])[0] || 'Sans zone';
+                else cat = _mjGetCat(e.id, e);
                 if (!grouped[cat]) grouped[cat] = [];
                 grouped[cat].push(e);
             }
             const sortedCats = Object.keys(grouped).sort((a,b) => {
                 if (a==='★ Uniques') return -1;
                 if (b==='★ Uniques') return 1;
+                if (byZone) return a.localeCompare(b, 'fr');
                 const ia=_MJ_CAT_ORDER.indexOf(a),ib=_MJ_CAT_ORDER.indexOf(b);
                 return (ia<0?999:ia)-(ib<0?999:ib);
             });
@@ -1011,6 +1065,12 @@ function mjAfficherInterfaceCombat() {
                 <button id="cbt-uniq-btn" onclick="var cb=document.getElementById('cbt-uniq');cb.checked=!cb.checked;this.style.background=cb.checked?'#2a003a':'#1a0808';this.style.color=cb.checked?'#ce93d8':'#999';window._mjRafraichirCombatListe();"
                     style="background:#1a0808;color:#999;border:1px solid #3a1a5a;padding:4px 9px;cursor:pointer;border-radius:3px;font-size:0.78em;">★ Uniques</button>
                 <input id="cbt-uniq" type="checkbox" style="display:none;">
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;align-items:center;">
+                <button id="cbt-grp-espece" onclick="window._cbtGroupBy='espece';window._cbtCatFilter=null;document.querySelectorAll('.cbt-cat-btn').forEach(b=>{b.style.background='#1a0808';b.style.color='#999';b.style.borderColor='#3a1a1a';});document.getElementById('cbt-grp-espece').style.background='#1a100a';document.getElementById('cbt-grp-espece').style.color='#ffb74d';document.getElementById('cbt-grp-espece').style.borderColor='#8b5000';document.getElementById('cbt-grp-zone').style.background='#1a0808';document.getElementById('cbt-grp-zone').style.color='#999';document.getElementById('cbt-grp-zone').style.borderColor='#3a1a1a';window._mjRafraichirCombatListe();"
+                    style="background:#1a100a;color:#ffb74d;border:1px solid #8b5000;padding:3px 8px;cursor:pointer;border-radius:3px;font-size:0.74em;">🐺 Espèce</button>
+                <button id="cbt-grp-zone" onclick="window._cbtGroupBy='zone';window._cbtCatFilter=null;document.querySelectorAll('.cbt-cat-btn').forEach(b=>{b.style.background='#1a0808';b.style.color='#999';b.style.borderColor='#3a1a1a';});document.getElementById('cbt-grp-zone').style.background='#0a1a10';document.getElementById('cbt-grp-zone').style.color='#80cbc4';document.getElementById('cbt-grp-zone').style.borderColor='#006060';document.getElementById('cbt-grp-zone').style.color='#80cbc4';document.getElementById('cbt-grp-espece').style.background='#1a0808';document.getElementById('cbt-grp-espece').style.color='#999';document.getElementById('cbt-grp-espece').style.borderColor='#3a1a1a';window._mjRafraichirCombatListe();"
+                    style="background:#1a0808;color:#999;border:1px solid #3a1a1a;padding:3px 8px;cursor:pointer;border-radius:3px;font-size:0.74em;">📍 Zone</button>
             </div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px;">
                 <button onclick="window._cbtCatFilter=null;document.querySelectorAll('.cbt-cat-btn').forEach(b=>{b.style.background='#1a0808';b.style.color='#999';b.style.borderColor='#3a1a1a';});window._mjRafraichirCombatListe();"
@@ -1372,18 +1432,189 @@ function mjLootAleatoire(idJoueur) {
 // Utilitaire pour créer les lignes avec un style uniforme
 function ajouterLigneCodexMJ(id, nom, actionFn, texteAction) {
     const tbody = document.getElementById('tbody-codex-mj');
-    tbody.innerHTML += `
-        <tr style="border-bottom: 1px solid #333;">
-            <td style="padding: 10px; color: #ffb74d; font-family: monospace; font-size: 0.8em; width: 80px;">${id}</td>
-            <td style="padding: 10px; color: #fff;">${nom}</td>
-            <td style="padding: 10px; text-align:right;">
-                <button onclick="${actionFn}" style="background: #444; color: #ff9800; border: 1px solid #ff9800; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8em;">
-                    ${texteAction}
-                </button>
-            </td>
-        </tr>`;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;border-bottom:1px solid #333;width:100%;box-sizing:border-box;';
+    row.innerHTML = `
+        <div style="padding:10px;color:#ffb74d;font-family:monospace;font-size:0.8em;width:80px;flex-shrink:0;">${id}</div>
+        <div style="padding:10px;color:#fff;flex:1;">${nom}</div>
+        <div style="padding:10px;text-align:right;flex-shrink:0;">
+            <button onclick="${actionFn}" style="background:#444;color:#ff9800;border:1px solid #ff9800;padding:5px 10px;cursor:pointer;border-radius:3px;font-size:0.8em;">
+                ${texteAction}
+            </button>
+        </div>`;
+    tbody.appendChild(row);
 }
 
+
+function ajouterCarteCodexMJ(container, id, nom, actionFn, texteAction) {
+    const card = document.createElement('div');
+    card.style.cssText = 'flex:1;min-width:180px;max-width:calc(50% - 3px);box-sizing:border-box;padding:6px 8px;border:1px solid #2a2a2a;border-radius:4px;background:#0c0c0c;display:flex;flex-direction:column;gap:4px;';
+    card.innerHTML = `
+        <div style="color:#ffb74d;font-family:monospace;font-size:0.72em;">${id}</div>
+        <div style="color:#fff;font-size:0.85em;flex:1;">${nom}</div>
+        <button onclick="${actionFn}" style="background:#444;color:#ff9800;border:1px solid #ff9800;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.78em;width:100%;">${texteAction}</button>`;
+    container.appendChild(card);
+}
+
+function _mjCarteContenu(container, type, id, nom) {
+    const card = document.createElement('div');
+    card.style.cssText = 'flex:1;min-width:180px;max-width:calc(50% - 3px);box-sizing:border-box;padding:6px 8px;border:1px solid #2a2a2a;border-radius:4px;background:#0c0c0c;display:flex;flex-direction:column;gap:4px;';
+    const resetBtn = type === 'marchand'
+        ? `<button onclick="_resetMarchandStock('${id}')" style="flex:0 0 auto;background:#1a0a00;color:#ff9800;border:1px solid #8b4000;padding:4px 6px;cursor:pointer;border-radius:3px;font-size:0.76em;" title="Réinitialiser le stock">♻️</button>`
+        : '';
+    card.innerHTML = `
+        <div style="color:#ffb74d;font-family:monospace;font-size:0.72em;">${id}</div>
+        <div style="color:#fff;font-size:0.85em;flex:1;">${nom}</div>
+        <div style="display:flex;gap:4px;">
+            <button onclick="_mjPreviewContenu('${type}','${id}')" style="flex:1;background:#0d1a0d;color:#81c784;border:1px solid #388e3c;padding:4px 6px;cursor:pointer;border-radius:3px;font-size:0.76em;">👁 Voir</button>
+            <button onclick="_mjEnvoyerContenuModal('${type}','${id}')" style="flex:1;background:#0a1a2a;color:#64b5f6;border:1px solid #1565c0;padding:4px 6px;cursor:pointer;border-radius:3px;font-size:0.76em;">📤 Envoyer</button>
+            ${resetBtn}
+        </div>`;
+    container.appendChild(card);
+}
+
+function _mjPreviewContenu(type, id) {
+    // Ouvrir la modal immédiatement
+    let modal = document.getElementById('_mj-preview-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = '_mj-preview-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = `<div style="background:#111;border:1px solid #444;border-radius:6px;padding:24px;color:#888;font-size:0.9em;">⏳ Chargement…</div>`;
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+
+    if (type === 'marchand') {
+        const base = marchandsData[id];
+        if (!base) { modal.style.display = 'none'; return; }
+        db.ref('parties/' + sessionActuelle + '/marchands_stock/' + id).once('value', snap => {
+            const stock = snap.val();
+            const itemsActuels = stock ? stock.inventaire : null;
+            const argent = stock ? stock.argent : base.argent;
+            _mjAfficherPreviewModal('marchand', id, base.nom, itemsActuels, base.inventaire || [], argent);
+        });
+    } else {
+        const c = coffresFixes[id];
+        if (!c) { modal.style.display = 'none'; return; }
+        _mjAfficherPreviewModal('coffre', id, c.nom, c.items || [], null, null);
+    }
+}
+
+function _mjAfficherPreviewModal(type, id, nom, items, itemsBase, argent) {
+    let bodyHtml;
+    if (type === 'marchand' && itemsBase) {
+        // Tableau : item | stock actuel | inventaire full
+        // Construire un map id → qte actuelle
+        const stockMap = {};
+        (items || itemsBase).forEach(it => { stockMap[it.id] = it.qte ?? it.quantite ?? 1; });
+        const baseMap = {};
+        itemsBase.forEach(it => { baseMap[it.id] = it.qte ?? it.quantite ?? 1; });
+        // Union de tous les ids (base, même si actuel épuisé)
+        const allIds = [...new Set([...itemsBase.map(i => i.id)])];
+
+        const header = `<div style="display:grid;grid-template-columns:1fr 54px 54px;gap:2px;padding:3px 0;border-bottom:1px solid #333;margin-bottom:3px;">
+            <span style="color:#666;font-size:0.68em;text-transform:uppercase;">Objet</span>
+            <span style="color:#64b5f6;font-size:0.68em;text-align:center;">Actuel</span>
+            <span style="color:#888;font-size:0.68em;text-align:center;">Full</span>
+        </div>`;
+        const rows = allIds.map(itemId => {
+            const def = (typeof itemsData !== 'undefined') ? itemsData[itemId] : null;
+            const label = def ? def.nom : itemId;
+            const qteFull = baseMap[itemId] ?? 0;
+            const qteActuel = stockMap[itemId] ?? 0;
+            const epuise = qteActuel <= 0;
+            const partiel = !epuise && qteActuel < qteFull;
+            const couleurActuel = epuise ? '#e57373' : partiel ? '#ffb74d' : '#81c784';
+            return `<div style="display:grid;grid-template-columns:1fr 54px 54px;gap:2px;padding:4px 0;border-bottom:1px solid #1a1a1a;opacity:${epuise ? '0.5' : '1'};">
+                <span style="color:#ddd;font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span>
+                <span style="color:${couleurActuel};font-size:0.82em;text-align:center;font-weight:bold;">${epuise ? '❌' : '×' + qteActuel}</span>
+                <span style="color:#555;font-size:0.82em;text-align:center;">×${qteFull}</span>
+            </div>`;
+        }).join('');
+        bodyHtml = header + rows;
+    } else {
+        bodyHtml = (items || []).map(it => {
+            const def = (typeof itemsData !== 'undefined') ? itemsData[it.id] : null;
+            const label = def ? def.nom : it.id;
+            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1a1a1a;">
+                <span style="color:#ddd;font-size:0.83em;">${label}</span>
+                <span style="color:#aaa;font-size:0.83em;">×${it.qte || it.quantite || 1}</span></div>`;
+        }).join('') || '<div style="color:#555;font-size:0.83em;">Vide</div>';
+    }
+
+    const resetRow = type === 'marchand'
+        ? `<button onclick="_resetMarchandStock('${id}');document.getElementById('_mj-preview-modal').style.display='none';" style="width:100%;margin-top:12px;background:#1a0a00;color:#ff9800;border:1px solid #8b4000;padding:7px;cursor:pointer;border-radius:4px;font-size:0.82em;">♻️ Réinitialiser le stock</button>`
+        : '';
+    let modal = document.getElementById('_mj-preview-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = '_mj-preview-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = `
+        <div style="background:#111;border:1px solid #444;border-radius:6px;padding:16px;max-width:400px;width:90%;max-height:72vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                <div>
+                    <div style="color:#ffb74d;font-family:monospace;font-size:0.7em;">${id}</div>
+                    <div style="color:#fff;font-weight:bold;font-size:0.9em;">${nom}</div>
+                </div>
+                <button onclick="document.getElementById('_mj-preview-modal').style.display='none'" style="background:none;border:none;color:#888;font-size:1.1em;cursor:pointer;margin-left:8px;">✕</button>
+            </div>
+            ${argent !== null ? `<div style="color:#ffd54f;font-size:0.82em;margin-bottom:8px;">◈ ${argent} or disponible</div>` : ''}
+            ${bodyHtml}
+            ${resetRow}
+        </div>`;
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+function _mjEnvoyerContenuModal(type, id) {
+    const nom = type === 'coffre' ? (coffresFixes[id]?.nom || id) : (marchandsData[id]?.nom || id);
+    db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
+        const joueurs = snap.val() || {};
+        const btns = Object.entries(joueurs)
+            .filter(([, j]) => !j.estMJ)
+            .map(([pid, j]) => `<button onclick="_mjEnvoyerContenuAJoueur('${type}','${id}','${pid}')"
+                style="width:100%;background:#1a1a2a;color:#eee;border:1px solid #3a3a5a;padding:8px 10px;cursor:pointer;border-radius:4px;font-size:0.85em;margin-bottom:4px;text-align:left;">${j.nom}</button>`)
+            .join('');
+        let modal = document.getElementById('_mj-envoyer-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = '_mj-envoyer-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div style="background:#111;border:1px solid #444;border-radius:6px;padding:16px;max-width:320px;width:90%;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="color:#fff;font-size:0.88em;">📤 Envoyer <strong style="color:#64b5f6;">${nom}</strong> à :</div>
+                    <button onclick="document.getElementById('_mj-envoyer-modal').style.display='none'" style="background:none;border:none;color:#888;font-size:1.1em;cursor:pointer;">✕</button>
+                </div>
+                ${btns || '<div style="color:#666;font-size:0.83em;">Aucun joueur connecté.</div>'}
+            </div>`;
+        modal.style.display = 'flex';
+        modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+    });
+}
+
+function _mjEnvoyerContenuAJoueur(type, id, playerID) {
+    let ref, data;
+    if (type === 'coffre') {
+        ref = db.ref('parties/' + sessionActuelle + '/fouille_active/' + playerID);
+        data = { actif: true, type: 'predefini', id };
+    } else {
+        ref = db.ref('parties/' + sessionActuelle + '/marchand_actif/' + playerID);
+        data = { actif: true, marchandId: id };
+    }
+    ref.set(data);
+    const modal = document.getElementById('_mj-envoyer-modal');
+    if (modal) modal.style.display = 'none';
+    const nom = type === 'coffre' ? (coffresFixes[id]?.nom || id) : (marchandsData[id]?.nom || id);
+    if (typeof _toast === 'function') _toast(`📤 ${nom} envoyé !`, 'success');
+}
 
 // ══════════════════════════════════════════════════════════════
 // VOL À LA TIRE — Interface MJ

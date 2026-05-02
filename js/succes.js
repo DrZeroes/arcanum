@@ -45,6 +45,12 @@ const succesData = [
         icone: '🩸', categorie: 'Combat',
         type: 'seuil', cle: 'degats_ennemis', seuil: 500
     },
+    { id: 'critique_5',     nom: 'Coup de Maître',      desc: 'Réussir 5 coups critiques en combat.',   icone: '⚡', categorie: 'Combat', type: 'seuil', cle: 'coups_critiques', seuil: 5 },
+    { id: 'critique_10',    nom: 'Lame Acérée',          desc: 'Réussir 10 coups critiques en combat.',  icone: '⚡', categorie: 'Combat', type: 'seuil', cle: 'coups_critiques', seuil: 10 },
+    { id: 'critique_50',    nom: 'Perfection Mortelle',  desc: 'Réussir 50 coups critiques en combat.',  icone: '✨', categorie: 'Combat', type: 'seuil', cle: 'coups_critiques', seuil: 50 },
+    { id: 'echec_crit_5',   nom: 'Maladroit',            desc: 'Subir 5 échecs critiques en combat.',   icone: '💥', categorie: 'Combat', type: 'seuil', cle: 'echecs_critiques', seuil: 5 },
+    { id: 'echec_crit_10',  nom: 'Catastrophique',       desc: 'Subir 10 échecs critiques en combat.',  icone: '💥', categorie: 'Combat', type: 'seuil', cle: 'echecs_critiques', seuil: 10 },
+    { id: 'echec_crit_50',  nom: 'Désastre Ambulant',    desc: 'Subir 50 échecs critiques en combat.',  icone: '💀', categorie: 'Combat', type: 'seuil', cle: 'echecs_critiques', seuil: 50 },
 
     // ── Magie ────────────────────────────────────────────────
     {
@@ -404,6 +410,14 @@ const succesData = [
     { id: 'maitre_skill_armes_a_feu', nom: 'Maître Armes à Feu', desc: 'Atteindre 20 pts en Armes à feu.', icone: '🔫', categorie: 'Maîtrise', type: 'custom' },
     { id: 'maitre_skill_crochetage', nom: 'Maître Crochetage', desc: 'Atteindre 20 pts en Crochetage.', icone: '🔑', categorie: 'Maîtrise', type: 'custom' },
     { id: 'maitre_skill_desamorcage', nom: 'Maître Désamorçage', desc: 'Atteindre 20 pts en Désamorçage.', icone: '🧨', categorie: 'Maîtrise', type: 'custom' },
+
+    // ── Dé ───────────────────────────────────────────────────
+    { id: 'de_1_une_fois',   nom: 'Pas de Chance',       desc: 'Faire un 1 au dé de l\'accueil.',                       icone: '🎲', categorie: 'Dé', type: 'seuil', cle: 'de_as_1', seuil: 1 },
+    { id: 'de_1_cinq',       nom: 'Maudit',              desc: 'Faire cinq 1 au dé de l\'accueil.',                     icone: '🎲', categorie: 'Dé', type: 'seuil', cle: 'de_as_1', seuil: 5 },
+    { id: 'de_10_une_fois',  nom: 'Dans la Moyenne',     desc: 'Faire un 10 au dé de l\'accueil.',                      icone: '🎲', categorie: 'Dé', type: 'seuil', cle: 'de_as_10', seuil: 1 },
+    { id: 'de_10_cinq',      nom: 'Régulier',            desc: 'Faire cinq 10 au dé de l\'accueil.',                    icone: '🎲', categorie: 'Dé', type: 'seuil', cle: 'de_as_10', seuil: 5 },
+    { id: 'de_deux_1_suite', nom: 'Double Fléau',        desc: 'Faire deux 1 consécutifs au dé de l\'accueil.',         icone: '🎲', categorie: 'Dé', type: 'custom' },
+    { id: 'de_deux_10_suite',nom: 'Double Médiocrité',   desc: 'Faire deux 10 consécutifs au dé de l\'accueil.',        icone: '🎲', categorie: 'Dé', type: 'custom' },
 ];
 
 /**

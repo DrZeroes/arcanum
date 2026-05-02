@@ -1403,6 +1403,9 @@ function activerEcouteurCombat() {
             const nouveauCombat = !window.combatActif || (data.timestamp && data.timestamp !== ancienTimestamp);
             window.combatActif = data;
 
+            // Combat de Rêve : seul l'initiateur voit l'écran de combat
+            if (data.reve && data.reve_initiateur !== window.monPlayerId) return;
+
             const ecranCombat = document.getElementById('ecran-combat');
             const ecranVisible = ecranCombat && ecranCombat.style.display !== 'none';
 
@@ -1411,8 +1414,8 @@ function activerEcouteurCombat() {
             if (nouveauCombat || !ecranVisible) {
                 window._combatPremierCoupFait = false;
                 window._actionsRapides = { tourKey: -1, max: 1, restantes: 0 };
-                // Marquer les ennemis du combat comme "vus" dans le bestiaire
-                if (nouveauCombat && data.ennemis) {
+                // Marquer les ennemis comme "vus" — sauf pour un combat de rêve
+                if (nouveauCombat && data.ennemis && !data.reve) {
                     const _now = Date.now();
                     (data.ennemis || []).forEach(e => {
                         if (!e.id) return;

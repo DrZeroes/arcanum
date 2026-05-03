@@ -7,7 +7,7 @@ window.donjonActif = null;
 
 // ── Cartes pré-enregistrées ──────────────────────────────────
 // Chaque carte est définie par un tableau de chaînes (ASCII map).
-// '#' = mur, '.' = sol, 'S' = départ, 'P' = piège, 'C' = coffre, 'R' = rencontre, 'D' = porte, 'X' = découverte
+// '#' = mur, '.' = sol, 'S' = départ, 'P' = piège, 'C' = coffre, 'R' = rencontre, 'D' = porte, 'X' = découverte, 'V' = découverte visible, 'H' = porte secrète, 'N' = PNJ errant, 'A' = autel
 
 const DONJON_PRESETS = {
     couloir: {
@@ -29,7 +29,7 @@ const DONJON_PRESETS = {
             '############',
             '#S..#....C.#',
             '#...D......#',
-            '#...#....R.#',
+            '#...H....R.#',
             '####.#####.#',
             '#P...#.....#',
             '#....D.....#',
@@ -64,7 +64,7 @@ const DONJON_PRESETS = {
             '#D#.#.#######.##',
             '#...#.........P#',
             '#.##########.###',
-            '#X.............#',
+            '#X.N.....A.....#',
             '################',
         ]
     },
@@ -174,6 +174,12 @@ function _parseDonjonPreset(preset) {
                 grille[key] = { type: 'sol', event: { type: 'decouverte', declenche: false, data: { texte: 'Une inscription mystérieuse…' } } };
             } else if (ch === 'V') {
                 grille[key] = { type: 'sol', event: { type: 'decouverte', visible: true, declenche: false, data: { texte: '', emoji: '👻' } } };
+            } else if (ch === 'H') {
+                grille[key] = { type: 'mur', event: { type: 'porte_secrete', declenche: false, data: { durabilite: 25 } } };
+            } else if (ch === 'N') {
+                grille[key] = { type: 'sol', event: { type: 'pnj', declenche: false, data: { nom: 'Voyageur mystérieux', dialogue: '"Je n\'ai pas grand chose à dire… sinon que ces couloirs cachent plus d\'un secret."', emoji: '🧙' } } };
+            } else if (ch === 'A') {
+                grille[key] = { type: 'sol', event: { type: 'autel', declenche: false, data: { nom: 'Autel Ancien', description: 'Une pierre taillée couverte de runes. Une force y sommeille.', effet: 'aleatoire' } } };
             } else {
                 grille[key] = { type: 'sol' };
             }
@@ -540,6 +546,36 @@ function _lancerSoinDonjon(nomSort, cibleId) {
     afficherEtatDonjon();
 }
 
+// ── Mini-carte mémorisée ─────────────────────────────────────
+
+window._casesVisiteesDonjon = window._casesVisiteesDonjon || new Set();
+let _casesVisiteesTimer = null;
+
+function _chargerCasesVisitees(myID) {
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/cases_visitees/' + myID).once('value', snap => {
+        const data = snap.val() || {};
+        window._casesVisiteesDonjon = new Set(Object.keys(data));
+    });
+}
+
+function _enregistrerCasesVisitees(visibleSet, myID) {
+    let nouvelles = 0;
+    visibleSet.forEach(key => {
+        if (!window._casesVisiteesDonjon.has(key)) {
+            window._casesVisiteesDonjon.add(key);
+            nouvelles++;
+        }
+    });
+    if (nouvelles === 0) return;
+    // Écriture différée pour grouper les mises à jour
+    clearTimeout(_casesVisiteesTimer);
+    _casesVisiteesTimer = setTimeout(() => {
+        const updates = {};
+        window._casesVisiteesDonjon.forEach(k => { updates[k] = true; });
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/cases_visitees/' + myID).set(updates);
+    }, 500);
+}
+
 // ── Grille avec brouillard ───────────────────────────────────
 
 function _afficherGrilleDonjon(data) {
@@ -553,12 +589,18 @@ function _afficherGrilleDonjon(data) {
     const maPos   = data.positions?.[myID] || { x: 1, y: 1 };
 
     // Calcul de la visibilité (flood-fill depuis la position du joueur)
-    // Les portes fermées/verrouillées bloquent la propagation
     const visible = _calculerVisibilite(grille, largeur, hauteur, maPos.x, maPos.y, data.etats_portes);
 
+    // Enregistrer les cases actuellement visibles dans la mémoire
+    _enregistrerCasesVisitees(visible, myID);
 
-    // Taille des cases : max 36px, adapté à la largeur
-    const cellPx = Math.max(22, Math.min(36, Math.floor(340 / largeur)));
+    // Mini-carte mémorisée : cases déjà visitées (persistées dans window._casesVisiteesDonjon)
+    const visitees = window._casesVisiteesDonjon || new Set();
+
+
+    // Taille des cases : adapté à la largeur de l'écran (mobile-friendly)
+    const availW = Math.max(200, Math.min(window.innerWidth > 0 ? window.innerWidth - 24 : 340, 340));
+    const cellPx = Math.max(18, Math.min(36, Math.floor(availW / largeur)));
     container.style.cssText = `
         display:grid;
         grid-template-columns:repeat(${largeur},${cellPx}px);
@@ -575,14 +617,33 @@ function _afficherGrilleDonjon(data) {
             const isVisible = visible.has(key);
             const isMyPos   = x === maPos.x && y === maPos.y;
 
+            const isVisited = visitees.has(key);
+
             const div = document.createElement('div');
             div.style.cssText = `width:${cellPx}px;height:${cellPx}px;display:flex;align-items:center;justify-content:center;font-size:${Math.max(10,cellPx-8)}px;position:relative;`;
 
-            if (!isVisible) {
+            if (!isVisible && !isVisited) {
+                // Jamais vu : noir total
                 div.style.background = '#000';
+            } else if (!isVisible && isVisited) {
+                // Vu avant mais hors de portée : brouillard mémorisé (layout visible, aucun événement)
+                div.style.background = cell.type === 'mur' ? '#181818' : '#221c14';
+                div.style.opacity = '0.6';
+                if (cell.type !== 'mur') {
+                    div.style.border = '1px solid #2a2218';
+                }
             } else if (cell.type === 'mur') {
                 div.style.background = '#2a2a2a';
                 div.style.border = '1px solid #1a1a1a';
+                if (cell.event?.type === 'porte_secrete') {
+                    const detectee = data.portes_secretes_detectees?.[key]?.[myID];
+                    if (window.estMJ) {
+                        div.innerHTML = '🔐';
+                    } else if (detectee) {
+                        div.style.background = '#332d18';
+                        div.innerHTML = '🚪';
+                    }
+                }
             } else {
                 div.style.background = '#3a2e20';
                 div.style.border = '1px solid #4a3a28';
@@ -636,6 +697,13 @@ function _afficherGrilleDonjon(data) {
                         div.innerHTML = cell.event.data?.emoji || '👻';
                     }
                     // Découvertes normales : cachées jusqu'au déclenchement
+                    else if (cell.event.type === 'pnj' && !cell.event.declenche) {
+                        div.innerHTML = cell.event.data?.emoji || '🧙';
+                    }
+                    else if (cell.event.type === 'autel') {
+                        const utilise = data.autels_utilises?.[key]?.[myID];
+                        div.innerHTML = utilise ? '<span style="opacity:0.4;">⛩</span>' : '⛩';
+                    }
                 }
             }
 
@@ -781,6 +849,9 @@ function _afficherPanneauDonjon(data) {
         }
     }
 
+    // Bouton Fouiller — détection active de portes secrètes adjacentes
+    panel.innerHTML += `<button onclick="_fouillerCasesAdjacentes('${myID}')" style="background:#1a1a0a;color:#aaa;border:1px solid #444;padding:5px 18px;border-radius:4px;cursor:pointer;font-size:0.82em;margin-top:4px;">🔍 Fouiller</button>`;
+
     // Bouton Détection de l'invisible si le joueur a Divination >= 4 (sort niv 10)
     const _divInv = (window.perso?.magieInvesties?.Divination || 0);
     if (_divInv >= 4) {
@@ -828,6 +899,18 @@ function deplacerJoueur(dx, dy) {
     const cell    = data.grille?.[cellKey];
 
     if (!cell || cell.type === 'mur') {
+        if (cell?.event?.type === 'porte_secrete') {
+            const detectee = data.portes_secretes_detectees?.[cellKey]?.[myID];
+            if (detectee) {
+                db.ref('parties/' + sessionActuelle + '/donjon_actif/positions/' + myID).set({ x: nx, y: ny });
+                if (typeof _toast === 'function') _toast('🔐 Vous franchissez la porte secrète.', 'info');
+                _logDonjon(`🔐 ${window.perso?.nom || myID} franchit une porte secrète.`);
+                _avancerTourDonjon(data);
+                setTimeout(() => _verifierDetectionPieges(window.donjonActif, myID), 300);
+                setTimeout(() => _verifierDetectionPortesSecretes(window.donjonActif, myID), 400);
+                return;
+            }
+        }
         if (typeof _toast === 'function') _toast('🧱 Passage bloqué.', 'error');
         return;
     }
@@ -870,8 +953,9 @@ function deplacerJoueur(dx, dy) {
         }
     }
     _avancerTourDonjon(data);
-    // Vérifier détection de pièges dans la zone visible après déplacement
+    // Vérifier détection de pièges et portes secrètes dans la zone visible après déplacement
     setTimeout(() => _verifierDetectionPieges(window.donjonActif, myID), 300);
+    setTimeout(() => _verifierDetectionPortesSecretes(window.donjonActif, myID), 400);
 }
 
 // ── Portes (verrou + clef + durabilité) ─────────────────────
@@ -1312,6 +1396,59 @@ function _verifierDetectionPieges(data, myID) {
     });
 }
 
+/** Détection passive de portes secrètes dans les cases adjacentes. */
+function _verifierDetectionPortesSecretes(data, myID) {
+    if (!data || !window.perso) return;
+    const p = window.perso;
+    const detection = p.compInvesties?.detection_piege || 0;
+    if (detection <= 0) return;
+    const grille = data.grille || {};
+    const maPos  = data.positions?.[myID] || { x: 1, y: 1 };
+
+    Object.entries(grille).forEach(([key, cell]) => {
+        if (cell?.event?.type !== 'porte_secrete') return;
+        if (data.portes_secretes_detectees?.[key]?.[myID]) return;
+        const [cx, cy] = key.split('_').map(Number);
+        const dist = Math.abs(cx - maPos.x) + Math.abs(cy - maPos.y);
+        if (dist > 2) return;
+        const chance = Math.min(60, detection * 8 + 5);
+        if (Math.floor(Math.random() * 100) + 1 <= chance) {
+            db.ref('parties/' + sessionActuelle + '/donjon_actif/portes_secretes_detectees/' + key + '/' + myID).set(true);
+            if (typeof _toast === 'function') _toast('🔐 Vous percevez quelque chose d\'étrange dans le mur…', 'warning');
+            _logDonjon(`🔐 ${p.nom} détecte une porte secrète en (${cx},${cy}).`);
+        }
+    });
+}
+
+/** Fouille active : chance bien plus élevée, coûte 1 tour. */
+function _fouillerCasesAdjacentes(myID) {
+    const data = window.donjonActif;
+    if (!data || !window.perso) return;
+    const p = window.perso;
+    const grille = data.grille || {};
+    const maPos  = data.positions?.[myID] || { x: 1, y: 1 };
+    const detection = p.compInvesties?.detection_piege || 0;
+    const chance = Math.min(95, detection * 12 + 35);
+    let trouve = false;
+
+    for (const [adx, ady] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const key = `${maPos.x + adx}_${maPos.y + ady}`;
+        const cell = grille[key];
+        if (cell?.event?.type !== 'porte_secrete') continue;
+        if (data.portes_secretes_detectees?.[key]?.[myID]) continue;
+        if (Math.floor(Math.random() * 100) + 1 <= chance) {
+            db.ref('parties/' + sessionActuelle + '/donjon_actif/portes_secretes_detectees/' + key + '/' + myID).set(true);
+            if (typeof _toast === 'function') _toast('🔐 Vous trouvez une porte secrète !', 'success');
+            _logDonjon(`🔐 ${p.nom} découvre une porte secrète par fouille.`);
+            trouve = true;
+        }
+    }
+    if (!trouve) {
+        if (typeof _toast === 'function') _toast('🔍 Rien de remarquable ici.', 'info');
+    }
+    _avancerTourDonjon(data);
+}
+
 /** Modal quand le joueur essaie de marcher sur un piège détecté. */
 function _afficherModalPiegeDetecte(cellKey, event, moveParams, myID, data) {
     let modal = document.getElementById('modal-donjon-piege');
@@ -1528,6 +1665,22 @@ function _declencherEvenementDonjon(cellKey, event, myID) {
 
     } else if (type === 'porte') {
         _logDonjon(`🚪 ${nom} passe une porte.`);
+
+    } else if (type === 'pnj') {
+        const pnjNom = event.data?.nom || 'Personnage mystérieux';
+        if (typeof _toast === 'function') _toast(`${event.data?.emoji || '🧙'} ${pnjNom} vous interpelle…`, 'info');
+        _logDonjon(`🧙 ${nom} rencontre ${pnjNom}.`);
+        _afficherModalPNJ(cellKey, event);
+
+    } else if (type === 'autel') {
+        const dejàUtilise = window.donjonActif?.autels_utilises?.[cellKey]?.[myID];
+        if (dejàUtilise) {
+            if (typeof _toast === 'function') _toast('⛩ L\'autel ne répond plus à votre prière.', 'info');
+            return;
+        }
+        // Ne pas marquer declenche — l'autel reste actif pour les autres joueurs
+        db.ref('parties/' + sessionActuelle + '/donjon_actif/grille/' + cellKey + '/event/declenche').set(false);
+        _afficherModalAutel(cellKey, event, myID);
     }
 }
 
@@ -2326,6 +2479,93 @@ function _afficherDecouverteDonjon(texte, emoji) {
             <button onclick="document.getElementById('modal-donjon-decouverte').remove()" style="background:#1a2a3a;color:${borderColor};border:1px solid ${borderColor};padding:7px 20px;border-radius:4px;cursor:pointer;margin-top:12px;">Fermer</button>
         </div>`;
     modal.style.display = 'flex';
+}
+
+function _afficherModalPNJ(cellKey, event) {
+    const nom = event.data?.nom || 'Personnage mystérieux';
+    const dialogue = event.data?.dialogue || '"Bonne route, voyageur…"';
+    const emoji = event.data?.emoji || '🧙';
+    let modal = document.getElementById('modal-donjon-pnj');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-donjon-pnj';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    const lignes = dialogue.split('\n').map(l => `<p style="color:#ccc;line-height:1.6;margin:4px 0;font-style:italic;">${l}</p>`).join('');
+    modal.innerHTML = `
+        <div style="background:#0a180a;border:2px solid #4caf50;border-radius:10px;padding:20px;max-width:360px;width:90%;text-align:center;">
+            <div style="font-size:2.2em;margin-bottom:6px;">${emoji}</div>
+            <h3 style="color:#4caf50;margin:0 0 10px;font-size:0.95em;">${nom}</h3>
+            ${lignes}
+            <button onclick="document.getElementById('modal-donjon-pnj').remove()" style="background:#1a2a1a;color:#4caf50;border:1px solid #4caf50;padding:7px 20px;border-radius:4px;cursor:pointer;margin-top:14px;">Continuer</button>
+        </div>`;
+    modal.style.display = 'flex';
+}
+
+function _afficherModalAutel(cellKey, event, myID) {
+    const nom  = event.data?.nom || 'Autel Ancien';
+    const desc = event.data?.description || 'Une pierre gravée de runes.';
+    const effet = event.data?.effet || 'aleatoire';
+    let modal = document.getElementById('modal-donjon-autel');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-donjon-autel';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(modal);
+    }
+    const lblEffet = { soin: '✨ Soins', energie: '⚡ Énergie', aleatoire: '🎲 Inconnu', rien: '🌀 Silence' }[effet] || '🎲 Inconnu';
+    modal.innerHTML = `
+        <div style="background:#1a0d2a;border:2px solid #9c7fd4;border-radius:10px;padding:20px;max-width:360px;width:90%;text-align:center;">
+            <div style="font-size:2.2em;margin-bottom:6px;">⛩</div>
+            <h3 style="color:#9c7fd4;margin:0 0 8px;font-size:0.95em;">${nom}</h3>
+            <p style="color:#aaa;font-size:0.88em;line-height:1.5;margin:0 0 14px;">${desc}</p>
+            <p style="color:#666;font-size:0.78em;margin:0 0 12px;">Effet potentiel : ${lblEffet}</p>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+                <button onclick="_utiliserAutelDonjon('${cellKey}','${myID}','${effet}')" style="background:#2a1a3a;color:#9c7fd4;border:1px solid #9c7fd4;padding:7px 18px;border-radius:4px;cursor:pointer;">🙏 Prier</button>
+                <button onclick="document.getElementById('modal-donjon-autel').remove()" style="background:#111;color:#666;border:1px solid #444;padding:7px 18px;border-radius:4px;cursor:pointer;">Ignorer</button>
+            </div>
+        </div>`;
+    modal.style.display = 'flex';
+}
+
+function _utiliserAutelDonjon(cellKey, myID, effetType) {
+    document.getElementById('modal-donjon-autel')?.remove();
+    const p = window.perso;
+    if (!p) return;
+    let effet = effetType;
+    if (effet === 'aleatoire') {
+        const pool = ['soin', 'soin', 'energie', 'energie', 'rien'];
+        effet = pool[Math.floor(Math.random() * pool.length)];
+    }
+    const pvMax = (p.statsBase?.FO||0)*2 + (p.statsBase?.IN||0) + ((p.statsInvesties?.FO||0)*2) + (p.statsInvesties?.IN||0) + (p.boostPV||0);
+    const ftMax = (p.statsBase?.CN||0)*2 + (p.statsBase?.IN||0) + ((p.statsInvesties?.CN||0)*2) + (p.statsInvesties?.IN||0) + (p.boostFT||0);
+    let gainPV = 0, gainFT = 0, msg = '';
+    if (effet === 'soin') {
+        gainPV = Math.max(3, Math.round(pvMax * 0.10));
+        p.boostPV = (p.boostPV || 0) + gainPV;
+        p.pvActuel = Math.min(pvMax + gainPV, (p.pvActuel || 0) + gainPV);
+        msg = `✨ L'autel augmente vos PV max de +${gainPV} jusqu'à la fin du donjon.`;
+    } else if (effet === 'energie') {
+        gainFT = Math.max(2, Math.round(ftMax * 0.10));
+        p.boostFT = (p.boostFT || 0) + gainFT;
+        p.ftActuel = Math.min(ftMax + gainFT, (p.ftActuel || 0) + gainFT);
+        msg = `⚡ L'autel augmente vos FT max de +${gainFT} jusqu'à la fin du donjon.`;
+    } else {
+        msg = '🌀 L\'autel reste silencieux…';
+    }
+    if (typeof _toast === 'function') _toast(msg, 'info');
+    _logDonjon(`⛩ ${p.nom} prie à l'autel — ${msg}`);
+    if (gainPV > 0 || gainFT > 0) {
+        const refBuff = db.ref('parties/' + sessionActuelle + '/joueurs/' + myID + '/buff_donjon_autel');
+        refBuff.once('value', snap => {
+            const ex = snap.val() || { boostPV: 0, boostFT: 0 };
+            refBuff.set({ boostPV: (ex.boostPV||0) + gainPV, boostFT: (ex.boostFT||0) + gainFT });
+        });
+        if (typeof autoSave === 'function') autoSave();
+        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+    }
+    db.ref('parties/' + sessionActuelle + '/donjon_actif/autels_utilises/' + cellKey + '/' + myID).set(true);
 }
 
 // ── Brouillard de guerre ─────────────────────────────────────

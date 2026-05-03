@@ -93,7 +93,10 @@ function synchroniserJoueur() {
         discretion: window.perso.compInvesties?.discretion || 0,
         surcharge: surcharge,
         estMort: window.perso.estMort || false,
-        empoisonne: !!window.perso.poison,
+        empoisonne:    !!window.perso.poison,
+        brulure:       !!window.perso.brulure,
+        electrocution: !!window.perso.electrocution,
+        saignement:    !!window.perso.saignement,
         photo: window.perso.photo || null,
         race: window.perso.race || null,
         sexe: window.perso.sexe || null,
@@ -318,9 +321,29 @@ function activerEcouteurDonjon() {
     ref.on('value', (snap) => {
         const data = snap.val();
         if (!data) {
-            // Donjon terminé
+            // Retirer les buffs temporaires d'autel (donjon terminé ou démarrage sans donjon actif)
+            if (!window.estMJ && window.perso) {
+                const _buffID = (window.perso.nom || '').replace(/\s+/g, '_');
+                db.ref('parties/' + sessionActuelle + '/joueurs/' + _buffID + '/buff_donjon_autel').once('value', _bSnap => {
+                    const _buff = _bSnap.val();
+                    if (_buff && (_buff.boostPV || _buff.boostFT)) {
+                        const _p = window.perso;
+                        _p.boostPV = Math.max(0, (_p.boostPV || 0) - (_buff.boostPV || 0));
+                        _p.boostFT = Math.max(0, (_p.boostFT || 0) - (_buff.boostFT || 0));
+                        const _nPv = (_p.statsBase?.FO||0)*2 + (_p.statsBase?.IN||0) + ((_p.statsInvesties?.FO||0)*2) + (_p.statsInvesties?.IN||0) + (_p.boostPV||0);
+                        const _nFt = (_p.statsBase?.CN||0)*2 + (_p.statsBase?.IN||0) + ((_p.statsInvesties?.CN||0)*2) + (_p.statsInvesties?.IN||0) + (_p.boostFT||0);
+                        _p.pvActuel = Math.min(_p.pvActuel || 0, _nPv);
+                        _p.ftActuel = Math.min(_p.ftActuel || 0, _nFt);
+                        _bSnap.ref.remove();
+                        if (typeof autoSave === 'function') autoSave();
+                        if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                    }
+                });
+            }
+            // Donjon terminé (transition depuis état actif)
             if (window.donjonActif) {
                 window.donjonActif = null;
+                window._casesVisiteesDonjon = new Set();
                 if (typeof _toast === 'function') _toast('🗺 Le donjon est terminé.', 'info');
                 if (typeof allerAccueil === 'function') allerAccueil();
             }
@@ -346,9 +369,13 @@ function activerEcouteurDonjon() {
         }
 
         // ── Côté joueur ──
+        const myID = (window.perso?.nom || '').replace(/\s+/g, '_');
+
         // Ouvrir l'écran donjon si pas déjà affiché — mais pas si un combat est en cours
         const ecran = document.getElementById('ecran-donjon');
         if (ecran && ecran.style.display !== 'flex' && !window.combatActif) {
+            // Charger les cases visitées avant d'afficher le donjon
+            if (typeof _chargerCasesVisitees === 'function') _chargerCasesVisitees(myID);
             if (typeof ouvrirEcranDonjon === 'function') ouvrirEcranDonjon();
             else ecran.style.display = 'flex';
         }
@@ -743,6 +770,41 @@ function activerEcouteurStats() {
                 }
             }
 
+            // 4b. Contamination brûlure (feu, 30%)
+            if (data.element === 'feu' && degats > 0 && !window.perso.brulure) {
+                const resFeu = window.perso.bonusInnes?.resFeu || 0;
+                if (Math.random() * 100 < 30 * (1 - resFeu / 100)) {
+                    window.perso.brulure = { tours: 3 };
+                    if (typeof _toast === 'function') _toast('🔥 Vous êtes en feu !', 'error');
+                    if (typeof _logCombat === 'function') _logCombat(`🔥 ${window.perso.nom} prend feu !`);
+                    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                    if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
+                }
+            }
+
+            // 4c. Contamination électrocution (élec, 40%)
+            if (data.element === 'elec' && degats > 0 && !window.perso.electrocution) {
+                const resElec = window.perso.bonusInnes?.resElec || 0;
+                if (Math.random() * 100 < 40 * (1 - resElec / 100)) {
+                    window.perso.electrocution = { tours: 2 };
+                    if (typeof _toast === 'function') _toast('⚡ Vous êtes électrocuté !', 'error');
+                    if (typeof _logCombat === 'function') _logCombat(`⚡ ${window.perso.nom} est électrocuté !`);
+                    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                    if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
+                }
+            }
+
+            // 4d. Saignement sur coup critique physique (25%)
+            if (data.critique && !data.element && degats > 0 && !window.perso.saignement) {
+                if (Math.random() < 0.25) {
+                    window.perso.saignement = { tours: 3 };
+                    if (typeof _toast === 'function') _toast('🩸 Vous saignez !', 'error');
+                    if (typeof _logCombat === 'function') _logCombat(`🩸 ${window.perso.nom} saigne (coup critique) !`);
+                    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+                    if (typeof afficherEtatCombat === 'function') afficherEtatCombat();
+                }
+            }
+
             // 4. Usure de l'armure portée
             const armorSlots = ['tete', 'torse', 'gants', 'bottes', 'main_gauche'];
             const perteArmure = data.critique ? 10 : 1;
@@ -801,6 +863,12 @@ function activerEcouteurStats() {
             window.perso.ftActuel = Math.max(0, (window.perso.ftActuel ?? maxFT) - data.degatsFT);
             if (typeof _toast === 'function') _toast(`⚡ -${data.degatsFT} FT (coup reçu)`, 'error');
         }
+
+    // Soin reçu : stoppe le saignement
+    if (data.valeur > 0 && !data.resurrection && window.perso.saignement) {
+        window.perso.saignement = null;
+        if (typeof _toast === 'function') _toast('🩸 Saignement stoppé par le soin !', 'success');
+    }
 
     // Mort en combat : marquer KO dans ordre_jeu
     if (window.perso.pvActuel <= 0 && window.combatActif) {
@@ -1720,12 +1788,14 @@ function switchOngletMJ(ongletId) {
     const secCombat  = document.getElementById('mj-section-combat');
     const secQuetes  = document.getElementById('mj-section-quetes');
     const secDonjon  = document.getElementById('mj-section-donjon');
+    const secNotes   = document.getElementById('mj-section-notes');
 
     if(secJoueurs) secJoueurs.style.display = 'none';
     if(secCodex)   secCodex.style.display   = 'none';
     if(secCombat)  secCombat.style.display  = 'none';
     if(secQuetes)  secQuetes.style.display  = 'none';
     if(secDonjon)  secDonjon.style.display  = 'none';
+    if(secNotes)   secNotes.style.display   = 'none';
 
     // 2. ROUTAGE VERS LES BONS CONTENUS
     if (ongletId === 'joueurs') {
@@ -1773,6 +1843,10 @@ function switchOngletMJ(ongletId) {
         if (secCombat) secCombat.style.display = 'block';
         if (typeof mjAfficherInterfaceCombat === "function") mjAfficherInterfaceCombat();
     }
+    else if (ongletId === 'notes') {
+        if (secNotes) secNotes.style.display = 'block';
+        mjChargerNotes();
+    }
 
     // 3. STYLE DES BOUTONS
     document.querySelectorAll('.mj-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1780,6 +1854,139 @@ function switchOngletMJ(ongletId) {
     if (btnActif) btnActif.classList.add('active');
 }
 
+
+let _notesMJTimer = null;
+
+// ── Chat en jeu ──────────────────────────────────────────────
+let _chatOuvert = false;
+let _chatNonLus = 0;
+let _chatInitialise = false;
+
+function toggleChat() {
+    const panel = document.getElementById('chat-panel');
+    const btn   = document.getElementById('btn-chat');
+    if (!panel) return;
+    _chatOuvert = !_chatOuvert;
+    panel.style.display = _chatOuvert ? 'flex' : 'none';
+    if (_chatOuvert) {
+        _chatNonLus = 0;
+        const badge = document.getElementById('chat-badge');
+        if (badge) badge.style.display = 'none';
+        const msgs = document.getElementById('chat-messages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+        setTimeout(() => document.getElementById('chat-input')?.focus(), 50);
+    }
+}
+
+function envoyerMessageChat() {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+    const texte = input.value.trim();
+    if (!texte || !sessionActuelle) return;
+    const auteur = window.perso?.nom || (window.estMJ ? 'MJ' : 'Joueur');
+    db.ref('parties/' + sessionActuelle + '/chat').push({
+        auteur, texte, timestamp: Date.now()
+    });
+    input.value = '';
+}
+
+function _couleurAuteur(nom) {
+    const palette = ['#b39ddb','#80cbc4','#ffb74d','#81c784','#f48fb1','#4fc3f7','#ff8a65','#dce775'];
+    let h = 0;
+    for (let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) & 0xffff;
+    return palette[h % palette.length];
+}
+
+function activerEcouteurChat() {
+    if (_chatInitialise) return;
+    _chatInitialise = true;
+
+    const btn = document.getElementById('btn-chat');
+    if (btn) btn.style.display = 'flex';
+
+    const ref = db.ref('parties/' + sessionActuelle + '/chat');
+    // Charger les 40 derniers messages au démarrage, puis écouter les nouveaux
+    ref.orderByChild('timestamp').limitToLast(40).once('value', snap => {
+        const msgs = snap.val() || {};
+        const trie = Object.values(msgs).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            trie.forEach(m => _ajouterMessageChat(m, false));
+            container.scrollTop = container.scrollHeight;
+        }
+        // Écouter les nouveaux messages après le chargement initial
+        ref.orderByChild('timestamp').startAfter(trie.length ? trie[trie.length - 1].timestamp : Date.now() - 1)
+            .on('child_added', snap => {
+                const m = snap.val();
+                if (!m) return;
+                _ajouterMessageChat(m, true);
+            });
+    });
+}
+
+function _ajouterMessageChat(m, estNouveau) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    const heure = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }) : '';
+    const estMoi = m.auteur === (window.perso?.nom || (window.estMJ ? 'MJ' : ''));
+    const couleur = _couleurAuteur(m.auteur || '');
+    const div = document.createElement('div');
+    div.style.cssText = `font-size:0.81em;line-height:1.4;padding:3px 0;${estMoi ? 'text-align:right;' : ''}`;
+    div.innerHTML = estMoi
+        ? `<span style="color:#ccc;">${m.texte}</span> <span style="color:#555;font-size:0.85em;">${heure}</span>`
+        : `<span style="color:${couleur};font-weight:bold;">${m.auteur}</span> <span style="color:#aaa;">${m.texte}</span> <span style="color:#555;font-size:0.85em;">${heure}</span>`;
+    container.appendChild(div);
+
+    // Garder max 60 messages dans le DOM
+    while (container.children.length > 60) container.removeChild(container.firstChild);
+
+    if (estNouveau) {
+        if (_chatOuvert) {
+            container.scrollTop = container.scrollHeight;
+        } else {
+            _chatNonLus++;
+            const badge = document.getElementById('chat-badge');
+            if (badge) { badge.textContent = _chatNonLus; badge.style.display = 'block'; }
+            if (typeof _toast === 'function' && m.auteur !== (window.perso?.nom || 'MJ')) {
+                _toast(`💬 ${m.auteur} : ${m.texte.substring(0, 40)}${m.texte.length > 40 ? '…' : ''}`, 'info');
+            }
+        }
+    }
+}
+
+function mjChargerNotes() {
+    const sec = document.getElementById('mj-section-notes');
+    if (!sec) return;
+    sec.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="color:#80cbc4;font-size:0.85em;font-weight:bold;">📝 Notes de session</span>
+                <span id="notes-mj-status" style="font-size:0.75em;color:#555;">—</span>
+            </div>
+            <textarea id="notes-mj-textarea"
+                placeholder="Notes libres pour le MJ — sauvegardées automatiquement…"
+                style="width:100%;min-height:340px;background:#0a0f0a;color:#ccc;border:1px solid #333;
+                       border-radius:6px;padding:10px;font-size:0.88em;line-height:1.6;
+                       resize:vertical;font-family:inherit;box-sizing:border-box;outline:none;"
+                oninput="mjAutoSaveNotes(this.value)"></textarea>
+        </div>`;
+    db.ref('parties/' + sessionActuelle + '/notes_mj').once('value', snap => {
+        const ta = document.getElementById('notes-mj-textarea');
+        if (ta) ta.value = snap.val() || '';
+    });
+}
+
+function mjAutoSaveNotes(texte) {
+    const status = document.getElementById('notes-mj-status');
+    if (status) status.textContent = '✏ modification…';
+    clearTimeout(_notesMJTimer);
+    _notesMJTimer = setTimeout(() => {
+        db.ref('parties/' + sessionActuelle + '/notes_mj').set(texte).then(() => {
+            const s = document.getElementById('notes-mj-status');
+            if (s) { s.textContent = '✅ sauvegardé'; s.style.color = '#4caf50'; }
+        });
+    }, 800);
+}
 
 function mjModifierStat(playerID, stat) {
     let label = (stat === 'PV') ? "Points de Vie" : "Fatigue";
@@ -2085,6 +2292,7 @@ function demarrerMoteurMulti() {
     activerEcouteurQuetes();
     activerEcouteurDonjon();
     activerRadarGroupeAccueil();
+    activerEcouteurChat();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT
     if (typeof appliquerFondActuel === "function") appliquerFondActuel();

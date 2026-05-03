@@ -230,6 +230,82 @@
     height: auto;
   }
 
+  /* ── Écran Donjon ─────────────────────────────────────────── */
+
+  /* Plein écran fixe comme le combat */
+  #ecran-donjon {
+    position: fixed !important;
+    inset: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow-y: auto;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Grille scrollable horizontalement si trop large */
+  #donjon-grille {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Log plus compact */
+  #donjon-log {
+    max-height: 52px !important;
+    font-size: 0.76em;
+  }
+
+  /* Statut tour plus compact */
+  #donjon-statut {
+    font-size: 0.82em;
+    padding: 2px 0;
+  }
+
+  /* Boutons de déplacement : plus grands pour le touch */
+  #donjon-actions button {
+    min-height: 50px !important;
+    min-width: 50px !important;
+    font-size: 1.5em !important;
+  }
+
+  /* ── Chat panel ───────────────────────────────────────────── */
+
+  #chat-panel {
+    width: calc(100vw - 16px) !important;
+    right: 8px !important;
+    left: 8px !important;
+    bottom: 72px !important;
+    max-height: 60vh;
+  }
+
+  #chat-messages {
+    height: 200px !important;
+  }
+
+  /* ── Modaux donjon (PNJ, autel, piège, découverte) ─────────── */
+
+  #modal-donjon-piege > div,
+  #modal-donjon-decouverte > div,
+  #modal-donjon-pnj > div,
+  #modal-donjon-autel > div {
+    width: 94% !important;
+    max-width: 94% !important;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* ── Écrans .ecran généraux (fiche, inventaire…) ──────────── */
+
+  .ecran {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
 }
 
 /* ── iPhone notch / home bar (safe area) ──────────────────── */
@@ -237,6 +313,9 @@
   @media (max-width: 768px) {
     .combat-footer {
       padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    #ecran-donjon {
+      padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
     }
     body {
       padding-bottom: env(safe-area-inset-bottom);

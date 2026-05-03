@@ -103,17 +103,104 @@ function _afficherResultatCombat(resultat) {
     if (panel) {
         const isReve = !!window.combatActif?.reve;
         const btnFermer = (!window.estMJ || isReve)
-            ? `<div style="margin-top:16px;"><button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button></div>`
+            ? `<button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button>`
             : '';
         const reveBadge = isReve ? `<div style="font-size:0.5em;color:#4fc3f7;margin-top:4px;">💤 Combat de Rêve — sans conséquences</div>` : '';
+        const btnLog = `<button onclick="ouvrirLogCombatActuel()" style="background:#0d1a1a;border:1px solid #37474f;color:#80cbc4;padding:8px 18px;border-radius:5px;cursor:pointer;font-size:0.85em;">📜 Log du combat</button>`;
         panel.innerHTML = '<div style="text-align:center;font-size:2em;padding:24px;">'
-            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + reveBadge + btnFermer + '</div>';
+            + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + reveBadge
+            + `<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">${btnLog}${btnFermer}</div>`
+            + '</div>';
     }
+}
+
+function ouvrirLogCombatActuel() {
+    db.ref('parties/' + sessionActuelle + '/combat_log').once('value', snap => {
+        const logsRaw = snap.val() || {};
+        const logs = Object.values(logsRaw).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        _afficherModalLog('📜 Log — combat en cours', logs);
+    });
+}
+
+function ouvrirHistoriqueCombats() {
+    const panel = document.getElementById('combat-actions-panel') || document.getElementById('mj-section-combat');
+    if (panel) panel.innerHTML = '<p style="color:#666;padding:12px;">⏳ Chargement…</p>';
+    db.ref('parties/' + sessionActuelle + '/historique_combats').once('value', snap => {
+        const data = snap.val() || {};
+        const combats = Object.values(data).sort((a, b) => (b.date || 0) - (a.date || 0));
+        if (!combats.length) {
+            if (panel) panel.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Aucun combat archivé.</p>';
+            return;
+        }
+        const lignes = combats.map((c, i) => {
+            const dateStr = new Date(c.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            const badge = c.resultat === 'victoire'
+                ? '<span style="color:#ffd700;font-size:0.8em;">🏆 Victoire</span>'
+                : '<span style="color:#ef5350;font-size:0.8em;">💀 Défaite</span>';
+            const ennemis = (c.ennemis || []).join(', ') || '—';
+            return `<div style="border:1px solid #2a2a2a;border-radius:5px;padding:10px;margin-bottom:8px;background:#0a0a0a;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="color:#aaa;font-size:0.85em;">${dateStr}</span>${badge}
+                </div>
+                <div style="color:#777;font-size:0.78em;margin-bottom:6px;">⚔ ${ennemis}</div>
+                <button onclick="_afficherModalLog('📜 ${dateStr} — ${c.resultat}', ${JSON.stringify(c.logs || []).replace(/'/g,"\\'")})"
+                    style="background:#0d1a1a;border:1px solid #37474f;color:#80cbc4;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.8em;">
+                    📜 Voir le log (${c.nb_logs || 0} entrées)
+                </button>
+            </div>`;
+        }).join('');
+        if (panel) panel.innerHTML = `<div style="padding:8px;"><h3 style="color:#d4af37;font-size:0.95em;margin:0 0 12px;">📜 Historique des combats</h3>${lignes}</div>`;
+    });
+}
+
+function _afficherModalLog(titre, logs) {
+    let modal = document.getElementById('modal-combat-log');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-combat-log';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+        document.body.appendChild(modal);
+    }
+    const lignes = (Array.isArray(logs) ? logs : Object.values(logs))
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+        .map(l => {
+            const t = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
+            return `<div style="padding:4px 0;border-bottom:1px solid #1a1a1a;font-size:0.82em;color:#ccc;">
+                <span style="color:#555;font-size:0.85em;margin-right:6px;">${t}</span>${l.texte || ''}
+            </div>`;
+        }).join('');
+    modal.innerHTML = `<div style="background:#0d0d0d;border:1px solid #333;border-radius:8px;padding:16px;max-width:520px;width:92%;max-height:78vh;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:#d4af37;font-size:0.95em;font-weight:bold;">${titre}</span>
+            <button onclick="document.getElementById('modal-combat-log').style.display='none'" style="background:none;border:none;color:#666;cursor:pointer;font-size:1.2em;">✕</button>
+        </div>
+        <div style="overflow-y:auto;flex:1;">${lignes || '<p style="color:#555;text-align:center;padding:20px;">Aucune entrée.</p>'}</div>
+    </div>`;
+    modal.style.display = 'flex';
+}
+
+function _archiverCombat(resultat, ennemisKO) {
+    const session = sessionActuelle;
+    const ref = db.ref('parties/' + session + '/combat_log');
+    ref.once('value', snap => {
+        const logsRaw = snap.val() || {};
+        const logs = Object.values(logsRaw).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const nomsEnnemis = [...new Set(ennemisKO.map(e => e.nom).filter(Boolean))];
+        const archive = {
+            date: Date.now(),
+            resultat,
+            ennemis: nomsEnnemis,
+            nb_logs: logs.length,
+            logs
+        };
+        db.ref('parties/' + session + '/historique_combats').push(archive);
+    });
 }
 
 function _verifierFinCombat(ennemisMAJ) {
     const tousKO = ennemisMAJ.every(e => e.pvActuel <= 0);
     if (!tousKO) return;
+    _archiverCombat('victoire', ennemisMAJ);
     db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('victoire');
     // Combat de Rêve : pas de kills, pas de loot, pas de stats
     if (window.combatActif?.reve) {
@@ -248,6 +335,7 @@ function _verifierDefaite(ordreActuel) {
 
         if (confirme) {
             _logCombat('💀 Tous les alliés sont tombés — DÉFAITE !');
+            _archiverCombat('defaite', []);
             db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
             if (window.combatActif?.reve) {
                 setTimeout(() => {
@@ -413,9 +501,17 @@ function _afficherJoueurs() {
             const ftPct  = j.ftMax > 0 ? Math.round(((j.ftActuel ?? 0) / j.ftMax) * 100) : 0;
             const estMoi  = j.nom === window.perso?.nom;
             const estMort = pvActuel <= 0;
-            const estEmpoisonne = estMoi ? !!window.perso?.poison : !!j.empoisonne;
-            const pvBarStyle = estEmpoisonne ? 'background:#8b4513;' : '';
-            const poisonLabel = estEmpoisonne ? '<span style="color:#9c4;font-size:10px;margin-left:4px;">☠ Empoisonné</span>' : '';
+            const estEmpoisonne   = estMoi ? !!window.perso?.poison        : !!j.empoisonne;
+            const estBrulure      = estMoi ? !!window.perso?.brulure       : !!j.brulure;
+            const estElec         = estMoi ? !!window.perso?.electrocution : !!j.electrocution;
+            const estSaignement   = estMoi ? !!window.perso?.saignement    : !!j.saignement;
+            const aEffetNegatif   = estEmpoisonne || estBrulure || estElec || estSaignement;
+            const pvBarStyle      = aEffetNegatif ? (estBrulure ? 'background:#bf360c;' : estEmpoisonne ? 'background:#8b4513;' : 'background:#7b1fa2;') : '';
+            const statusLabels    = (estEmpoisonne ? '<span style="color:#9c4;font-size:10px;margin-left:4px;">☠ Poison</span>' : '')
+                + (estBrulure    ? '<span style="color:#ff7043;font-size:10px;margin-left:4px;">🔥 Brûlure</span>' : '')
+                + (estElec       ? '<span style="color:#ffd54f;font-size:10px;margin-left:4px;">⚡ Élec.</span>' : '')
+                + (estSaignement ? '<span style="color:#ef9a9a;font-size:10px;margin-left:4px;">🩸 Saign.</span>' : '');
+            const poisonLabel = statusLabels;
             const jPortrait = (typeof getPortraitJoueur === 'function') ? getPortraitJoueur(estMoi ? window.perso : j) : null;
             window._combatPortraitsCache[uid] = jPortrait;
             const jImgHtml = jPortrait
@@ -3246,16 +3342,28 @@ function passerTourCombat() {
     if (!perso || !data) return;
 
     let msg;
-    if (perso.poison) {
-        // Empoisonné : pas de regen, roll guérison d'abord puis tic de dégâts
-        const estPoison = !!perso.poison; // vrai avant l'appel
-        const degats = (typeof _appliquerPoison === 'function') ? _appliquerPoison() : 0;
-        const gueri = estPoison && !perso.poison; // poison était là, n'y est plus → guéri
-        if (gueri) {
-            msg = `${perso.nom} passe son tour — ✅ Poison neutralisé (aucun dégât ce tour) !`;
-        } else {
-            msg = `${perso.nom} passe son tour — ☠ Poison : −${degats} PV`;
+    const aEffets = perso.poison || perso.brulure || perso.electrocution || perso.saignement;
+    if (aEffets) {
+        const parts = [];
+        if (perso.poison) {
+            const avait = !!perso.poison;
+            const d = (typeof _appliquerPoison === 'function') ? _appliquerPoison() : 0;
+            parts.push(!perso.poison && avait ? '✅ Poison neutralisé' : `☠ Poison −${d} PV`);
         }
+        if (perso.brulure) {
+            const avait = !!perso.brulure;
+            const d = (typeof _appliquerBrulure === 'function') ? _appliquerBrulure() : 0;
+            parts.push(!perso.brulure && avait ? '✅ Brûlure éteinte' : `🔥 Brûlure −${d} PV`);
+        }
+        if (perso.electrocution) {
+            const d = (typeof _appliquerElectrocution === 'function') ? _appliquerElectrocution() : 0;
+            parts.push(`⚡ Élec. −${d} PV`);
+        }
+        if (perso.saignement) {
+            const d = (typeof _appliquerSaignement === 'function') ? _appliquerSaignement() : 0;
+            parts.push(`🩸 Saignement −${d} PV`);
+        }
+        msg = `${perso.nom} passe son tour — ${parts.join(', ')}`;
     } else {
         const guerison = _getGuerison(perso);
         const recup    = _roleRecuperation(guerison);
@@ -3963,3 +4071,47 @@ function _invoqueSortSurEnnemi(instanceInvoque, nomSort, instanceEnnemi) {
     _gagnerXP(2);
     _logCombat(msg);
 }
+
+// ── Raccourcis clavier en combat ─────────────────────────────
+document.addEventListener('keydown', function(e) {
+    // Ignorer si un input/textarea a le focus
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+
+    // Actif seulement si l'écran combat est visible
+    const ecran = document.getElementById('ecran-combat');
+    if (!ecran || ecran.style.display === 'none') return;
+
+    // Ignorer si une modal est ouverte par-dessus
+    const modalsOuvertes = document.querySelectorAll('.modal[style*="flex"], .modal[style*="block"]');
+    if (modalsOuvertes.length > 0) return;
+
+    const panel = document.getElementById('combat-actions-panel');
+    if (!panel) return;
+
+    const key = e.key.toLowerCase();
+
+    // A → Attaquer
+    if (key === 'a') {
+        const btnAtk = panel.querySelector('.combat-sort-btn.attaque:not([disabled])');
+        if (btnAtk) { e.preventDefault(); btnAtk.click(); }
+        return;
+    }
+
+    // P ou Échap → Passer le tour
+    if (key === 'p' || key === 'escape') {
+        const btns = Array.from(panel.querySelectorAll('.combat-sort-btn:not([disabled])'));
+        const btnPasser = btns.find(b => b.textContent.includes('Passer'));
+        if (btnPasser) { e.preventDefault(); btnPasser.click(); }
+        return;
+    }
+
+    // 1–9 → Nième bouton visible du panel
+    const num = parseInt(e.key, 10);
+    if (num >= 1 && num <= 9) {
+        const btns = Array.from(panel.querySelectorAll('.combat-sort-btn:not([disabled])'))
+            .filter(b => b.offsetParent !== null); // visibles uniquement
+        const cible = btns[num - 1];
+        if (cible) { e.preventDefault(); cible.click(); }
+    }
+});

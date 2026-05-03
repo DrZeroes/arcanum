@@ -866,32 +866,26 @@ function ouvrirPatchNotes(onglet) {
                 <h3 style="color:#9c7fd4;margin:0 0 8px;font-size:0.95em;">🗺 Donjon</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
                     <li>Étages multiples (escaliers, transition entre niveaux)</li>
-                    <li>Événements aléatoires enrichis (PNJ errant, autel, inscription)</li>
-                    <li>Mini-carte mémorisée (cases visitées restent visibles après brouillard)</li>
-                    <li>Portes secrètes</li>
+                    <li>✅ Événements aléatoires enrichis (PNJ errant, autel)</li>
+                    <li>✅ Portes secrètes</li>
                 </ul>
             </div>
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
                 <h3 style="color:#ef9a9a;margin:0 0 8px;font-size:0.95em;">⚔ Combat</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
                     <li>Sorts de Cat. 6+ (offensive/défensive avancée)</li>
-                    <li>Effets de statut supplémentaires (brûlure, électrocution, saignement)</li>
                     <li>IA ennemie variée (fuyards, soigneurs, ciblage prioritaire)</li>
-                    <li>Résurrection en combat (sort ou consommable)</li>
                 </ul>
             </div>
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
                 <h3 style="color:#4fc3f7;margin:0 0 8px;font-size:0.95em;">👥 Multijoueur / MJ</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                    <li>Chat en jeu (journal textuel temps réel entre joueurs)</li>
-                    <li>Notes de session MJ (bloc-notes persistant Firebase)</li>
-                    <li>Historique de combat (log post-combat consultable)</li>
                 </ul>
             </div>
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
                 <h3 style="color:#a5d6a7;margin:0 0 8px;font-size:0.95em;">📋 Journal / Progression</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                    <li>Onglet Ennemis uniques dans le journal joueur (liste des boss vaincus)</li>
+                    <li>✅ Onglet Ennemis uniques dans le journal joueur (liste des boss vaincus)</li>
                     <li>Statistiques cumulatives multi-sessions</li>
                 </ul>
             </div>
@@ -905,8 +899,7 @@ function ouvrirPatchNotes(onglet) {
             <div style="margin-bottom:0;">
                 <h3 style="color:#80cbc4;margin:0 0 8px;font-size:0.95em;">📱 UX</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                    <li>Support mobile amélioré (grilles combat/donjon sur petit écran)</li>
-                    <li>Raccourcis clavier en combat (1-9 pour actions)</li>
+                    <li>✅ Support mobile amélioré (grilles combat/donjon sur petit écran)</li>
                 </ul>
             </div>`;
         modal.style.display = 'flex';
@@ -1684,6 +1677,95 @@ function _appliquerPoison() {
     // Log dans le combat si actif
     if (typeof _logCombat === 'function') _logCombat(`☠ ${window.perso.nom} : ${msgPoison}`);
 
+    if (typeof autoSave === 'function') autoSave();
+    rafraichirAccueil();
+    return degats;
+}
+
+function _appliquerBrulure() {
+    if (!window.perso?.brulure) return 0;
+    const CN = (window.perso.statsBase?.CN || 5) + (window.perso.statsInvesties?.CN || 0);
+    const chance = Math.max(10, Math.floor(CN / 3));
+    const resFeu = window.perso.bonusInnes?.resFeu || 0;
+    const maxPV = (window.perso.statsBase.FO * 2) + window.perso.statsBase.IN
+        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostPV || 0);
+
+    if (Math.floor(Math.random() * 100) < chance) {
+        window.perso.brulure = null;
+        if (typeof _toast === 'function') _toast('✅ Brûlure éteinte — aucun dégât !', 'success');
+        if (typeof autoSave === 'function') autoSave();
+        rafraichirAccueil();
+        return 0;
+    }
+    window.perso.brulure.tours--;
+    if (window.perso.brulure.tours <= 0) window.perso.brulure = null;
+
+    const degatsBase = Math.ceil(maxPV * 0.10);
+    const degats = Math.max(1, Math.round(degatsBase * (1 - resFeu / 100)));
+    let msg;
+    if (window.perso.pvActuel - degats <= 0) {
+        const pvAbs = Math.max(0, window.perso.pvActuel - 1);
+        const surplus = degats - pvAbs;
+        window.perso.pvActuel = 1;
+        window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - surplus);
+        msg = `🔥 Brûlure : −${pvAbs} PV, −${surplus} FT`;
+    } else {
+        window.perso.pvActuel -= degats;
+        msg = `🔥 Brûlure : −${degats} PV`;
+    }
+    if (typeof _toast === 'function') _toast(msg, 'error');
+    if (typeof _logCombat === 'function') _logCombat(`🔥 ${window.perso.nom} : ${msg}`);
+    if (typeof autoSave === 'function') autoSave();
+    rafraichirAccueil();
+    return degats;
+}
+
+function _appliquerElectrocution() {
+    if (!window.perso?.electrocution) return 0;
+    const resElec = window.perso.bonusInnes?.resElec || 0;
+    const maxPV = (window.perso.statsBase.FO * 2) + window.perso.statsBase.IN
+        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostPV || 0);
+
+    window.perso.electrocution.tours--;
+    const dissipee = window.perso.electrocution.tours <= 0;
+    if (dissipee) window.perso.electrocution = null;
+
+    const degatsBase = Math.ceil(maxPV * 0.05);
+    const degats = Math.max(1, Math.round(degatsBase * (1 - resElec / 100)));
+    window.perso.pvActuel = Math.max(1, (window.perso.pvActuel || 1) - degats);
+    const msg = `⚡ Électrocution : −${degats} PV${dissipee ? ' — dissipée' : ''}`;
+    if (typeof _toast === 'function') _toast(msg, 'error');
+    if (typeof _logCombat === 'function') _logCombat(`⚡ ${window.perso.nom} : ${msg}`);
+    if (typeof autoSave === 'function') autoSave();
+    rafraichirAccueil();
+    return degats;
+}
+
+function _appliquerSaignement() {
+    if (!window.perso?.saignement) return 0;
+    const maxPV = (window.perso.statsBase.FO * 2) + window.perso.statsBase.IN
+        + ((window.perso.statsInvesties?.FO || 0) * 2) + (window.perso.statsInvesties?.IN || 0)
+        + (window.perso.boostPV || 0);
+
+    window.perso.saignement.tours--;
+    if (window.perso.saignement.tours <= 0) window.perso.saignement = null;
+
+    const degats = Math.max(1, Math.ceil(maxPV * 0.07));
+    let msg;
+    if (window.perso.pvActuel - degats <= 0) {
+        const pvAbs = Math.max(0, window.perso.pvActuel - 1);
+        const surplus = degats - pvAbs;
+        window.perso.pvActuel = 1;
+        window.perso.ftActuel = Math.max(0, (window.perso.ftActuel || 0) - surplus);
+        msg = `🩸 Saignement : −${pvAbs} PV, −${surplus} FT`;
+    } else {
+        window.perso.pvActuel -= degats;
+        msg = `🩸 Saignement : −${degats} PV`;
+    }
+    if (typeof _toast === 'function') _toast(msg, 'error');
+    if (typeof _logCombat === 'function') _logCombat(`🩸 ${window.perso.nom} : ${msg}`);
     if (typeof autoSave === 'function') autoSave();
     rafraichirAccueil();
     return degats;

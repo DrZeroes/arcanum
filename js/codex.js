@@ -1082,6 +1082,9 @@ function mjAfficherInterfaceCombat() {
             </div>
             <button onclick="mjLancerCombat()" style="width:100%;background:#8b0000;color:white;border:none;padding:12px;cursor:pointer;font-size:1em;font-weight:bold;border-radius:4px;letter-spacing:0.05em;">
                 ⚔ LANCER LE COMBAT
+            </button>
+            <button onclick="ouvrirHistoriqueCombats()" style="width:100%;margin-top:6px;background:#0d1a1a;color:#80cbc4;border:1px solid #37474f;padding:8px;cursor:pointer;font-size:0.85em;border-radius:4px;">
+                📜 Historique des combats
             </button>`;
         window._mjRafraichirCombatListe();
 
@@ -2734,7 +2737,10 @@ function _mjBuilderDonjonHtml() {
         { id: 'piege',      label: '🪤 Piège',      color: '#2a0d0d' },
         { id: 'decouverte', label: '🔎 Découverte', color: '#0d1a2a' },
         { id: 'rencontre',  label: '👹 Rencontre',  color: '#2a0d0d' },
-        { id: 'depart',     label: '📍 Départ',     color: '#1a3a1a' },
+        { id: 'depart',        label: '📍 Départ',         color: '#1a3a1a' },
+        { id: 'porte_secrete', label: '🔐 Porte secrète', color: '#3a2a00' },
+        { id: 'pnj',           label: '🧙 PNJ errant',   color: '#0a180a' },
+        { id: 'autel',         label: '⛩ Autel',         color: '#1a0d2a' },
     ];
     const modeBtns = modes.map(m => {
         const actif = window._donjonModeEdit === m.id;
@@ -2784,7 +2790,7 @@ function mjSetModeDonjon(mode) {
     if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
     _mjRendreGrilleBuilder();
     // Formulaire événement si besoin
-    if (['piege','decouverte','rencontre','porte','coffre'].includes(mode)) {
+    if (['piege','decouverte','rencontre','porte','coffre','porte_secrete','pnj','autel'].includes(mode)) {
         _mjAfficherFormulaireEvent(mode);
     }
 }
@@ -2879,6 +2885,30 @@ function _mjAfficherFormulaireEvent(mode) {
             const det = document.getElementById('ev-piege-details-coffre');
             if (cb && det) cb.addEventListener('change', () => { det.style.display = cb.checked ? 'block' : 'none'; });
         }, 0);
+    } else if (mode === 'porte_secrete') {
+        html += `<strong style="color:#d4af37;">Porte secrète</strong>
+            <span style="color:#555;font-size:0.85em;display:block;margin-top:2px;">Invisible dans la grille joueur jusqu'à détection ou fouille. Placée dans un mur.</span>
+            <div style="margin-top:6px;">
+                Durabilité : <input id="ev-durabilite-ps" type="number" value="25" min="5" max="100" style="${styles}width:50px;">
+                <span style="color:#555;font-size:0.85em;">(résistance si enfoncée de force)</span>
+            </div>`;
+    } else if (mode === 'pnj') {
+        html += `<strong style="color:#4caf50;">PNJ errant</strong><br>
+            <div style="margin-bottom:4px;">Nom : <input id="ev-pnj-nom" type="text" placeholder="Marchand vagabond…" style="${styles}width:180px;"></div>
+            <div style="margin-bottom:4px;">Emoji : <input id="ev-pnj-emoji" type="text" placeholder="🧙" maxlength="4" style="${styles}width:50px;"></div>
+            <div>Dialogue : <textarea id="ev-pnj-dialogue" placeholder='"Je n\'ai pas grand chose à vendre…"' rows="3" style="${styles}width:100%;resize:vertical;"></textarea></div>`;
+    } else if (mode === 'autel') {
+        html += `<strong style="color:#9c7fd4;">Autel</strong><br>
+            <div style="margin-bottom:4px;">Nom : <input id="ev-autel-nom" type="text" placeholder="Autel des Anciens…" style="${styles}width:180px;"></div>
+            <div style="margin-bottom:4px;">Description : <input id="ev-autel-desc" type="text" placeholder="Une pierre gravée de runes…" style="${styles}width:240px;"></div>
+            <div>Effet :
+                <select id="ev-autel-effet" style="${styles}">
+                    <option value="aleatoire">🎲 Aléatoire</option>
+                    <option value="soin">✨ Soins (25% PV)</option>
+                    <option value="energie">⚡ Énergie (20% FT)</option>
+                    <option value="rien">🌀 Rien (silencieux)</option>
+                </select>
+            </div>`;
     }
     html += '</div>';
     form.innerHTML = html;
@@ -2909,11 +2939,15 @@ function _mjRendreGrilleBuilder() {
             } else if (isMur) {
                 div.style.background = '#2a2a2a';
                 div.style.border = '1px solid #1a1a1a';
+                if (cell.event?.type === 'porte_secrete') {
+                    div.style.background = '#3a2a00';
+                    div.textContent = '🔐';
+                }
             } else {
                 div.style.background = '#3a2e20';
                 div.style.border = '1px solid #4a3a28';
                 if (cell.event) {
-                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎' };
+                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎', pnj: '🧙', autel: '⛩' };
                     div.textContent = icones[cell.event.type] || '';
                 }
             }
@@ -2939,6 +2973,9 @@ function _mjCelluleCliquee(x, y) {
         // Mettre la case en sol et définir le départ
         b.grille[key] = { type: 'sol' };
         b.depart = { x, y };
+    } else if (mode === 'porte_secrete') {
+        // Porte secrète : reste un mur avec event
+        b.grille[key] = { type: 'mur', event: _mjLireFormulaireEvent(mode) };
     } else {
         // Event : la case devient sol + event
         b.grille[key] = { type: 'sol', event: _mjLireFormulaireEvent(mode) };
@@ -2970,6 +3007,20 @@ function _mjLireFormulaireEvent(mode) {
     if (durabilitePorte) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilitePorte.value) || 30));
     if (probVerrou) event.data.probVerrou  = Math.min(100, Math.max(0, parseInt(probVerrou.value) || 30));
     if (durabilite) event.data.durabilite  = Math.min(100, Math.max(10, parseInt(durabilite.value) || 20));
+    const durabilitePS = document.getElementById('ev-durabilite-ps');
+    if (durabilitePS) event.data.durabilite = Math.min(100, Math.max(5, parseInt(durabilitePS.value) || 25));
+    const pnjNom  = document.getElementById('ev-pnj-nom');
+    const pnjDial = document.getElementById('ev-pnj-dialogue');
+    const pnjEmoji = document.getElementById('ev-pnj-emoji');
+    if (pnjNom)   event.data.nom      = pnjNom.value || 'Voyageur';
+    if (pnjDial)  event.data.dialogue = pnjDial.value || '"…"';
+    if (pnjEmoji) event.data.emoji    = pnjEmoji.value || '🧙';
+    const autelNom  = document.getElementById('ev-autel-nom');
+    const autelDesc = document.getElementById('ev-autel-desc');
+    const autelEffet = document.getElementById('ev-autel-effet');
+    if (autelNom)   event.data.nom         = autelNom.value || 'Autel Ancien';
+    if (autelDesc)  event.data.description = autelDesc.value || '';
+    if (autelEffet) event.data.effet       = autelEffet.value || 'aleatoire';
 
     // Piège sur coffre ou porte
     const suffix = mode === 'coffre' ? 'coffre' : mode === 'porte' ? 'porte' : null;

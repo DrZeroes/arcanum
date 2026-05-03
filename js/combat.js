@@ -201,9 +201,18 @@ function _verifierFinCombat(ennemisMAJ) {
     const tousKO = ennemisMAJ.every(e => e.pvActuel <= 0);
     if (!tousKO) return;
     _archiverCombat('victoire', ennemisMAJ);
+    if (typeof _incStatPartie === 'function' && !window.combatActif?.reve) _incStatPartie('combats_gagnes', 1);
     db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('victoire');
-    // Combat de Rêve : pas de kills, pas de loot, pas de stats
+    // Combat de Rêve : pas de kills, pas de loot, pas de stats — marquer comme battu
     if (window.combatActif?.reve) {
+        const _nomId = (window.perso?.nom || '').replace(/\s+/g, '_');
+        ennemisMAJ.forEach(e => {
+            if (e.id && _nomId) {
+                if (!window._revesBattus) window._revesBattus = {};
+                window._revesBattus[e.id] = true;
+                db.ref('profils/' + _nomId + '/reves_battus/' + e.id).set(true);
+            }
+        });
         setTimeout(() => {
             if (window.combatActif?.reve) db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
         }, 4000);

@@ -7,7 +7,7 @@ window.donjonActif = null;
 
 // ── Cartes pré-enregistrées ──────────────────────────────────
 // Chaque carte est définie par un tableau de chaînes (ASCII map).
-// '#' = mur, '.' = sol, 'S' = départ, 'P' = piège, 'C' = coffre, 'R' = rencontre, 'D' = porte, 'X' = découverte, 'V' = découverte visible, 'H' = porte secrète, 'N' = PNJ errant, 'A' = autel
+// '#' = mur, '.' = sol, 'S' = départ, 'P' = piège, 'C' = coffre, 'R' = rencontre, 'D' = porte, 'X' = découverte, 'V' = découverte visible, 'H' = porte secrète, 'N' = PNJ errant, 'A' = autel, 'E' = escalier (étage suivant)
 
 const DONJON_PRESETS = {
     couloir: {
@@ -180,6 +180,8 @@ function _parseDonjonPreset(preset) {
                 grille[key] = { type: 'sol', event: { type: 'pnj', declenche: false, data: { nom: 'Voyageur mystérieux', dialogue: '"Je n\'ai pas grand chose à dire… sinon que ces couloirs cachent plus d\'un secret."', emoji: '🧙' } } };
             } else if (ch === 'A') {
                 grille[key] = { type: 'sol', event: { type: 'autel', declenche: false, data: { nom: 'Autel Ancien', description: 'Une pierre taillée couverte de runes. Une force y sommeille.', effet: 'aleatoire' } } };
+            } else if (ch === 'E') {
+                grille[key] = { type: 'escalier' };
             } else {
                 grille[key] = { type: 'sol' };
             }
@@ -632,6 +634,10 @@ function _afficherGrilleDonjon(data) {
                 if (cell.type !== 'mur') {
                     div.style.border = '1px solid #2a2218';
                 }
+            } else if (cell.type === 'escalier') {
+                div.style.background = '#1a1a3a';
+                div.style.border = '1px solid #3a3a8a';
+                div.innerHTML = '🪜';
             } else if (cell.type === 'mur') {
                 div.style.background = '#2a2a2a';
                 div.style.border = '1px solid #1a1a1a';
@@ -797,11 +803,14 @@ function _afficherPanneauDonjon(data) {
     const estMonTour = ordre[tourIdx] === myID;
 
     if (statut) {
+        const _etageActuel = data.etage_actuel || 1;
+        const _nbEtages    = Object.keys(data.etages || {}).length;
+        const _etageStr    = _nbEtages > 1 ? ` — Étage ${_etageActuel}/${_nbEtages}` : '';
         if (estTourCompagnon) {
-            statut.textContent = `🐾 Tour du compagnon de ${nomTour.slice(4)}…`;
+            statut.textContent = `🐾 Tour du compagnon de ${nomTour.slice(4)}…${_etageStr}`;
             statut.style.color = '#d4af37';
         } else {
-            statut.textContent = estMonTour ? "⚔ C'est votre tour !" : `Tour de ${nomTour}…`;
+            statut.textContent = (estMonTour ? "⚔ C'est votre tour !" : `Tour de ${nomTour}…`) + _etageStr;
             statut.style.color = estMonTour ? '#4caf50' : '#888';
         }
     }
@@ -897,6 +906,12 @@ function deplacerJoueur(dx, dy) {
 
     const cellKey = `${nx}_${ny}`;
     const cell    = data.grille?.[cellKey];
+
+    // Escalier vers l'étage suivant
+    if (cell?.type === 'escalier') {
+        _monterEtage(data, myID);
+        return;
+    }
 
     if (!cell || cell.type === 'mur') {
         if (cell?.event?.type === 'porte_secrete') {
@@ -2566,6 +2581,48 @@ function _utiliserAutelDonjon(cellKey, myID, effetType) {
         if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
     }
     db.ref('parties/' + sessionActuelle + '/donjon_actif/autels_utilises/' + cellKey + '/' + myID).set(true);
+}
+
+// ── Escalier / changement d'étage ───────────────────────────
+
+/** Transition vers l'étage suivant quand un joueur marche sur un escalier. */
+function _monterEtage(data, myID) {
+    const etageActuel  = data.etage_actuel || 1;
+    const prochainEtage = etageActuel + 1;
+    const etages       = data.etages || {};
+    const prochain     = etages[prochainEtage];
+
+    if (!prochain) {
+        if (typeof _toast === 'function') _toast('🏁 Vous atteignez la sortie du donjon !', 'info');
+        _logDonjon(`🏁 ${window.perso?.nom || myID} atteint la sortie.`);
+        return;
+    }
+
+    // Repositionner tous les participants au départ du nouvel étage
+    const depart    = prochain.depart || { x: 1, y: 1 };
+    const positions = {};
+    Object.keys(data.positions || {}).forEach(id => { positions[id] = { ...depart }; });
+
+    const ref = db.ref('parties/' + sessionActuelle + '/donjon_actif');
+    ref.update({
+        grille:                    prochain.grille,
+        largeur:                   prochain.largeur,
+        hauteur:                   prochain.hauteur,
+        etage_actuel:              prochainEtage,
+        positions,
+        tour_actuel:               0,
+        log:                       {},
+        cases_visitees:            null,
+        pieges_detectes:           null,
+        portes_secretes_detectees: null,
+        autels_utilises:           null,
+        etats_portes:              null,
+        etats_coffres:             null,
+        rencontre_en_attente:      null,
+    }).then(() => {
+        window._casesVisiteesDonjon = new Set();
+        if (typeof _toast === 'function') _toast(`⬆ Étage ${prochainEtage} — En avant !`, 'success');
+    });
 }
 
 // ── Brouillard de guerre ─────────────────────────────────────

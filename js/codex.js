@@ -36,8 +36,12 @@ function _buildCodexEnemyFilters() {
             <button onclick="window._mjCodexGroupBy='zone';_buildCodexEnemyFilters();_renderCodexEnemies();"
                 style="background:${isZone?'#001520':'#111'};color:${isZone?'#4fc3f7':'#666'};border:1px solid ${isZone?'#0277bd':'#333'};padding:3px 7px;cursor:pointer;border-radius:4px;font-size:0.75em;">📍 Zone</button>
         </div>
+        <div style="display:flex;gap:4px;margin-bottom:4px;align-items:center;">
+            <button onclick="_mjRevelerTous()" style="background:#0a200a;color:#81c784;border:1px solid #2e7d32;padding:2px 8px;cursor:pointer;border-radius:4px;font-size:0.74em;">🔓 Révéler tous</button>
+            <button onclick="_mjCacherTous()" style="background:#200a0a;color:#e57373;border:1px solid #8b0000;padding:2px 8px;cursor:pointer;border-radius:4px;font-size:0.74em;">🔒 Cacher tous</button>
+        </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;">
-            <button onclick="window._mjCatFilter=null;document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';b.style.borderColor='#333';});_renderCodexEnemies();"
+            <button onclick="window._mjCatFilter='';document.querySelectorAll('.mjf-cat-btn').forEach(b=>{b.style.background='#111';b.style.color='#999';b.style.borderColor='#333';});_renderCodexEnemies();"
                 style="background:#111;color:#aaa;border:1px solid #333;padding:2px 8px;cursor:pointer;border-radius:4px;font-size:0.75em;">Tout</button>
             ${groupItems.map(item=>`<button class="mjf-cat-btn" onclick="
                 var s=window._mjCatFilter==='${item.replace(/'/g,"\\'")}' ?null:'${item.replace(/'/g,"\\'")}';window._mjCatFilter=s;
@@ -61,6 +65,11 @@ function _renderCodexEnemies() {
     const minNiv = parseInt(document.getElementById('mjf-niv-min')?.value)||0;
     const maxNiv = parseInt(document.getElementById('mjf-niv-max')?.value)||999;
     const catSel = window._mjCatFilter;
+    // null = état initial (rien sélectionné) → placeholder
+    if (catSel === null && !uniqOnly && !search) {
+        container.innerHTML = `<div style="padding:24px;text-align:center;color:#555;font-size:0.85em;width:100%;">Sélectionnez une catégorie ou utilisez la recherche.</div>`;
+        return;
+    }
     const isZone = window._mjCodexGroupBy === 'zone';
     const battuMap = window._mjCodexBattu || {};
     const killsMap = window._mjCodexKills || {};
@@ -480,6 +489,7 @@ function mjChargerEnnemi(idEnnemi) {
                 <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',3)" style="background:#1a1000;color:#ffb74d;border:1px solid #8b5000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">🎒 ×3 Équip.</button>
                 <button onclick="_mjDeverrouillerBestiaire('${idEnnemi}',5)" style="background:#1a0a0a;color:#ef9a9a;border:1px solid #8b0000;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">🔮 ×5 Tout</button>
                 `}
+                <button onclick="_mjAntiReveler('${idEnnemi}')" style="background:#1a1a1a;color:#666;border:1px solid #3a3a3a;padding:4px 8px;cursor:pointer;border-radius:3px;font-size:0.76em;">🔒 Masquer</button>
             </div>
         </div>
     `;
@@ -519,6 +529,48 @@ function _mjDeverrouillerBestiaire(monsterId, cible) {
         if (typeof _toast === 'function') _toast('🔓 ' + nom + ' déverrouillé.', 'success');
         // Rafraîchir le panneau détail pour mettre à jour l'état affiché
         mjChargerEnnemi(monsterId);
+    });
+}
+
+function _mjAntiReveler(monsterId) {
+    const def = (typeof ennemisData !== 'undefined') ? ennemisData[monsterId] : null;
+    const isUniq = def?.unique;
+    const refPath = isUniq
+        ? 'parties/' + sessionActuelle + '/ennemis_uniques/' + monsterId
+        : 'parties/' + sessionActuelle + '/bestiaire/' + monsterId;
+    db.ref(refPath).remove().then(() => {
+        if (!window._mjCodexKills) window._mjCodexKills = {};
+        delete window._mjCodexKills[monsterId];
+        if (!window._mjCodexBattu) window._mjCodexBattu = {};
+        delete window._mjCodexBattu[monsterId];
+        const nom = def?.nom || monsterId;
+        if (typeof _toast === 'function') _toast('🔒 ' + nom + ' masqué du bestiaire.', 'info');
+        mjChargerEnnemi(monsterId);
+    });
+}
+
+function _mjRevelerTous() {
+    if (!confirm('Révéler TOUS les monstres dans le bestiaire des joueurs (kills = 5) ?')) return;
+    const updates = {};
+    const now = Date.now();
+    Object.entries(ennemisData).forEach(([id, def]) => {
+        if (!def.unique) {
+            updates['bestiaire/' + id + '/premierVu'] = now;
+            updates['bestiaire/' + id + '/nbKills'] = 5;
+        }
+    });
+    db.ref('parties/' + sessionActuelle).update(updates).then(() => {
+        if (typeof _toast === 'function') _toast('✅ Tous les monstres révélés.', 'success');
+        genererEnnemisCodexMJ();
+    });
+}
+
+function _mjCacherTous() {
+    if (!confirm('Masquer TOUS les monstres du bestiaire des joueurs ?')) return;
+    db.ref('parties/' + sessionActuelle + '/bestiaire').remove().then(() => {
+        window._mjCodexKills = {};
+        if (typeof _toast === 'function') _toast('🔒 Bestiaire réinitialisé.', 'info');
+        genererEnnemisCodexMJ();
     });
 }
 
@@ -942,6 +994,19 @@ function mjAjouterItemCompagnon(playerID, compIdx) {
 
 // ── GESTION DU COMBAT (MJ) ─────────────────────────────────────────────────
 
+function _mjActualiserBtnBestiaire() {
+    const f = window._cbtBestFilter || 'tous';
+    const map = { tous: 'cbt-best-tous', non_vus: 'cbt-best-non-vus', vus: 'cbt-best-vus', cent: 'cbt-best-cent' };
+    Object.entries(map).forEach(([k, id]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const active = k === f;
+        btn.style.background = active ? '#0a1a20' : '#111';
+        btn.style.color = active ? '#80cbc4' : '#999';
+        btn.style.borderColor = active ? '#37474f' : '#333';
+    });
+}
+
 /** Quantités choisies par le MJ par ID d'ennemi. */
 let _combatSelection = {};
 
@@ -955,10 +1020,21 @@ function mjAfficherInterfaceCombat() {
     _combatSelection = {};
     window._cbtCatFilter = null;
     window._cbtGroupBy = window._cbtGroupBy || 'espece';
+    window._cbtBestFilter = window._cbtBestFilter || 'tous';
 
     // Contexte rencontre donjon (si vient d'une rencontre)
     const rencontreCtx = window._rencontreDonjonContexte || null;
     window._rencontreDonjonContexte = null;
+
+    // Charger le bestiaire pour les filtres
+    Promise.all([
+        db.ref('parties/' + sessionActuelle + '/bestiaire').once('value'),
+        db.ref('parties/' + sessionActuelle + '/ennemis_uniques').once('value')
+    ]).then(([bSnap, uSnap]) => {
+        window._mjCodexKills = bSnap.val() || {};
+        window._mjCodexBattu = uSnap.val() || {};
+        if (window._mjRafraichirCombatListe) window._mjRafraichirCombatListe();
+    });
 
     window._mjRafraichirCombatListe = function() {
             const search = (document.getElementById('cbt-search')?.value || '').toLowerCase();
@@ -968,11 +1044,27 @@ function mjAfficherInterfaceCombat() {
             const catSel = window._cbtCatFilter;
 
             let liste = Object.entries(ennemisData).map(([id, e]) => ({ id, ...e }));
+            const bestFilter = window._cbtBestFilter || 'tous';
             liste = liste.filter(e => {
                 if (search && !e.nom.toLowerCase().includes(search) && !(e.race||'').toLowerCase().includes(search)) return false;
                 if (uniqOnly && !e.unique) return false;
                 if (catSel && _mjGetCat(e.id, e) !== catSel) return false;
                 if (e.niveau < minNiv || e.niveau > maxNiv) return false;
+                if (bestFilter !== 'tous') {
+                    const kills = (window._mjCodexKills || {})[e.id];
+                    const nbKills = kills?.nbKills || 0;
+                    const vu = !!(kills?.premierVu) || nbKills > 0;
+                    if (e.unique) {
+                        const battu = !!(window._mjCodexBattu || {})[e.id];
+                        if (bestFilter === 'non_vus' && (vu || battu)) return false;
+                        if (bestFilter === 'vus' && !vu && !battu) return false;
+                        if (bestFilter === 'cent' && !battu) return false;
+                    } else {
+                        if (bestFilter === 'non_vus' && vu) return false;
+                        if (bestFilter === 'vus' && !vu) return false;
+                        if (bestFilter === 'cent' && nbKills < 5) return false;
+                    }
+                }
                 return true;
             });
             liste.sort((a,b) => {
@@ -1077,6 +1169,17 @@ function mjAfficherInterfaceCombat() {
                     style="background:#1a0808;color:#e57373;border:1px solid #8b0000;padding:3px 8px;cursor:pointer;border-radius:3px;font-size:0.74em;">Tout</button>
                 ${catBtns}
             </div>
+            <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px;align-items:center;">
+                <span style="color:#555;font-size:0.7em;margin-right:2px;">Bestiaire :</span>
+                <button id="cbt-best-tous" onclick="window._cbtBestFilter='tous';_mjActualiserBtnBestiaire();window._mjRafraichirCombatListe();"
+                    style="background:#0a1a20;color:#80cbc4;border:1px solid #37474f;padding:2px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;">Tous</button>
+                <button id="cbt-best-non-vus" onclick="window._cbtBestFilter='non_vus';_mjActualiserBtnBestiaire();window._mjRafraichirCombatListe();"
+                    style="background:#111;color:#999;border:1px solid #333;padding:2px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;">Non rencontrés</button>
+                <button id="cbt-best-vus" onclick="window._cbtBestFilter='vus';_mjActualiserBtnBestiaire();window._mjRafraichirCombatListe();"
+                    style="background:#111;color:#999;border:1px solid #333;padding:2px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;">Rencontrés</button>
+                <button id="cbt-best-cent" onclick="window._cbtBestFilter='cent';_mjActualiserBtnBestiaire();window._mjRafraichirCombatListe();"
+                    style="background:#111;color:#999;border:1px solid #333;padding:2px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;">100% débloqués</button>
+            </div>
             <div style="max-height:45vh;overflow-y:auto;border:1px solid #333;border-radius:4px;margin-bottom:10px;">
                 <div id="tbl-combat-ennemis" style="display:flex;flex-wrap:wrap;gap:3px;padding:4px;align-content:flex-start;"></div>
             </div>
@@ -1087,6 +1190,7 @@ function mjAfficherInterfaceCombat() {
                 📜 Historique des combats
             </button>`;
         window._mjRafraichirCombatListe();
+        _mjActualiserBtnBestiaire();
 
     // Vérifier si un combat est déjà en cours (asynchrone, après rendu de la liste)
     db.ref('parties/' + sessionActuelle + '/combat_actif').once('value', (snap) => {
@@ -2618,15 +2722,16 @@ function _mjAfficherDonjonActif(sec, data) {
             const key  = `${x}_${y}`;
             const cell = grille[key] || { type: 'mur' };
             const isMur = cell.type === 'mur';
-            let bg = isMur ? '#2a2a2a' : '#3a2e20';
-            let content = '';
-            if (!isMur && cell.event) {
+            const isEscalier = cell.type === 'escalier';
+            let bg = isMur ? '#2a2a2a' : (isEscalier ? '#1a1a3a' : '#3a2e20');
+            let content = isEscalier ? '🪜' : '';
+            if (!isMur && !isEscalier && cell.event) {
                 const etatCoffre = cell.event.type === 'coffre' ? (data.etats_coffres?.[key] || null) : null;
                 let icone;
                 if (etatCoffre) {
                     icone = etatCoffre.statut === 'casse' ? '💥' : etatCoffre.statut === 'ouvert' ? '📭' : '🔒';
                 } else {
-                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎' };
+                    const icones = { porte: '🚪', piege: '🪤', coffre: '📦', rencontre: '👹', decouverte: '🔎', pnj: '🧙', autel: '⛩' };
                     icone = icones[cell.event.type] || '';
                 }
                 content = cell.event.declenche && !etatCoffre
@@ -2684,7 +2789,7 @@ function _mjAfficherDonjonActif(sec, data) {
         </div>` : '';
 
     sec.innerHTML = `
-        <div style="color:#9c7fd4;font-size:1.1em;font-weight:bold;margin-bottom:10px;">🗺 Donjon actif</div>
+        <div style="color:#9c7fd4;font-size:1.1em;font-weight:bold;margin-bottom:10px;">🗺 Donjon actif${data.etages ? ` — Étage ${data.etage_actuel || 1}/${Object.keys(data.etages).length}` : ''}</div>
         ${rencontreHtml}
         ${ordreHtml}
         ${cmpControlesHtml}
@@ -2697,6 +2802,7 @@ function _mjAfficherDonjonActif(sec, data) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
             <button onclick="mjGererDonjon()" style="background:#1a1a2a;color:#9c7fd4;border:1px solid #5c3a9d;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">🔄 Rafraîchir</button>
             <button onclick="mjTogglePauseDonjon()" style="background:${data.pause ? '#2a1a00' : '#1a1a00'};color:${data.pause ? '#f0b429' : '#888'};border:1px solid ${data.pause ? '#8b6914' : '#444'};padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">${data.pause ? '▶ Reprendre' : '⏸ Pause'}</button>
+            ${data.etages && (data.etages[(data.etage_actuel || 1) + 1]) ? `<button onclick="mjPasserEtageSuperieur()" style="background:#1a1a3a;color:#9090ff;border:1px solid #3a3a8a;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">⬆ Étage suivant</button>` : ''}
             <button onclick="mjTerminerDonjon()" style="background:#3a0000;color:#ff6b6b;border:1px solid #8b0000;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.85em;">🏁 Terminer le donjon</button>
         </div>
     `;
@@ -2709,6 +2815,12 @@ function _mjAfficherBuilderDonjon(sec) {
     if (!window._donjonBrouillon) {
         window._donjonBrouillon = _creerGrilleDonjon(10, 8);
     }
+    // Init structure multi-étages si nécessaire
+    if (!window._donjonBrouillonEtages) {
+        window._donjonEtageEdite = 1;
+        window._donjonBrouillonEtages = { 1: window._donjonBrouillon };
+    }
+    if (!window._donjonEtageEdite) window._donjonEtageEdite = 1;
     // Mode par défaut : sol (sinon le clic sur une cellule sans mode sélectionné crée un event invalide)
     if (!window._donjonModeEdit) window._donjonModeEdit = 'sol';
 
@@ -2741,6 +2853,7 @@ function _mjBuilderDonjonHtml() {
         { id: 'porte_secrete', label: '🔐 Porte secrète', color: '#3a2a00' },
         { id: 'pnj',           label: '🧙 PNJ errant',   color: '#0a180a' },
         { id: 'autel',         label: '⛩ Autel',         color: '#1a0d2a' },
+        { id: 'escalier',      label: '🪜 Escalier',      color: '#1a1a3a' },
     ];
     const modeBtns = modes.map(m => {
         const actif = window._donjonModeEdit === m.id;
@@ -2754,11 +2867,28 @@ function _mjBuilderDonjonHtml() {
           ).join('')
         : '';
 
+    // Onglets étages
+    const etages = window._donjonBrouillonEtages || { 1: b };
+    const etageEdite = window._donjonEtageEdite || 1;
+    const nbEtages = Object.keys(etages).length;
+    const etageTabsHtml = Object.keys(etages).map(n => {
+        const actif = parseInt(n) === etageEdite;
+        return `<button onclick="mjBasculeEtageBuilder(${n})" style="background:${actif ? '#1a0d2a' : '#111'};color:${actif ? '#9c7fd4' : '#555'};border:1px solid ${actif ? '#5c3a9d' : '#333'};padding:3px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;">Étage ${n}</button>`;
+    }).join('');
+
     return `
         <div style="color:#9c7fd4;font-size:1.1em;font-weight:bold;margin-bottom:10px;">🗺 Éditeur de Donjon</div>
 
         <!-- Cartes préenregistrées -->
         ${presetBtns ? `<div style="margin-bottom:10px;"><div style="color:#666;font-size:0.75em;margin-bottom:4px;">Cartes préenregistrées :</div><div style="display:flex;gap:5px;flex-wrap:wrap;">${presetBtns}</div></div>` : ''}
+
+        <!-- Onglets étages -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+            ${etageTabsHtml}
+            <button onclick="mjAjouterEtage()" style="background:#111;color:#9c7fd4;border:1px dashed #5c3a9d;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:0.8em;">➕ Étage</button>
+            ${nbEtages > 1 ? `<button onclick="mjSupprimerEtage()" style="background:#111;color:#666;border:1px solid #333;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:0.78em;" title="Supprimer l'étage actuel">🗑</button>` : ''}
+            <span style="color:#555;font-size:0.75em;margin-left:4px;">Étage ${etageEdite}/${nbEtages}</span>
+        </div>
 
         <!-- Taille -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
@@ -2936,6 +3066,10 @@ function _mjRendreGrilleBuilder() {
             if (isDepart) {
                 div.style.background = '#1a3a1a';
                 div.textContent = '📍';
+            } else if (cell.type === 'escalier') {
+                div.style.background = '#1a1a3a';
+                div.style.border = '1px solid #3a3a8a';
+                div.textContent = '🪜';
             } else if (isMur) {
                 div.style.background = '#2a2a2a';
                 div.style.border = '1px solid #1a1a1a';
@@ -2973,6 +3107,8 @@ function _mjCelluleCliquee(x, y) {
         // Mettre la case en sol et définir le départ
         b.grille[key] = { type: 'sol' };
         b.depart = { x, y };
+    } else if (mode === 'escalier') {
+        b.grille[key] = { type: 'escalier' };
     } else if (mode === 'porte_secrete') {
         // Porte secrète : reste un mur avec event
         b.grille[key] = { type: 'mur', event: _mjLireFormulaireEvent(mode) };
@@ -3046,6 +3182,9 @@ function mjRedimensionnerDonjon() {
     const larg = Math.min(20, Math.max(5, parseInt(document.getElementById('donjon-larg')?.value) || 10));
     const haut = Math.min(20, Math.max(5, parseInt(document.getElementById('donjon-haut')?.value) || 8));
     window._donjonBrouillon = _creerGrilleDonjon(larg, haut);
+    // Synchroniser dans la structure multi-étages
+    if (!window._donjonBrouillonEtages) { window._donjonBrouillonEtages = {}; window._donjonEtageEdite = 1; }
+    window._donjonBrouillonEtages[window._donjonEtageEdite || 1] = window._donjonBrouillon;
     const sec = document.getElementById('mj-section-donjon');
     if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
     _mjRendreGrilleBuilder();
@@ -3053,25 +3192,124 @@ function mjRedimensionnerDonjon() {
 
 function mjResetDonjon() {
     window._donjonBrouillon = null;
+    window._donjonBrouillonEtages = null;
+    window._donjonEtageEdite = null;
     window._donjonModeEdit = 'sol';
     mjGererDonjon();
 }
 
-/** Charge une carte pré-enregistrée dans le brouillon. */
+/** Charge une carte pré-enregistrée dans le brouillon (étage 1). */
 function mjChargerPreset(nom) {
     if (typeof DONJON_PRESETS === 'undefined' || !DONJON_PRESETS[nom]) return;
     if (!confirm(`Charger la carte "${DONJON_PRESETS[nom].nom}" ? Le brouillon actuel sera remplacé.`)) return;
     window._donjonBrouillon = _parseDonjonPreset(DONJON_PRESETS[nom]);
+    window._donjonEtageEdite = 1;
+    window._donjonBrouillonEtages = { 1: window._donjonBrouillon };
     window._donjonModeEdit = 'sol';
     const sec = document.getElementById('mj-section-donjon');
     if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
     _mjRendreGrilleBuilder();
 }
 
+/** Ajoute un nouvel étage vide au brouillon. */
+function mjAjouterEtage() {
+    if (!window._donjonBrouillonEtages) { window._donjonBrouillonEtages = { 1: window._donjonBrouillon }; }
+    // Sauvegarder l'étage courant avant de changer
+    const curN = window._donjonEtageEdite || 1;
+    if (window._donjonBrouillon) window._donjonBrouillonEtages[curN] = window._donjonBrouillon;
+    const keys = Object.keys(window._donjonBrouillonEtages).map(Number).sort((a,b) => a-b);
+    const newN = keys[keys.length - 1] + 1;
+    const newFloor = _creerGrilleDonjon(10, 8);
+    window._donjonBrouillonEtages[newN] = newFloor;
+    window._donjonEtageEdite = newN;
+    window._donjonBrouillon  = newFloor;
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+/** Bascule vers un autre étage dans l'éditeur. */
+function mjBasculeEtageBuilder(n) {
+    n = parseInt(n);
+    if (!window._donjonBrouillonEtages) return;
+    // Sauvegarder l'étage courant
+    const curN = window._donjonEtageEdite || 1;
+    if (window._donjonBrouillon) window._donjonBrouillonEtages[curN] = window._donjonBrouillon;
+    // Charger l'étage demandé
+    window._donjonEtageEdite = n;
+    window._donjonBrouillon  = window._donjonBrouillonEtages[n] || _creerGrilleDonjon(10, 8);
+    window._donjonBrouillonEtages[n] = window._donjonBrouillon;
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+/** Supprime l'étage actuellement édité (impossible si c'est le seul). */
+function mjSupprimerEtage() {
+    const etages = window._donjonBrouillonEtages || {};
+    const keys   = Object.keys(etages).map(Number).sort((a,b) => a-b);
+    if (keys.length <= 1) { if (typeof _toast === 'function') _toast('Il faut au moins un étage.', 'error'); return; }
+    const curN = window._donjonEtageEdite || 1;
+    if (!confirm(`Supprimer l'étage ${curN} ?`)) return;
+    delete etages[curN];
+    // Renuméroter
+    const sorted = Object.keys(etages).map(Number).sort((a,b) => a-b);
+    const renamed = {};
+    sorted.forEach((k, i) => { renamed[i+1] = etages[k]; });
+    window._donjonBrouillonEtages = renamed;
+    const newN = Math.min(curN, sorted.length);
+    window._donjonEtageEdite = newN;
+    window._donjonBrouillon  = renamed[newN];
+    const sec = document.getElementById('mj-section-donjon');
+    if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
+    _mjRendreGrilleBuilder();
+}
+
+/** MJ : passe manuellement au prochain étage. */
+function mjPasserEtageSuperieur() {
+    db.ref('parties/' + sessionActuelle + '/donjon_actif').once('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        const etageActuel   = data.etage_actuel || 1;
+        const prochainEtage = etageActuel + 1;
+        const prochain      = (data.etages || {})[prochainEtage];
+        if (!prochain) { if (typeof _toast === 'function') _toast('Aucun étage suivant.', 'error'); return; }
+
+        const depart    = prochain.depart || { x: 1, y: 1 };
+        const positions = {};
+        Object.keys(data.positions || {}).forEach(id => { positions[id] = { ...depart }; });
+
+        db.ref('parties/' + sessionActuelle + '/donjon_actif').update({
+            grille:                    prochain.grille,
+            largeur:                   prochain.largeur,
+            hauteur:                   prochain.hauteur,
+            etage_actuel:              prochainEtage,
+            positions,
+            tour_actuel:               0,
+            log:                       {},
+            cases_visitees:            null,
+            pieges_detectes:           null,
+            portes_secretes_detectees: null,
+            autels_utilises:           null,
+            etats_portes:              null,
+            etats_coffres:             null,
+            rencontre_en_attente:      null,
+        }).then(() => {
+            if (typeof _toast === 'function') _toast(`⬆ Étage ${prochainEtage} activé.`, 'success');
+            mjGererDonjon();
+        });
+    });
+}
+
 /** Lance le donjon : écrit dans Firebase et initialise les positions des joueurs. */
 function mjLancerDonjon() {
     const b = window._donjonBrouillon;
     if (!b) return;
+
+    // Sauvegarder l'étage courant dans la structure multi-étages
+    const curN = window._donjonEtageEdite || 1;
+    if (!window._donjonBrouillonEtages) window._donjonBrouillonEtages = {};
+    window._donjonBrouillonEtages[curN] = b;
 
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
         const joueurs = snap.val() || {};
@@ -3084,9 +3322,10 @@ function mjLancerDonjon() {
         // Filtrer le MJ (pas de perso jouable dans le donjon)
         const joueurIds = ids.filter(id => !joueurs[id]?.estMJ);
 
-        // Positions initiales : tous au point de départ (joueurs + compagnons)
+        // Positions initiales : tous au point de départ de l'étage 1
+        const etage1 = (window._donjonBrouillonEtages[1]) || b;
         const positions = {};
-        const depart = { x: b.depart?.x || 1, y: b.depart?.y || 1 };
+        const depart = { x: etage1.depart?.x || 1, y: etage1.depart?.y || 1 };
         joueurIds.forEach(id => { positions[id] = { ...depart }; });
         joueurIds.forEach(id => {
             if (joueurs[id]?.compagnon?.nom) {
@@ -3114,14 +3353,20 @@ function mjLancerDonjon() {
         entrees.sort((a, b2) => b2.dx - a.dx);
         const ordre = entrees.map(e => e.id);
 
+        // Construire la structure multi-étages pour Firebase (étage 1 au root)
+        const etages = window._donjonBrouillonEtages || { 1: etage1 };
+        const nbEtages = Object.keys(etages).length;
+
         const payload = {
-            largeur:       b.largeur,
-            hauteur:       b.hauteur,
-            grille:        b.grille,
+            largeur:       etage1.largeur,
+            hauteur:       etage1.hauteur,
+            grille:        etage1.grille,
             positions,
             ordre_joueurs: ordre,
             tour_actuel:   0,
             log:           {},
+            etage_actuel:  1,
+            ...(nbEtages > 1 ? { etages } : {}),
         };
 
         db.ref('parties/' + sessionActuelle + '/donjon_actif').set(payload).then(() => {

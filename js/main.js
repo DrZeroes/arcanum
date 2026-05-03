@@ -866,8 +866,6 @@ function ouvrirPatchNotes(onglet) {
                 <h3 style="color:#9c7fd4;margin:0 0 8px;font-size:0.95em;">🗺 Donjon</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
                     <li>Étages multiples (escaliers, transition entre niveaux)</li>
-                    <li>✅ Événements aléatoires enrichis (PNJ errant, autel)</li>
-                    <li>✅ Portes secrètes</li>
                 </ul>
             </div>
             <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
@@ -877,29 +875,11 @@ function ouvrirPatchNotes(onglet) {
                     <li>IA ennemie variée (fuyards, soigneurs, ciblage prioritaire)</li>
                 </ul>
             </div>
-            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
-                <h3 style="color:#4fc3f7;margin:0 0 8px;font-size:0.95em;">👥 Multijoueur / MJ</h3>
-                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                </ul>
-            </div>
-            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
-                <h3 style="color:#a5d6a7;margin:0 0 8px;font-size:0.95em;">📋 Journal / Progression</h3>
-                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                    <li>✅ Onglet Ennemis uniques dans le journal joueur (liste des boss vaincus)</li>
-                    <li>Statistiques cumulatives multi-sessions</li>
-                </ul>
-            </div>
-            <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #333;">
+            <div style="margin-bottom:0;">
                 <h3 style="color:#ffd700;margin:0 0 8px;font-size:0.95em;">🛒 Économie</h3>
                 <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
                     <li>Artisanat / réparation via PNJ ou matériaux lootés</li>
                     <li>Bourse dynamique (prix variables selon offre/demande)</li>
-                </ul>
-            </div>
-            <div style="margin-bottom:0;">
-                <h3 style="color:#80cbc4;margin:0 0 8px;font-size:0.95em;">📱 UX</h3>
-                <ul style="margin:0;padding-left:18px;color:#aaa;font-size:0.88em;line-height:1.8;">
-                    <li>✅ Support mobile amélioré (grilles combat/donjon sur petit écran)</li>
                 </ul>
             </div>`;
         modal.style.display = 'flex';
@@ -907,6 +887,29 @@ function ouvrirPatchNotes(onglet) {
     }
 
     contenu.innerHTML = `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v1.2 — Mai 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Étages multiples dans le donjon</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#9090ff;">🪜 Étages multiples</strong> — l'éditeur MJ supporte plusieurs étages (onglets Étage 1 / 2 / … + bouton ➕) ; cellule E = escalier ; quand un joueur marche dessus, tous passent à l'étage suivant ; le MJ peut aussi forcer la transition via "⬆ Étage suivant" ; indicateur Étage N/M affiché dans le statut</li>
+            </ul>
+        </div>
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
+            <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v1.1 — Mai 2026</h3>
+            <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Donjon enrichi, effets de statut, chat, mobile, stats persistantes</p>
+            <ul style="margin:0;padding-left:18px;color:#ccc;font-size:0.92em;">
+                <li><strong style="color:#9c7fd4;">📝 Notes MJ</strong> — onglet Notes dans l'interface MJ, auto-sauvegardé en Firebase</li>
+                <li><strong style="color:#ff9800;">⌨️ Raccourcis clavier combat</strong> — A = attaque, P/Échap = passer, 1–9 = nth action</li>
+                <li><strong style="color:#ef5350;">🔥 Effets de statut</strong> — Brûlure, Électrocution, Saignement : badges visuels, dégâts par tour, contamination au combat</li>
+                <li><strong style="color:#90caf9;">📜 Historique de combat</strong> — log archivé en Firebase après chaque combat ; accessible depuis le résultat ou le Codex MJ</li>
+                <li><strong style="color:#b39ddb;">💬 Chat en jeu</strong> — panneau flottant, 40 messages chargés à l'ouverture, badge de nouveaux messages, toast de notification</li>
+                <li><strong style="color:#80cbc4;">🗺 Mini-carte mémorisée</strong> — les cases visitées restent visibles en brouillard (grisé) après passage, persistées par joueur en Firebase</li>
+                <li><strong style="color:#d4af37;">🔐 Portes secrètes</strong> — case H dans l'éditeur MJ ; invisibles jusqu'à détection passive (compétence) ou fouille active (bouton) ; franchissables une fois détectées</li>
+                <li><strong style="color:#4caf50;">🧙 PNJ errants & Autels</strong> — cases N et A dans l'éditeur ; PNJ affiche un dialogue ; Autel donne un buff temporaire (+10% PV ou FT max) valable uniquement pendant le donjon, retiré à la fin</li>
+                <li><strong style="color:#80cbc4;">📱 Support mobile</strong> — écran donjon plein écran fixe, grille adaptée à la largeur, boutons tactiles 50 px, chat full-width, modaux responsive</li>
+                <li><strong style="color:#a5d6a7;">📊 Statistiques persistantes</strong> — stats cumulatives sauvegardées en Firebase (profils/{joueur}/stats) ; survivent aux changements d'appareil ; delta session affiché en vert dans le journal</li>
+            </ul>
+        </div>
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #333;">
             <h3 style="color:#d4af37;margin:0 0 6px;font-size:1em;">v1.0 — Mai 2026</h3>
             <p style="color:#aaa;font-size:0.82em;margin:0 0 8px;font-style:italic;">Bestiaire, Codex MJ Ennemis, Combat de Rêve, Succès dé & critiques</p>
@@ -998,7 +1001,7 @@ function ouvrirJournalQuetes() { ouvrirJournal('quetes'); }
 
 /**
  * Ouvre le journal à l'onglet demandé.
- * @param {'quetes'|'effets'|'antecedent'|'stats'} onglet
+ * @param {'quetes'|'effets'|'stats'|'succes'|'ennemis_uniques'|'reve'} onglet
  */
 function ouvrirJournal(onglet) {
     const modal   = document.getElementById('modal-journal');
@@ -1006,7 +1009,7 @@ function ouvrirJournal(onglet) {
     if (!modal || !contenu) return;
 
     // Surligner l'onglet actif
-    ['quetes', 'effets', 'antecedent', 'stats', 'succes', 'ennemis_uniques'].forEach(id => {
+    ['quetes', 'effets', 'stats', 'succes', 'ennemis_uniques'].forEach(id => {
         const btn = document.getElementById('jt-' + id);
         if (!btn) return;
         const actif = id === onglet;
@@ -1131,58 +1134,46 @@ function ouvrirJournal(onglet) {
             }).join('');
         }
 
-    } else if (onglet === 'antecedent') {
-        const p  = window.perso;
-        if (!p) { contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Aucun personnage chargé.</p>`; }
-        else {
-            const bgData = (typeof backgrounds !== 'undefined') ? backgrounds.find(b => b.nom === p.antecedent) : null;
-            const desc   = bgData?.desc || '—';
-            contenu.innerHTML = `
-                <div style="border:1px solid #5c3a9d;border-radius:8px;padding:14px;background:#0d0a18;">
-                    <div style="font-size:1em;font-weight:bold;color:#b39ddb;margin-bottom:8px;">
-                        ${p.antecedent || 'Inconnu'}
-                    </div>
-                    <div style="color:#ccc;font-size:0.88em;line-height:1.7;">${desc}</div>
-                </div>
-                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82em;">
-                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
-                        <span style="color:#888;">Race</span><br><span style="color:#d4af37;">${p.race || '—'}</span>
-                    </div>
-                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
-                        <span style="color:#888;">Niveau</span><br><span style="color:#d4af37;">${p.niveau || 1}</span>
-                    </div>
-                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
-                        <span style="color:#888;">Alignement</span><br><span style="color:${(p.bonusInnes?.align || 0) >= 0 ? '#4caf50' : '#ff6b6b'};">${(p.bonusInnes?.align || 0) >= 0 ? '⚪ Bien' : '⚫ Mal'} (${p.bonusInnes?.align || 0})</span>
-                    </div>
-                    <div style="background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:8px;">
-                        <span style="color:#888;">XP total</span><br><span style="color:#d4af37;">${p.xp || 0}</span>
-                    </div>
-                </div>`;
-        }
-
     } else if (onglet === 'stats') {
-        const p  = window.perso;
-        const sp = p?.stats_partie || {};
-        const ligne = (icone, label, valeur, couleur) =>
+        const p   = window.perso;
+        const sp  = p?.stats_partie || {};
+        const deb = window._statsDebutSession || {};
+        const d = (cle) => {
+            const v = (sp[cle] || 0) - (deb[cle] || 0);
+            return v > 0 ? `<span style="color:#3a5a3a;font-size:0.78em;font-weight:normal;"> +${v}</span>` : '';
+        };
+        const ligne = (icone, label, cle, couleur) =>
             `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #1a1a2a;">
-                <span style="color:#888;">${icone} ${label}</span>
-                <span style="color:${couleur || '#d4af37'};font-weight:bold;">${valeur}</span>
+                <span style="color:#888;font-size:0.9em;">${icone} ${label}</span>
+                <span style="color:${couleur || '#d4af37'};font-weight:bold;">${sp[cle] || 0}${d(cle)}</span>
             </div>`;
         const bestSort = (()=>{ const sn = sp.sorts_par_nom || {}; const best = Object.entries(sn).sort((a,b)=>b[1]-a[1])[0]; return best ? best[0] + ' ×' + best[1] : '—'; })();
         contenu.innerHTML = `
+            <div style="color:#3a3a3a;font-size:0.73em;text-align:right;margin-bottom:5px;padding-right:2px;">Cumul total &nbsp;<span style="color:#3a5a3a;">+session en cours</span></div>
             <div style="border:1px solid #2a1a4a;border-radius:8px;overflow:hidden;background:#0a0a14;font-size:0.88em;">
-                ${ligne('💰', 'Or total accumulé',                sp.or_cumule      || 0, '#ffd700')}
-                ${ligne('🚶', 'Cases parcourues',                 sp.cases_parcourues || 0, '#80cbc4')}
-                ${ligne('❤️', 'Points de vie perdus',             sp.pv_perdus      || 0, '#e57373')}
-                ${ligne('🩹', 'Soins appliqués à soi-même',       sp.soins_soi      || 0, '#4caf50')}
-                ${ligne('💚', 'Soins reçus (autres)',             sp.soins_recus    || 0, '#66bb6a')}
-                ${ligne('💙', 'Soins donnés (à d\'autres)',       sp.soins_donnes   || 0, '#42a5f5')}
-                ${ligne('💀', 'Fois mort(e)',                     sp.morts          || 0, '#888')}
-                ${ligne('⚔️', 'Ennemis vaincus',                  sp.ennemis_tues   || 0, '#ff6b6b')}
-                ${ligne('🗡️', 'Attaques portées',                 sp.attaques       || 0, '#ff9800')}
-                ${ligne('🩸', 'PV retirés aux ennemis',           sp.degats_ennemis || 0, '#ef5350')}
-                ${ligne('🔮', 'Sorts lancés',                     sp.sorts_lances   || 0, '#ce93d8')}
-                ${ligne('🏆', 'Sort le plus lancé',               bestSort,              '#ce93d8')}
+                <div style="padding:6px 10px;background:#0d0d1a;color:#555;font-size:0.75em;text-transform:uppercase;letter-spacing:0.08em;">Parcours</div>
+                ${ligne('🗓', 'Sessions jouées',        'sessions_jouees',     '#9c7fd4')}
+                ${ligne('⚔️', 'Combats gagnés',          'combats_gagnes',      '#ff6b6b')}
+                ${ligne('🗺', 'Donjons terminés',        'donjons_termines',    '#80cbc4')}
+                ${ligne('🏙', 'Villes découvertes',      'villes_decouvertes',  '#80cbc4')}
+                ${ligne('🐾', 'Compagnons débloqués',    'compagnons_debloques','#ffd700')}
+                <div style="padding:6px 10px;background:#0d0d1a;color:#555;font-size:0.75em;text-transform:uppercase;letter-spacing:0.08em;">Combat</div>
+                ${ligne('⚔️', 'Ennemis vaincus',         'ennemis_tues',        '#ff8a80')}
+                ${ligne('🗡️', 'Attaques portées',        'attaques',            '#ff9800')}
+                ${ligne('💥', 'Coups critiques',         'coups_critiques',     '#ef5350')}
+                ${ligne('🩸', 'Dégâts infligés',         'degats_ennemis',      '#ef5350')}
+                ${ligne('🔮', 'Sorts lancés',            'sorts_lances',        '#ce93d8')}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #1a1a2a;">
+                    <span style="color:#888;font-size:0.9em;">🏆 Sort favori</span>
+                    <span style="color:#ce93d8;font-weight:bold;font-size:0.85em;">${bestSort}</span>
+                </div>
+                <div style="padding:6px 10px;background:#0d0d1a;color:#555;font-size:0.75em;text-transform:uppercase;letter-spacing:0.08em;">Vie & Économie</div>
+                ${ligne('❤️', 'PV perdus',               'pv_perdus',           '#e57373')}
+                ${ligne('💀', 'Fois mort(e)',             'morts',               '#888')}
+                ${ligne('🩹', 'Soins à soi-même',        'soins_soi',           '#4caf50')}
+                ${ligne('💙', 'Soins donnés',            'soins_donnes',        '#42a5f5')}
+                ${ligne('💰', 'Or accumulé',             'or_cumule',           '#ffd700')}
+                ${ligne('🚶', 'Cases parcourues',        'cases_parcourues',    '#80cbc4')}
             </div>`;
 
     } else if (onglet === 'succes') {
@@ -1473,52 +1464,123 @@ function ouvrirJournal(onglet) {
             window._bcatContents = catContents;
         });
 
-    } else if (onglet === 'reve') {
-        contenu.innerHTML = `<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>`;
-        db.ref('parties/' + sessionActuelle + '/bestiaire').once('value').then(snap => {
-            const bestiaireData = snap.val() || {};
-            if (typeof ennemisData === 'undefined') { contenu.innerHTML = '<p style="color:#555;text-align:center;">Données indisponibles.</p>'; return; }
-
-            // Monstres rencontrés (vu ou tué) – pas les uniques
-            const rencontres = Object.entries(ennemisData).filter(([id, def]) => {
-                if (def.unique) return false;
-                const e = bestiaireData[id] || {};
-                return e.premierVu || (e.nbKills || 0) > 0;
-            });
-
-            if (!rencontres.length) {
-                contenu.innerHTML = `<div style="text-align:center;padding:30px;color:#555;"><div style="font-size:2em;margin-bottom:10px;">💤</div><div>Tu n'as encore rencontré aucun ennemi.</div><div style="font-size:0.8em;margin-top:8px;color:#444;">Les monstres que tu affronte en combat apparaîtront ici.</div></div>`;
-                return;
-            }
-
-            rencontres.sort((a,b)=>a[1].niveau-b[1].niveau);
-
-            let html = `<div style="margin-bottom:12px;background:rgba(0,10,30,0.6);border:1px solid #1a2a4a;border-radius:6px;padding:10px 12px;">
-                <div style="color:#4fc3f7;font-size:0.9em;font-weight:bold;margin-bottom:4px;">💤 Combat de Rêve</div>
-                <div style="color:#666;font-size:0.78em;line-height:1.5;">Affronte un ennemi que tu as déjà rencontré. Sans XP, sans loot, sans conséquences.</div>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">`;
-
-            for (const [id, def] of rencontres) {
-                const fo=def.statsBase?.FO||0,ini=def.statsBase?.IN||0;
-                const pvMax=(fo*2)+ini+(def.boostPV||0);
-                const kills = bestiaireData[id]?.nbKills || 0;
-                const portrait = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
-                html += `<div style="flex:1;min-width:160px;max-width:calc(50% - 3px);box-sizing:border-box;padding:6px;border:1px solid #1e1410;border-radius:4px;background:#0c0c0c;display:flex;gap:6px;align-items:center;">
-                    ${portrait?`<img src="${portrait}" onerror="this.style.display='none'" style="width:36px;height:36px;object-fit:cover;border-radius:3px;flex-shrink:0;border:1px solid #222;">`:'<div style="width:36px;flex-shrink:0;"></div>'}
-                    <div style="flex:1;min-width:0;">
-                        <div style="color:#ccc;font-size:0.82em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${def.nom}</div>
-                        <div style="color:#555;font-size:0.65em;">Niv.${def.niveau} · ❤${pvMax}${kills>0?` · ☠×${kills}`:' · Vu'}</div>
-                    </div>
-                    <button onclick="lancerCombatReve('${id}')" style="background:#001520;color:#4fc3f7;border:1px solid #0277bd;padding:3px 7px;cursor:pointer;border-radius:3px;font-size:0.72em;flex-shrink:0;">▶</button>
-                </div>`;
-            }
-            html += `</div>`;
-            contenu.innerHTML = html;
-        });
     }
 
     modal.style.display = 'flex';
+}
+
+window._revesBattus = window._revesBattus || {};
+
+function ouvrirModalReve() {
+    const modal   = document.getElementById('modal-reve');
+    const contenu = document.getElementById('reve-contenu');
+    if (!modal || !contenu) return;
+    contenu.innerHTML = '<p style="color:#555;text-align:center;padding:20px;">Chargement...</p>';
+    modal.style.display = 'flex';
+
+    db.ref('parties/' + sessionActuelle + '/bestiaire').once('value').then(snap => {
+        const bestiaireData = snap.val() || {};
+        if (typeof ennemisData === 'undefined') {
+            contenu.innerHTML = '<p style="color:#555;text-align:center;">Données indisponibles.</p>';
+            return;
+        }
+
+        // Catégories utilitaires (copiées du bestiaire)
+        const CAT_ORDER = ['Bêtes','Singes','Morts-vivants','Esprits','Démons','Élémentaires','Insectoïdes','Araignées','Arayas','Dragons','Golems','Constructs','Pestilentiels','Animaux','Plantes','Créatures Artificielles','Fées','Trolls','Humanoïdes','Kites','Krags','Reptiliens','Humains','Nains','Elfes','Orques','Demi-Ogres','Gnomes','Halfelins','Assassins de la Main','Autres'];
+        const CAT_ICONS = {'Bêtes':'🐺','Singes':'🐒','Morts-vivants':'💀','Esprits':'👻','Démons':'😈','Élémentaires':'⚡','Insectoïdes':'🕷','Araignées':'🕸','Dragons':'🐉','Golems':'🗿','Constructs':'⚙','Pestilentiels':'🧟','Animaux':'🦁','Plantes':'🌿','Créatures Artificielles':'🤖','Fées':'🧚','Trolls':'👺','Humanoïdes':'🧍','Kites':'🦅','Krags':'🪨','Reptiliens':'🦎','Humains':'👤','Nains':'⛏','Elfes':'🌙','Orques':'⚔','Demi-Ogres':'🏔','Gnomes':'🔧','Halfelins':'🌾','Assassins de la Main':'🔪','Autres':'❓'};
+        const getCat = (id, def) => {
+            if (id.startsWith('main_assassin_')) return 'Assassins de la Main';
+            const race = def.race || '';
+            const map = {'Humain':'Humains','Nain':'Nains','Elfe':'Elfes','Orque':'Orques','Demi-Ogre':'Demi-Ogres','Gnome':'Gnomes','Halfelin':'Halfelins'};
+            return map[race] || def.categorie || 'Autres';
+        };
+
+        // Grouper par catégorie — seulement ceux découverts
+        const cats = {};
+        Object.entries(ennemisData).forEach(([id, def]) => {
+            if (def.unique) return;
+            const e = bestiaireData[id] || {};
+            if (!e.premierVu && !(e.nbKills > 0)) return;
+            const cat = getCat(id, def);
+            if (!cats[cat]) cats[cat] = [];
+            cats[cat].push([id, def, e]);
+        });
+        const sortedCats = Object.keys(cats).sort((a, b) => {
+            const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
+            return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+        });
+
+        if (!sortedCats.length) {
+            contenu.innerHTML = `<div style="text-align:center;padding:30px;color:#555;"><div style="font-size:2em;margin-bottom:10px;">💤</div><div>Aucun ennemi découvert.</div></div>`;
+            return;
+        }
+
+        // Pré-générer HTML des monstres par catégorie
+        const catContents = {};
+        sortedCats.forEach(cat => {
+            const monsters = cats[cat];
+            monsters.sort((a, b) => a[1].niveau - b[1].niveau);
+            catContents[cat] = monsters.map(([id, def]) => {
+                const fo = def.statsBase?.FO || 0, ini = def.statsBase?.IN || 0;
+                const pvMax = (fo * 2) + ini + (def.boostPV || 0);
+                const kills = bestiaireData[id]?.nbKills || 0;
+                const portrait = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                const battu = !!(window._revesBattus?.[id]);
+                return `<div style="display:flex;gap:6px;align-items:center;padding:6px;border:1px solid #0d2a3a;border-radius:4px;background:#000d1a;">
+                    ${portrait ? `<img src="${portrait}" onerror="this.style.display='none'" style="width:34px;height:34px;object-fit:cover;border-radius:3px;flex-shrink:0;border:1px solid #1a3a4a;">` : '<div style="width:34px;flex-shrink:0;"></div>'}
+                    <div style="flex:1;min-width:0;">
+                        <div style="color:#ccc;font-size:0.82em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${def.nom}</div>
+                        <div style="color:#3a5a6a;font-size:0.65em;">Niv.${def.niveau} · ❤${pvMax}${kills > 0 ? ` · ☠×${kills}` : ' · Vu'}</div>
+                    </div>
+                    ${battu ? '<span style="color:#4caf50;font-size:1em;flex-shrink:0;" title="Vaincu en Rêve">✔</span>' : '<span style="width:16px;flex-shrink:0;"></span>'}
+                    <button onclick="lancerCombatReve('${id}')" style="background:#001520;color:#4fc3f7;border:1px solid #0277bd;padding:3px 7px;cursor:pointer;border-radius:3px;font-size:0.75em;flex-shrink:0;">▶</button>
+                </div>`;
+            }).join('');
+        });
+
+        // Rendu : boutons de catégories + zone de contenu
+        let html = `<div style="color:#3a6a7a;font-size:0.78em;margin-bottom:10px;">Affronte un ennemi déjà rencontré — sans XP, sans loot, sans conséquences.</div>`;
+        html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;" id="reve-cat-btns">`;
+        sortedCats.forEach(cat => {
+            const icon = CAT_ICONS[cat] || '❓';
+            const nb = cats[cat].length;
+            const battuNb = cats[cat].filter(([id]) => window._revesBattus?.[id]).length;
+            html += `<button onclick="_reveOuvrirCategorie('${cat.replace(/'/g,"\\'")}',this)"
+                style="background:#001020;color:#4fc3f7;border:1px solid #0d2a3a;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.78em;display:inline-flex;align-items:center;gap:3px;"
+                id="reve-cat-btn-${cat.replace(/[^a-z0-9]/gi,'_')}">
+                <span>${icon}</span><span>${cat}</span>
+                <span style="color:${battuNb>0?'#4caf50':'#3a6a7a'};font-size:0.75em;">${battuNb}/${nb}</span>
+            </button>`;
+        });
+        html += `</div><div id="reve-cat-zone"></div>`;
+        contenu.innerHTML = html;
+
+        // Stocker pour les callbacks
+        window._reveCatContents = catContents;
+    });
+}
+
+function _reveOuvrirCategorie(cat, btn) {
+    const zone = document.getElementById('reve-cat-zone');
+    if (!zone) return;
+    // Toggle : si déjà ouvert, fermer
+    const cid = cat.replace(/[^a-z0-9]/gi, '_');
+    if (window._reveCatActif === cid) {
+        zone.innerHTML = '';
+        window._reveCatActif = null;
+        btn.style.borderColor = '#0d2a3a';
+        btn.style.color = '#4fc3f7';
+        return;
+    }
+    // Réinitialiser l'actif précédent
+    if (window._reveCatActif) {
+        const prev = document.getElementById('reve-cat-btn-' + window._reveCatActif);
+        if (prev) { prev.style.borderColor = '#0d2a3a'; prev.style.color = '#4fc3f7'; }
+    }
+    window._reveCatActif = cid;
+    btn.style.borderColor = '#0277bd';
+    btn.style.color = '#81d4fa';
+    zone.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">${window._reveCatContents?.[cat] || ''}</div>`;
 }
 
 function lancerCombatReve(monsterId) {
@@ -1535,8 +1597,8 @@ function lancerCombatReve(monsterId) {
         return;
     }
 
-    const modal = document.getElementById('modal-journal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('modal-reve')?.style && (document.getElementById('modal-reve').style.display = 'none');
+    document.getElementById('modal-journal')?.style && (document.getElementById('modal-journal').style.display = 'none');
 
     const p = window.perso;
     const pvMaxJ = ((p.statsBase?.FO||0)*2) + (p.statsBase?.IN||0) + (p.boostPV||0);
@@ -1889,6 +1951,19 @@ if (statsBox && window.perso) {
                 btnGroupe.style.display = (nbAutres > 0) ? 'inline-block' : 'none';
             });
         }
+
+        // Bouton Rêve : visible si au moins un monstre découvert dans le bestiaire
+        const btnReve = document.getElementById('btn-menu-reve');
+        if (btnReve && typeof db !== 'undefined' && sessionActuelle) {
+            db.ref('parties/' + sessionActuelle + '/bestiaire').once('value', snap => {
+                const b = snap.val() || {};
+                const auMoinsUn = typeof ennemisData !== 'undefined' && Object.entries(ennemisData).some(([id, def]) => {
+                    if (def.unique) return false;
+                    return (b[id]?.premierVu || (b[id]?.nbKills || 0) > 0);
+                });
+                btnReve.style.display = auMoinsUn ? 'block' : 'none';
+            });
+        }
     } else {
         if (zoneNouveau) zoneNouveau.style.display = 'block';
         if (zoneContinuer) zoneContinuer.style.display = 'none';
@@ -2147,6 +2222,7 @@ function autoSave() {
             }
         }
         if (typeof synchroniserJoueur === "function") synchroniserJoueur();
+        if (typeof _syncStatsGlobales === 'function') _syncStatsGlobales();
     }, 300);
 }
 

@@ -353,6 +353,37 @@ photoContainer.innerHTML = `
 
 
 
+// ── Tooltip antécédent (fiche perso header) ──────────────────
+
+function _afficherTooltipAntecedent(event) {
+    const p = window.perso;
+    if (!p || typeof backgrounds === 'undefined') return;
+    const bgData = backgrounds.find(b => b.nom === p.antecedent);
+    if (!bgData?.desc) return;
+
+    let tip = document.getElementById('_tooltip-antecedent');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = '_tooltip-antecedent';
+        tip.style.cssText = 'position:fixed;z-index:9999;max-width:320px;background:#0d0a18;border:1px solid #5c3a9d;border-radius:8px;padding:12px 14px;color:#ccc;font-size:0.84em;line-height:1.6;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.8);';
+        document.body.appendChild(tip);
+    }
+    tip.innerHTML = `<strong style="color:#b39ddb;display:block;margin-bottom:6px;">${p.antecedent}</strong>${bgData.desc}`;
+
+    const rect = event.target.getBoundingClientRect();
+    const tipW = 320;
+    let left = rect.left;
+    if (left + tipW > window.innerWidth - 8) left = window.innerWidth - tipW - 8;
+    tip.style.left = left + 'px';
+    tip.style.top  = (rect.bottom + 6) + 'px';
+    tip.style.display = 'block';
+}
+
+function _cacherTooltipAntecedent() {
+    const tip = document.getElementById('_tooltip-antecedent');
+    if (tip) tip.style.display = 'none';
+}
+
 // ================= LOGIQUE STATS & VITALITÉ =================
 
 function boostVital(type, valeur) {

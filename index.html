@@ -38,6 +38,17 @@
 </div>
 <button id="btn-patch-notes" onclick="ouvrirPatchNotes()" style="position:fixed;top:10px;left:10px;z-index:1000;background:rgba(30,20,10,0.85);color:#d4af37;border:1px solid #d4af37;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;" title="Notes de mise à jour">ℹ</button>
 
+<!-- Modal Combat de Rêve -->
+<div id="modal-reve" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#000d1a;border:2px solid #0277bd;border-radius:10px;padding:0;max-width:520px;width:94%;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #0d2a3a;">
+            <h2 style="color:#4fc3f7;margin:0;font-size:1.05em;">💤 Combat de Rêve</h2>
+            <button onclick="document.getElementById('modal-reve').style.display='none'" style="background:transparent;border:none;color:#555;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+        </div>
+        <div id="reve-contenu" style="overflow-y:auto;padding:14px;flex:1;"></div>
+    </div>
+</div>
+
 <!-- Modal Journal (5 onglets) -->
 <div id="modal-journal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#0d0d14;border:2px solid #5c3a9d;border-radius:10px;padding:0;max-width:540px;width:94%;max-height:88vh;overflow:hidden;position:relative;display:flex;flex-direction:column;">
@@ -51,11 +62,9 @@
         <div id="journal-onglets" style="display:flex;gap:0;border-bottom:1px solid #2a1a4a;">
             <button onclick="ouvrirJournal('quetes')"   id="jt-quetes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Quêtes</button>
             <button onclick="ouvrirJournal('effets')"   id="jt-effets"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">✨ Bénédictions</button>
-            <button onclick="ouvrirJournal('antecedent')" id="jt-antecedent" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📜 Antécédent</button>
             <button onclick="ouvrirJournal('stats')"    id="jt-stats"     style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">📊 Statistiques</button>
             <button onclick="ouvrirJournal('succes')"   id="jt-succes"    style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">🏆 Succès</button>
             <button onclick="ouvrirJournal('ennemis_uniques')" id="jt-ennemis_uniques" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">☠ Bestiaire</button>
-            <button onclick="ouvrirJournal('reve')" id="jt-reve" style="flex:1;padding:9px 4px;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;font-size:0.78em;">💤 Rêve</button>
         </div>
         <!-- Contenu -->
         <div id="journal-contenu" style="overflow-y:auto;padding:16px;color:#ccc;font-size:0.88em;line-height:1.6;flex:1;"></div>
@@ -131,8 +140,9 @@
             <button id="btn-menu-compagnons" onclick="ouvrirEcranCompagnons()" style="display: none; background: #2e1f4d; color: #b39ddb; border: 1px solid #7c4dff; flex: 1; min-width: 80px; text-align:center;">🤝 Compagnons</button>
         </div>
 
-        <div style="margin-top:10px; width:90%; margin-left:auto; margin-right:auto;">
-            <button id="btn-menu-journal" onclick="ouvrirJournal('quetes')" style="background:#1a1428; color:#b39ddb; border:1px solid #5c3a9d; padding:8px 0; border-radius:6px; cursor:pointer; font-size:0.9em; width:100%;">📖 Journal</button>
+        <div style="margin-top:10px; width:90%; margin-left:auto; margin-right:auto; display:flex; gap:8px;">
+            <button id="btn-menu-journal" onclick="ouvrirJournal('quetes')" style="background:#1a1428; color:#b39ddb; border:1px solid #5c3a9d; padding:8px 0; border-radius:6px; cursor:pointer; font-size:0.9em; flex:1;">📖 Journal</button>
+            <button id="btn-menu-reve" onclick="ouvrirModalReve()" style="display:none; background:#001520; color:#4fc3f7; border:1px solid #0277bd; padding:8px 0; border-radius:6px; cursor:pointer; font-size:0.9em; flex:1;">💤 Rêve</button>
         </div>
 
         <!-- Zone vol à la tire : affichée uniquement si le MJ l'autorise -->
@@ -330,7 +340,7 @@
     <div style="border-left: 2px solid #444; padding-left: 30px; display: flex; flex-direction: column; gap: 8px; justify-content: center; min-height: 100px;">
         <div><strong>Race :</strong> <span id="fiche-race">-</span></div>
         <div><strong>Sexe :</strong> <span id="fiche-sexe">-</span></div>
-        <div><strong>Antécédent :</strong> <span id="fiche-bg" style="font-style: italic; color: #aaa;">-</span></div>
+        <div style="position:relative;"><strong>Antécédent :</strong> <span id="fiche-bg" style="font-style:italic;color:#b39ddb;cursor:help;border-bottom:1px dotted #5c3a9d;" onmouseenter="_afficherTooltipAntecedent(event)" onmouseleave="_cacherTooltipAntecedent()">-</span></div>
     </div>
 	<div id="fiche-photo"></div>
 </div>

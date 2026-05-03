@@ -344,6 +344,7 @@ function activerEcouteurDonjon() {
             if (window.donjonActif) {
                 window.donjonActif = null;
                 window._casesVisiteesDonjon = new Set();
+                if (typeof _incStatPartie === 'function') _incStatPartie('donjons_termines', 1);
                 if (typeof _toast === 'function') _toast('🗺 Le donjon est terminé.', 'info');
                 if (typeof allerAccueil === 'function') allerAccueil();
             }
@@ -1805,22 +1806,27 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-items') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('items');
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-marchands') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('marchands');
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-coffres') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('coffres');
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-lieux') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('lieux');
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-npc') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererNPCsMJ === "function") genererNPCsMJ();
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-ennemis') {
         if(secCodex) secCodex.style.display = 'block';
@@ -1829,6 +1835,7 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-musique') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
+        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'quetes') {
         if (secQuetes) secQuetes.style.display = 'block';
@@ -2244,6 +2251,50 @@ function activerEcouteurEnnemisUniques() {
 // 6. INITIALISATION MOTEUR
 // ==========================================
 
+/** Charge les stats globales Firebase et les fusionne avec le local (max par clé). */
+function _chargerStatsGlobales() {
+    if (!window.perso || window.estMJ) return;
+    const nom_id = (window.perso.nom || '').replace(/\s+/g, '_');
+    if (!nom_id) return;
+    // Charger les rêves battus en parallèle
+    db.ref('profils/' + nom_id + '/reves_battus').once('value', rSnap => {
+        window._revesBattus = rSnap.val() || {};
+    });
+    db.ref('profils/' + nom_id + '/stats').once('value', snap => {
+        const fb    = snap.val() || {};
+        const local = window.perso.stats_partie || {};
+        const merged = {};
+        new Set([...Object.keys(fb), ...Object.keys(local)]).forEach(k => {
+            if (k === 'sorts_par_nom') {
+                const lO = local[k] || {}, fO = fb[k] || {}, sn = {};
+                new Set([...Object.keys(lO), ...Object.keys(fO)]).forEach(sk => {
+                    sn[sk] = Math.max(lO[sk] || 0, fO[sk] || 0);
+                });
+                merged[k] = sn;
+            } else {
+                merged[k] = Math.max(local[k] || 0, fb[k] || 0);
+            }
+        });
+        merged.sessions_jouees = (merged.sessions_jouees || 0) + 1;
+        window.perso.stats_partie = merged;
+        window._statsDebutSession = JSON.parse(JSON.stringify(merged));
+        db.ref('profils/' + nom_id + '/stats').set(merged);
+        if (typeof autoSave === 'function') autoSave();
+    });
+}
+
+let _syncStatsTimer = null;
+/** Sync différée des stats vers Firebase (max 1 fois / 20 s). */
+function _syncStatsGlobales() {
+    if (!window.perso || window.estMJ) return;
+    const nom_id = (window.perso.nom || '').replace(/\s+/g, '_');
+    if (!nom_id || !window.perso.stats_partie) return;
+    if (_syncStatsTimer) clearTimeout(_syncStatsTimer);
+    _syncStatsTimer = setTimeout(() => {
+        db.ref('profils/' + nom_id + '/stats').set(window.perso.stats_partie);
+    }, 20000);
+}
+
 function demarrerMoteurMulti() {
     // Attendre que Firebase auth soit résolu avant toute opération DB
     if (!window.userUID) return;
@@ -2293,6 +2344,7 @@ function demarrerMoteurMulti() {
     activerEcouteurDonjon();
     activerRadarGroupeAccueil();
     activerEcouteurChat();
+    _chargerStatsGlobales();
 
     // 3. ACTIONS VISUELLES ET SONORES AU CHARGEMENT
     if (typeof appliquerFondActuel === "function") appliquerFondActuel();

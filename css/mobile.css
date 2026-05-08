@@ -274,11 +274,16 @@
 
   /* ── Chat panel ───────────────────────────────────────────── */
 
+  #btn-chat {
+    bottom: 72px !important;
+    right: 16px !important;
+  }
+
   #chat-panel {
     width: calc(100vw - 16px) !important;
     right: 8px !important;
     left: 8px !important;
-    bottom: 72px !important;
+    bottom: 128px !important;
     max-height: 60vh;
   }
 
@@ -319,6 +324,12 @@
     }
     body {
       padding-bottom: env(safe-area-inset-bottom);
+    }
+    #btn-chat {
+      bottom: max(72px, calc(56px + env(safe-area-inset-bottom))) !important;
+    }
+    #chat-panel {
+      bottom: max(128px, calc(112px + env(safe-area-inset-bottom))) !important;
     }
   }
 }

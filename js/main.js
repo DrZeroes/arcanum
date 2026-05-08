@@ -1347,11 +1347,11 @@ function ouvrirJournal(onglet) {
                 const pid = 'bpic_'+id;
                 const portraitsHtml = imgSrcF && k >= 1
                     ? `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;gap:2px;">
-                        <img id="${pid}" src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}">
+                        <img id="${pid}" src="${imgSrc}" data-state="m" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}">
                         <div style="display:flex;align-items:center;gap:2px;">
-                            <button onclick="var i=document.getElementById('${pid}');i.src='${imgSrc}';" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">◀</button>
+                            <button onclick="(function(){var i=document.getElementById('${pid}');if(i.dataset.state==='f'){i.src='${imgSrc}';i.dataset.state='m';}else{i.src='${imgSrcF}';i.dataset.state='f';}})()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">◀</button>
                             <span style="color:#444;font-size:0.6em;">♂♀</span>
-                            <button onclick="var i=document.getElementById('${pid}');i.src='${imgSrcF}';" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">▶</button>
+                            <button onclick="(function(){var i=document.getElementById('${pid}');if(i.dataset.state==='m'){i.src='${imgSrcF}';i.dataset.state='f';}else{i.src='${imgSrc}';i.dataset.state='m';}})()" style="background:none;border:none;color:#666;cursor:pointer;padding:0;font-size:0.7em;line-height:1;">▶</button>
                         </div>
                        </div>`
                     : (imgSrc ? `<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #2a2a2a;${imgBlur}flex-shrink:0;">` : '<div style="width:42px;height:42px;flex-shrink:0;"></div>');
@@ -1365,48 +1365,138 @@ function ouvrirJournal(onglet) {
                 </div>`;
             };
 
+            // Cache données pour re-filtrage
+            window._bcatBestData = bestiaireData;
+            window._bcatUniqData = uniquesBattus;
+            window._bestFilter = window._bestFilter || 'tous';
+
+            const _passeFiltre = (id) => {
+                const f = window._bestFilter;
+                if (f === 'tous') return true;
+                const entry = bestiaireData[id] || {};
+                const k = entry.nbKills || 0;
+                const vu = !!entry.premierVu || k > 0;
+                const battu = !!uniquesBattus[id];
+                const def = ennemisData[id];
+                if (def?.unique) {
+                    if (f === 'rencontre') return (vu || battu) && !battu;
+                    if (f === 'decouvert') return battu;
+                } else {
+                    if (f === 'rencontre') return vu && k < 5;
+                    if (f === 'decouvert') return k >= 5;
+                }
+                return true;
+            };
+
+            const _renderUniqCard = (id, def) => {
+                const k = bestiaireData[id]?.nbKills||0;
+                const battu = uniquesBattus[id];
+                const debloque = battu || k >= 1;
+                const isVu = !!bestiaireData[id]?.premierVu || k > 0;
+                const nomAff = debloque ? def.nom : (isVu ? '????' : '???');
+                const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
+                const imgBlur = !debloque ? 'filter:blur(5px);opacity:0.3;' : '';
+                const statusEl = battu
+                    ? `<span style="color:#4caf50;font-size:0.76em;">✅ Terrassé le ${new Date(battu.date).toLocaleDateString('fr-FR')}</span>`
+                    : (debloque
+                        ? `<span style="color:#4caf50;font-size:0.76em;">✅ Vaincu</span>`
+                        : (isVu
+                            ? `<span style="color:#f57c00;font-size:0.76em;">⚠ Rencontré — non terrassé</span>`
+                            : `<span style="color:#555;font-size:0.76em;font-style:italic;">☆ Non rencontré</span>`));
+                let uniqDetails = '';
+                if (debloque) {
+                    uniqDetails += `<div style="font-size:0.74em;color:#aaa;margin-top:2px;">Niv.${def.niveau} · ${def.race}</div>`;
+                    const st = def.statsBase || {};
+                    uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.76em;">${['FO','CN','DX','IN','CH'].map(x=>`<span style="color:#aaa;">${x}:<b style="color:#fff;">${st[x]||0}</b></span>`).join('')}</div>`;
+                    const res = def.resistances || {};
+                    if (Object.keys(res).length) {
+                        const RC={resPhys:'#78909c',resMagie:'#9c27b0',resFeu:'#f44336',resPoison:'#4caf50',resElec:'#ffc107'};
+                        const RL={resPhys:'Phy',resMagie:'Mag',resFeu:'Feu',resPoison:'Poi',resElec:'Élec'};
+                        uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.73em;">${Object.entries(res).map(([rk,rv])=>`<span style="color:${RC[rk]||'#aaa'}">${RL[rk]||rk}:<b>${rv}%</b></span>`).join('')}</div>`;
+                    }
+                    const magie = Object.entries(def.magieBase||{});
+                    if (magie.length) uniqDetails += `<div style="font-size:0.73em;color:#ce93d8;margin-top:3px;">🔮 ${magie.map(([e,n])=>`${e} niv.${n}`).join(', ')}</div>`;
+                    const loot = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;const pct=l.proba<1?` (${Math.round(l.proba*100)}%)`:'';return `${it?it.nom:l.id} ×${l.qte}${pct}`;});
+                    if (loot.length) uniqDetails += `<div style="font-size:0.73em;color:#ffd54f;margin-top:3px;">💰 ${loot.join(', ')}</div>`;
+                }
+                return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #3a1a5a;border-radius:5px;margin-bottom:6px;background:rgba(156,39,176,0.05);">
+                    ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #4a2a5a;${imgBlur}flex-shrink:0;">`:''}
+                    <div style="flex:1;"><div style="color:#ce93d8;font-weight:bold;font-size:0.9em;">${nomAff}</div><div style="margin-top:3px;">${statusEl}</div>${uniqDetails}</div>
+                </div>`;
+            };
+
+            window._recomputeBestContents = () => {
+                window._bcatContents = {};
+                sortedCats.forEach(cat => {
+                    const cid = 'bcat_' + cat.replace(/[^a-z0-9]/gi, '_');
+                    window._bcatContents[cid] = categories[cat]
+                        .filter(([id]) => _passeFiltre(id))
+                        .map(([id, def]) => renderCard(id, def)).join('');
+                });
+                // Mettre à jour les compteurs et la visibilité des boutons catégorie
+                sortedCats.forEach(cat => {
+                    const cid = 'bcat_' + cat.replace(/[^a-z0-9]/gi, '_');
+                    const btn = document.getElementById('btn_' + cid);
+                    if (!btn) return;
+                    const nb = categories[cat].filter(([id]) => _passeFiltre(id)).length;
+                    const spans = btn.querySelectorAll('span');
+                    if (spans[2]) spans[2].textContent = nb + '/' + categories[cat].length;
+                    btn.style.display = nb > 0 ? 'inline-flex' : 'none';
+                    // Fermer la zone si la catégorie active n'a plus de résultats
+                    if (nb === 0 && window._bcatActif === cid) {
+                        const zone = document.getElementById('bcat-zone');
+                        if (zone) zone.style.display = 'none';
+                        window._bcatActif = null;
+                        btn.style.background = '#111';
+                        btn.style.borderColor = '#2a2a2a';
+                        btn.style.color = '#ccc';
+                    }
+                });
+                // Re-filtrer la section Ennemis Uniques
+                const uniqDiv = document.getElementById('bcat_uniques');
+                if (uniqDiv) {
+                    const filteredUniq = uniqueEntries.filter(([id]) => _passeFiltre(id));
+                    uniqDiv.innerHTML = filteredUniq.map(([id, def]) => _renderUniqCard(id, def)).join('')
+                        || '<p style="color:#555;text-align:center;padding:12px;">Aucun ennemi dans ce filtre.</p>';
+                    const uniqBtn = uniqDiv.parentElement?.querySelector('button');
+                    if (uniqBtn) {
+                        const spans = uniqBtn.querySelectorAll('span');
+                        const discBadge = window._bestFilter === 'tous'
+                            ? uniqueEntries.filter(([id]) => (bestiaireData[id]?.nbKills||0)>0||uniquesBattus[id]||bestiaireData[id]?.premierVu).length
+                            : filteredUniq.length;
+                        if (spans[2]) { spans[2].textContent = discBadge + '/' + uniqueEntries.length + ' ▾'; spans[2].style.color = discBadge > 0 ? '#4caf50' : '#555'; }
+                        uniqBtn.style.display = filteredUniq.length > 0 ? 'inline-flex' : 'none';
+                    }
+                }
+                // Rafraîchir la zone ouverte si besoin
+                if (window._bcatActif) {
+                    const zone = document.getElementById('bcat-zone');
+                    if (zone && zone.style.display !== 'none') {
+                        zone.innerHTML = window._bcatContents[window._bcatActif] || '<p style="color:#555;text-align:center;padding:12px;">Aucun ennemi dans ce filtre.</p>';
+                    }
+                }
+            };
+
             let html = '';
+
+            // ── Filtres ───────────────────────────────────────────────────
+            const _mkFBtn = (val, label) => {
+                const active = window._bestFilter === val;
+                return `<button onclick="window._bestFilter='${val}';window._recomputeBestContents();document.querySelectorAll('.best-filter-btn').forEach(b=>{b.style.background='#111';b.style.color='#888';b.style.borderColor='#2a2a2a';});this.style.background='#1a1030';this.style.color='#b39ddb';this.style.borderColor='#7c4dff';"
+                    class="best-filter-btn" style="background:${active?'#1a1030':'#111'};color:${active?'#b39ddb':'#888'};border:1px solid ${active?'#7c4dff':'#2a2a2a'};padding:3px 10px;cursor:pointer;border-radius:4px;font-size:0.78em;">${label}</button>`;
+            };
+            html += `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+                <span style="color:#555;font-size:0.75em;">Filtre :</span>
+                ${_mkFBtn('tous','Tous')}
+                ${_mkFBtn('rencontre','Rencontré ≠100%')}
+                ${_mkFBtn('decouvert','Découvert 100%')}
+            </div>`;
 
             // ── Ennemis Uniques (accordéon) ──────────────────────────────
             const uniqueEntries = Object.entries(ennemisData).filter(([,e])=>e.unique);
             if (uniqueEntries.length) {
                 const discUniq = uniqueEntries.filter(([id])=>(bestiaireData[id]?.nbKills||0)>0||uniquesBattus[id]||bestiaireData[id]?.premierVu).length;
-                const uniqContent = uniqueEntries.map(([id,def])=>{
-                    const k = bestiaireData[id]?.nbKills||0;
-                    const battu = uniquesBattus[id];
-                    const debloque = battu || k >= 1;
-                    const isVu = !!bestiaireData[id]?.premierVu || k > 0;
-                    const nomAff = debloque ? def.nom : (isVu ? '????' : '???');
-                    const imgSrc = def.portrait ? `docs/img/portraits/${def.portrait}` : '';
-                    const imgBlur = !debloque ? 'filter:blur(5px);opacity:0.3;' : '';
-                    const statusEl = battu
-                        ? `<span style="color:#4caf50;font-size:0.76em;">✅ Terrassé le ${new Date(battu.date).toLocaleDateString('fr-FR')}</span>`
-                        : (debloque
-                            ? `<span style="color:#4caf50;font-size:0.76em;">✅ Vaincu</span>`
-                            : (isVu
-                                ? `<span style="color:#f57c00;font-size:0.76em;">⚠ Rencontré — non terrassé</span>`
-                                : `<span style="color:#555;font-size:0.76em;font-style:italic;">☆ Non rencontré</span>`));
-                    let uniqDetails = '';
-                    if (debloque) {
-                        uniqDetails += `<div style="font-size:0.74em;color:#aaa;margin-top:2px;">Niv.${def.niveau} · ${def.race}</div>`;
-                        const st = def.statsBase || {};
-                        uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.76em;">${['FO','CN','DX','IN','CH'].map(x=>`<span style="color:#aaa;">${x}:<b style="color:#fff;">${st[x]||0}</b></span>`).join('')}</div>`;
-                        const res = def.resistances || {};
-                        if (Object.keys(res).length) {
-                            const RC={resPhys:'#78909c',resMagie:'#9c27b0',resFeu:'#f44336',resPoison:'#4caf50',resElec:'#ffc107'};
-                            const RL={resPhys:'Phy',resMagie:'Mag',resFeu:'Feu',resPoison:'Poi',resElec:'Élec'};
-                            uniqDetails += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;font-size:0.73em;">${Object.entries(res).map(([rk,rv])=>`<span style="color:${RC[rk]||'#aaa'}">${RL[rk]||rk}:<b>${rv}%</b></span>`).join('')}</div>`;
-                        }
-                        const magie = Object.entries(def.magieBase||{});
-                        if (magie.length) uniqDetails += `<div style="font-size:0.73em;color:#ce93d8;margin-top:3px;">🔮 ${magie.map(([e,n])=>`${e} niv.${n}`).join(', ')}</div>`;
-                        const loot = (def.lootDrop||[]).map(l=>{const it=typeof itemsData!=='undefined'?itemsData[l.id]:null;const pct=l.proba<1?` (${Math.round(l.proba*100)}%)`:'';return `${it?it.nom:l.id} ×${l.qte}${pct}`;});
-                        if (loot.length) uniqDetails += `<div style="font-size:0.73em;color:#ffd54f;margin-top:3px;">💰 ${loot.join(', ')}</div>`;
-                    }
-                    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #3a1a5a;border-radius:5px;margin-bottom:6px;background:rgba(156,39,176,0.05);">
-                        ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;object-fit:contain;border-radius:3px;background:#111;border:1px solid #4a2a5a;${imgBlur}flex-shrink:0;">`:''}
-                        <div style="flex:1;"><div style="color:#ce93d8;font-weight:bold;font-size:0.9em;">${nomAff}</div><div style="margin-top:3px;">${statusEl}</div>${uniqDetails}</div>
-                    </div>`;
-                }).join('');
+                const uniqContent = uniqueEntries.filter(([id]) => _passeFiltre(id)).map(([id, def]) => _renderUniqCard(id, def)).join('');
                 html += `<div style="margin-bottom:5px;">
                     <button onclick="var el=document.getElementById('bcat_uniques');el.style.display=el.style.display==='none'?'block':'none';"
                         style="background:#0d0020;border:1px solid #3a1a5a;color:#ce93d8;padding:6px 10px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:6px;font-size:0.85em;font-weight:bold;">
@@ -1429,17 +1519,19 @@ function ouvrirJournal(onglet) {
                 const ia=CAT_ORDER.indexOf(a),ib=CAT_ORDER.indexOf(b);
                 return (ia<0?999:ia)-(ib<0?999:ib);
             });
-            // Pré-calcul des contenus par catégorie
-            const catContents = {};
+            // Pré-calcul des contenus par catégorie (avec filtre actif)
+            window._bcatContents = {};
             sortedCats.forEach(cat=>{
                 const enemies = categories[cat];
                 const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
-                catContents[cid] = enemies.map(([id,def])=>renderCard(id,def)).join('');
+                window._bcatContents[cid] = enemies
+                    .filter(([id]) => _passeFiltre(id))
+                    .map(([id,def])=>renderCard(id,def)).join('');
             });
             html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">`;
             sortedCats.forEach(cat=>{
                 const enemies = categories[cat];
-                const disc = enemies.filter(([id])=>(bestiaireData[id]?.nbKills||0)>0||bestiaireData[id]?.premierVu).length;
+                const disc = enemies.filter(([id]) => _passeFiltre(id)).length;
                 const cid = 'bcat_'+cat.replace(/[^a-z0-9]/gi,'_');
                 const icon = CAT_ICONS[cat] || '❓';
                 html += `<button id="btn_${cid}" onclick="(function(cid,btn){
@@ -1452,16 +1544,15 @@ function ouvrirJournal(onglet) {
                         zone.innerHTML=window._bcatContents[cid]||'';
                         zone.style.display='block';
                     })('${cid}',this)"
-                    class="bcat-btn" style="background:#111;border:1px solid #2a2a2a;color:#ccc;padding:4px 8px;cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;gap:4px;font-size:0.8em;white-space:nowrap;">
+                    class="bcat-btn" style="background:#111;border:1px solid #2a2a2a;color:#ccc;padding:4px 8px;cursor:pointer;border-radius:4px;display:${disc>0?'inline-flex':'none'};align-items:center;gap:4px;font-size:0.8em;white-space:nowrap;">
                     <span>${icon}</span><span>${cat}</span>
-                    <span style="color:${disc>0?'#4caf50':'#555'};font-size:0.75em;">${disc}/${enemies.length}</span>
+                    <span style="color:#4caf50;font-size:0.75em;">${disc}/${enemies.length}</span>
                 </button>`;
             });
             html += `</div><div id="bcat-zone" style="display:none;margin-top:6px;"></div>`;
 
             contenu.innerHTML = html || '<p style="color:#555;text-align:center;padding:20px;">Aucun ennemi découvert.</p>';
             window._bcatActif = null;
-            window._bcatContents = catContents;
         });
 
     }
@@ -1584,80 +1675,86 @@ function _reveOuvrirCategorie(cat, btn) {
 }
 
 function lancerCombatReve(monsterId) {
-    if (!window.perso || !window.monPlayerId || !sessionActuelle) return;
+    if (!window.perso || !window.perso.nom || !sessionActuelle) return;
     const def = (typeof ennemisData !== 'undefined') ? ennemisData[monsterId] : null;
     if (!def) return;
-    // Bloquer si un vrai combat ou un donjon est en cours
-    if (window.combatActif && !window.combatActif.reve) {
-        if (typeof _toast === 'function') _toast('⚔ Un combat est déjà en cours !', 'error');
-        return;
-    }
     if (window.donjonActif) {
         if (typeof _toast === 'function') _toast('🗺 Impossible pendant un donjon.', 'error');
         return;
     }
 
-    document.getElementById('modal-reve')?.style && (document.getElementById('modal-reve').style.display = 'none');
-    document.getElementById('modal-journal')?.style && (document.getElementById('modal-journal').style.display = 'none');
+    // Vérifier dans Firebase qu'aucun combat (normal ou rêve d'un autre joueur) n'est actif
+    db.ref('parties/' + sessionActuelle + '/combat_actif/actif').once('value', (snap) => {
+        if (snap.val() === true) {
+            if (typeof _toast === 'function') _toast('⚔ Un combat est déjà en cours — impossible de lancer un Rêve.', 'error');
+            return;
+        }
 
-    const p = window.perso;
-    const pvMaxJ = ((p.statsBase?.FO||0)*2) + (p.statsBase?.IN||0) + (p.boostPV||0);
-    const ftMaxJ = ((p.statsBase?.CN||0)*2) + (p.statsBase?.IN||0) + (p.boostFT||0);
-    const dxJ = (p.statsBase?.DX||0) + (p.statsInvesties?.DX||0);
+        document.getElementById('modal-reve')?.style && (document.getElementById('modal-reve').style.display = 'none');
+        document.getElementById('modal-journal')?.style && (document.getElementById('modal-journal').style.display = 'none');
 
-    const foE = (def.statsBase?.FO||0) + (def.statsInvesties?.FO||0);
-    const inE = (def.statsBase?.IN||0) + (def.statsInvesties?.IN||0);
-    const cnE = (def.statsBase?.CN||0) + (def.statsInvesties?.CN||0);
-    const dxE = (def.statsBase?.DX||0) + (def.statsInvesties?.DX||0);
-    const pvMaxE = (foE*2) + inE + (def.boostPV||0);
-    const ftMaxE = (cnE*2) + inE + (def.boostFT||0);
+        const p = window.perso;
+        const myId = p.nom.replace(/\s+/g, '_');
+        window._revePvAvant = p.pvActuel;
+        window._reveFtAvant = p.ftActuel;
+        const pvMaxJ = ((p.statsBase?.FO||0)*2) + (p.statsBase?.IN||0) + (p.boostPV||0);
+        const ftMaxJ = ((p.statsBase?.CN||0)*2) + (p.statsBase?.IN||0) + (p.boostFT||0);
+        const dxJ = (p.statsBase?.DX||0) + (p.statsInvesties?.DX||0);
 
-    const instanceId = Date.now();
-    const ennemi = {
-        instanceId,
-        id: monsterId,
-        nom: def.nom,
-        race: def.race || '',
-        niveau: def.niveau || 1,
-        pvActuel: pvMaxE, pvMax: pvMaxE,
-        ftActuel: ftMaxE, ftMax: ftMaxE,
-        statsBase: def.statsBase || {},
-        statsInvesties: def.statsInvesties || {},
-        magieBase: def.magieBase || {},
-        res: def.res || {},
-        equipement: def.equipement || {},
-        lootDrop: def.lootDrop || [],
-        sortsConnus: (() => {
-            const mb = def.magieBase || {};
-            const sorts = [];
-            for (const [ecole, nb] of Object.entries(mb)) {
-                if (typeof magieData !== 'undefined' && magieData[ecole]?.sorts) {
-                    for (let k = 0; k < nb && k < magieData[ecole].sorts.length; k++) {
-                        sorts.push(magieData[ecole].sorts[k].nom);
+        const foE = (def.statsBase?.FO||0) + (def.statsInvesties?.FO||0);
+        const inE = (def.statsBase?.IN||0) + (def.statsInvesties?.IN||0);
+        const cnE = (def.statsBase?.CN||0) + (def.statsInvesties?.CN||0);
+        const dxE = (def.statsBase?.DX||0) + (def.statsInvesties?.DX||0);
+        const pvMaxE = (foE*2) + inE + (def.boostPV||0);
+        const ftMaxE = (cnE*2) + inE + (def.boostFT||0);
+
+        const instanceId = Date.now();
+        const ennemi = {
+            instanceId,
+            id: monsterId,
+            nom: def.nom,
+            race: def.race || '',
+            niveau: def.niveau || 1,
+            pvActuel: pvMaxE, pvMax: pvMaxE,
+            ftActuel: ftMaxE, ftMax: ftMaxE,
+            statsBase: def.statsBase || {},
+            statsInvesties: def.statsInvesties || {},
+            magieBase: def.magieBase || {},
+            res: def.res || {},
+            equipement: def.equipement || {},
+            lootDrop: def.lootDrop || [],
+            sortsConnus: (() => {
+                const mb = def.magieBase || {};
+                const sorts = [];
+                for (const [ecole, nb] of Object.entries(mb)) {
+                    if (typeof magieData !== 'undefined' && magieData[ecole]?.sorts) {
+                        for (let k = 0; k < nb && k < magieData[ecole].sorts.length; k++) {
+                            sorts.push(magieData[ecole].sorts[k].nom);
+                        }
                     }
                 }
-            }
-            return sorts;
-        })()
-    };
+                return sorts;
+            })()
+        };
 
-    const ordre = [
-        { type: 'joueur', id: window.monPlayerId, nom: p.nom, vitesse: dxJ },
-        { type: 'ennemi', instanceId, nom: def.nom, vitesse: dxE }
-    ].sort((a, b) => b.vitesse - a.vitesse || (a.type === 'joueur' ? -1 : 1));
+        const ordre = [
+            { type: 'joueur', id: myId, nom: p.nom, vitesse: dxJ },
+            { type: 'ennemi', instanceId, nom: def.nom, vitesse: dxE }
+        ].sort((a, b) => b.vitesse - a.vitesse || (a.type === 'joueur' ? -1 : 1));
 
-    db.ref('parties/' + sessionActuelle + '/combat_log').remove();
-    db.ref('parties/' + sessionActuelle + '/combat_actif').set({
-        actif: true,
-        reve: true,
-        reve_initiateur: window.monPlayerId,
-        ennemis: [ennemi],
-        ordre_jeu: ordre,
-        tour_actuel: 0,
-        joueurs_discrets: { [window.monPlayerId]: false },
-        timestamp: Date.now()
-    }).then(() => {
-        if (typeof _toast === 'function') _toast('💤 Combat de Rêve !', 'info');
+        db.ref('parties/' + sessionActuelle + '/combat_log').remove();
+        db.ref('parties/' + sessionActuelle + '/combat_actif').set({
+            actif: true,
+            reve: true,
+            reve_initiateur: myId,
+            ennemis: [ennemi],
+            ordre_jeu: ordre,
+            tour_actuel: 0,
+            joueurs_discrets: { [myId]: false },
+            timestamp: Date.now()
+        }).then(() => {
+            if (typeof _toast === 'function') _toast('💤 Combat de Rêve !', 'info');
+        });
     });
 }
 

@@ -1057,11 +1057,11 @@ function mjAfficherInterfaceCombat() {
                     if (e.unique) {
                         const battu = !!(window._mjCodexBattu || {})[e.id];
                         if (bestFilter === 'non_vus' && (vu || battu)) return false;
-                        if (bestFilter === 'vus' && !vu && !battu) return false;
+                        if (bestFilter === 'vus' && (!vu || battu)) return false; // vu mais pas encore terrassé
                         if (bestFilter === 'cent' && !battu) return false;
                     } else {
                         if (bestFilter === 'non_vus' && vu) return false;
-                        if (bestFilter === 'vus' && !vu) return false;
+                        if (bestFilter === 'vus' && (!vu || nbKills >= 5)) return false; // vu mais pas encore 100%
                         if (bestFilter === 'cent' && nbKills < 5) return false;
                     }
                 }
@@ -1106,10 +1106,16 @@ function mjAfficherInterfaceCombat() {
                     const pvMax = (fo*2)+ini+(e.boostPV||0);
                     const nomColor = e.unique ? '#ce93d8' : '#ccc';
                     const zones = (e.zones||[]).slice(0,2).join(', ');
+                    const _kEntry = (window._mjCodexKills || {})[e.id];
+                    const _nbK = _kEntry?.nbKills || 0;
+                    const _battu = !!(window._mjCodexBattu || {})[e.id];
+                    const killLabel = e.unique
+                        ? (_battu ? ' <span style="color:#4caf50;font-size:0.7em;">✓</span>' : (_nbK > 0 ? ` <span style="color:#f57c00;font-size:0.7em;">(vu)</span>` : ''))
+                        : (_nbK > 0 ? ` <span style="color:${_nbK>=5?'#4caf50':'#80cbc4'};font-size:0.7em;">(${_nbK}/5)</span>` : '');
                     lignes += `<div style="flex:1;min-width:200px;max-width:calc(50% - 3px);box-sizing:border-box;padding:4px 6px;border:1px solid ${e.unique?'#3a1a5a':'#1e1410'};border-radius:3px;background:${e.unique?'rgba(80,0,120,0.06)':'#0c0c0c'};">
                         <div style="display:flex;align-items:center;gap:3px;">
                             <div style="flex:1;min-width:0;">
-                                <span style="color:${nomColor};font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${e.nom}</span>
+                                <span style="color:${nomColor};font-size:0.82em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${e.nom}${killLabel}</span>
                                 <span style="color:#444;font-size:0.65em;">Niv.${e.niveau} ❤${pvMax}</span>
                             </div>
                             <button onclick="var v=Math.max(0,(parseInt(document.getElementById('qty-${e.id}').value)||0)-1);document.getElementById('qty-${e.id}').value=v;_combatSelection['${e.id}']=v;"
@@ -1288,6 +1294,11 @@ function mjLancerCombat() {
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', (snap) => {
         const joueurs = snap.val() || {};
 
+        db.ref('parties/' + sessionActuelle + '/presence').once('value', (snapPres) => {
+        const presence = snapPres.val() || {};
+        const nbHorsLigne = Object.values(joueurs).filter(j => !j.estMJ && !presence[(j.nom||'').replace(/\s+/g,'_')]).length;
+        if (nbHorsLigne > 0 && typeof _toast === 'function') _toast(`${nbHorsLigne} joueur(s) hors ligne exclus du combat.`, 'info');
+
         db.ref('parties/' + sessionActuelle + '/compagnons').once('value', (snapComps) => {
         db.ref('parties/' + sessionActuelle + '/familiers').once('value', (snapFam) => {
         db.ref('parties/' + sessionActuelle + '/animaux').once('value', (snapAnim) => {
@@ -1296,10 +1307,11 @@ function mjLancerCombat() {
         const tousAnimaux    = snapAnim.val()  || {};
         const participants = [];
 
-        // Joueurs + leurs compagnons (le MJ est exclu)
+        // Joueurs + leurs compagnons (le MJ est exclu, les hors-ligne exclus)
         for (let id in joueurs) {
             const j = joueurs[id];
             if (j.estMJ) continue;
+            if (!presence[id]) continue;
             // Bonus de vitesse selon le rang de compétence et l'arme équipée
             let vitesseJ = j.vitesse || j.niveau || 1;
             const eqJ = j.equipement || {};
@@ -1443,6 +1455,7 @@ function mjLancerCombat() {
         }); // fin once animaux
         }); // fin once familiers
         }); // fin once compagnons
+        }); // fin once presence
     });
 }
 
@@ -3319,8 +3332,15 @@ function mjLancerDonjon() {
             return;
         }
 
-        // Filtrer le MJ (pas de perso jouable dans le donjon)
-        const joueurIds = ids.filter(id => !joueurs[id]?.estMJ);
+        db.ref('parties/' + sessionActuelle + '/presence').once('value', presSnap => {
+        const presence = presSnap.val() || {};
+
+        // Filtrer le MJ et les joueurs hors ligne
+        const joueurIds = ids.filter(id => !joueurs[id]?.estMJ && !!presence[id]);
+        if (joueurIds.length === 0) {
+            if (typeof _toast === 'function') _toast('Aucun joueur en ligne pour lancer le donjon.', 'error');
+            return;
+        }
 
         // Positions initiales : tous au point de départ de l'étage 1
         const etage1 = (window._donjonBrouillonEtages[1]) || b;
@@ -3373,6 +3393,7 @@ function mjLancerDonjon() {
             if (typeof _toast === 'function') _toast('🗺 Donjon lancé !', 'success');
             mjGererDonjon();
         });
+        }); // fin once presence
     });
 }
 

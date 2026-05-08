@@ -233,7 +233,8 @@ if (snapshot.val()) {
 
             // Notifications et Sauvegardes
             if (typeof _toast === 'function') _toast(`🎁 ${data.expediteur || "Le MJ"} vous a donné : ${quantiteRecue}x ${nomObjet}`, 'gold');
-            if (data.expediteur && data.expediteur !== 'Le Maître du Jeu' && typeof _incStatPartie === 'function') _incStatPartie('objets_recus', 1);
+            const _sysExp = ['Le Maître du Jeu', 'Butin de combat'];
+            if (data.expediteur && !_sysExp.includes(data.expediteur) && typeof _incStatPartie === 'function') _incStatPartie('objets_recus', 1);
 
             if (typeof autoSave === "function") autoSave();
             if (typeof updateInventaireUI === "function") updateInventaireUI();
@@ -1113,15 +1114,21 @@ function ouvrirEcranGroupe() {
         const lieuActuel = window.perso ? window.perso.lieuActuel : null;
         const fragments = [];
 
-        // Récupère aussi les compagnons depuis Firebase
-        const snapshot2 = await db.ref('parties/' + sessionActuelle + '/compagnons').once('value');
+        // Récupère présence + compagnons
+        const [snapshot2, presSnap] = await Promise.all([
+            db.ref('parties/' + sessionActuelle + '/compagnons').once('value'),
+            db.ref('parties/' + sessionActuelle + '/presence').once('value')
+        ]);
         const compagnonsParJoueur = snapshot2.val() || {};
+        const presence = presSnap.val() || {};
 
         for (let id in joueurs) {
             const j = joueurs[id];
             const estMort = (j.pvActuel <= 0 || j.estMort);
             const estMoi = (window.perso && j.nom === window.perso.nom);
             const memeLieu = (j.lieu === lieuActuel);
+            const estConnecte = !!presence[id];
+            const estMJCard = !!j.estMJ;
 
             const pvPct = j.pvMax > 0 ? Math.max(0, Math.min(100, (j.pvActuel / j.pvMax) * 100)) : 0;
             const ftPct = j.ftMax > 0 ? Math.max(0, Math.min(100, (j.ftActuel / j.ftMax) * 100)) : 0;
@@ -1130,10 +1137,15 @@ function ouvrirEcranGroupe() {
             let cardClasses = 'groupe-card';
             if (estMort) cardClasses += ' est-mort';
             if (estMoi) cardClasses += ' est-moi';
+            if (!estConnecte) cardClasses += ' hors-ligne';
 
             const statutTexte = estMort
                 ? '💀 Inconscient'
                 : (estMoi ? '● Vous' : '● En vie');
+            const badgeMJ = estMJCard ? `<span style="background:#3a1a00;border:1px solid #d4af37;color:#d4af37;font-size:0.65em;padding:1px 5px;border-radius:3px;font-weight:bold;">👑 MJ</span>` : '';
+            const badgeConnecte = estConnecte
+                ? `<span style="background:#0d2010;border:1px solid #4caf50;color:#4caf50;font-size:0.65em;padding:1px 5px;border-radius:3px;">🟢 En ligne</span>`
+                : `<span style="background:#1a1a1a;border:1px solid #555;color:#666;font-size:0.65em;padding:1px 5px;border-radius:3px;">⚫ Hors ligne</span>`;
 
             // Portrait du joueur
             let portraitJoueur = null;
@@ -1179,6 +1191,7 @@ function ouvrirEcranGroupe() {
                                 <div class="groupe-card-nom">${j.nom}</div>
                                 <div class="groupe-card-niveau">Niv. ${j.niveau || 1}</div>
                             </div>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">${badgeConnecte}${badgeMJ}</div>
                             <div class="groupe-card-statut">${statutTexte}</div>
                         </div>
                     </div>
@@ -1468,12 +1481,20 @@ function activerEcouteurCombat() {
         const data = snapshot.val();
         console.log('🎮 [COMBAT] Firebase event → actif:', data?.actif, '| timestamp:', data?.timestamp);
         if (data && data.actif === true) {
+            if (data.loot_en_cours) return; // loot phase en cours, ne pas toucher à l'UI combat
+
+            // Combat de Rêve : seul l'initiateur voit l'écran de combat
+            const _myRId = window.perso?.nom?.replace(/\s+/g, '_');
+            if (data.reve && data.reve_initiateur !== _myRId) return;
+
+            // Rêve interrompu par un combat MJ : restaurer les HP avant de rejoindre le combat normal
+            if (!data.reve && window.combatActif?.reve && window.combatActif?.reve_initiateur === _myRId) {
+                if (typeof _restaurerHPReveur === 'function') _restaurerHPReveur();
+            }
+
             const ancienTimestamp = window.combatActif?.timestamp || 0;
             const nouveauCombat = !window.combatActif || (data.timestamp && data.timestamp !== ancienTimestamp);
             window.combatActif = data;
-
-            // Combat de Rêve : seul l'initiateur voit l'écran de combat
-            if (data.reve && data.reve_initiateur !== window.monPlayerId) return;
 
             const ecranCombat = document.getElementById('ecran-combat');
             const ecranVisible = ecranCombat && ecranCombat.style.display !== 'none';
@@ -1806,27 +1827,22 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-items') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('items');
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-marchands') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('marchands');
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-coffres') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('coffres');
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-lieux') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererContenuCodexMJ === "function") genererContenuCodexMJ('lieux');
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-npc') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererNPCsMJ === "function") genererNPCsMJ();
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'codex-ennemis') {
         if(secCodex) secCodex.style.display = 'block';
@@ -1835,7 +1851,6 @@ function switchOngletMJ(ongletId) {
     else if (ongletId === 'codex-musique') {
         if(secCodex) secCodex.style.display = 'block';
         if (typeof genererMusiquesMJ_Integrated === "function") genererMusiquesMJ_Integrated();
-        if (typeof _buildCodexEnemyFilters === 'function') _buildCodexEnemyFilters();
     }
     else if (ongletId === 'quetes') {
         if (secQuetes) secQuetes.style.display = 'block';
@@ -2100,17 +2115,18 @@ function _afficherModalLoot(data) {
     // Phase 1 : Lancer le dé
     if (!ordre) {
         const monJoueur = playerID ? joueurs[playerID] : null;
-        const dejeLance = monJoueur && monJoueur.de !== null;
+        const dejeLance = typeof monJoueur?.de === 'number';
 
         html += '<p style="color:#ccc;margin:0 0 8px;">Chaque joueur lance un d100 (+bonus de compétences) pour déterminer l\'ordre de pillage.</p>';
         html += '<div style="margin:8px 0;">';
         Object.values(joueurs).forEach(j => {
-            const etat = j.de !== null ? `✅ ${j.score} (d${j.de}+${j.bonus})` : '⏳ En attente…';
-            html += `<div style="color:${j.de !== null ? '#a0d8a0' : '#aaa'};padding:2px 0;">${j.nom} — ${etat}</div>`;
+            const aLance = typeof j.de === 'number';
+            const etat = aLance ? `✅ ${j.score} (d${j.de}+${j.bonus})` : '⏳ En attente…';
+            html += `<div style="color:${aLance ? '#a0d8a0' : '#aaa'};padding:2px 0;">${j.nom} — ${etat}</div>`;
         });
         html += '</div>';
 
-        if (playerID && !dejeLance) {
+        if (playerID && !dejeLance && !window.estMJ) {
             const bonus = monJoueur?.bonus || 0;
             html += `<div style="margin-top:12px;text-align:center;"><p style="color:#d4af37;">Votre bonus : +${bonus}</p>`;
             html += `<button onclick="_lancerDeLoot()" style="padding:10px 24px;background:#8b4513;color:#d4af37;border:1px solid #d4af37;border-radius:6px;font-size:1.1em;cursor:pointer;">🎲 Lancer le dé</button></div>`;
@@ -2169,7 +2185,7 @@ window._lancerDeLoot = function() {
     const playerID = window.perso.nom.replace(/\s+/g, '_');
     db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs/' + playerID).once('value', snap => {
         const j = snap.val();
-        if (!j || j.de !== null) return;
+        if (!j || typeof j.de === 'number') return;
         const de = Math.floor(Math.random() * 100) + 1;
         const score = de + (j.bonus || 0);
         db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs/' + playerID).update({ de, score });
@@ -2177,7 +2193,7 @@ window._lancerDeLoot = function() {
         // Quand tous les joueurs ont lancé → calculer l'ordre (premier détecteur)
         db.ref('parties/' + sessionActuelle + '/loot_phase/joueurs').once('value', snap2 => {
             const tous = snap2.val() || {};
-            const tousLances = Object.values(tous).every(jj => jj.de !== null);
+            const tousLances = Object.values(tous).every(jj => typeof jj.de === 'number');
             if (!tousLances) return;
             db.ref('parties/' + sessionActuelle + '/loot_phase/ordre_pick').once('value', snapOrdre => {
                 if (snapOrdre.val()) return; // quelqu'un l'a déjà écrit
@@ -2227,6 +2243,7 @@ window._prendreItemLoot = function(idx) {
 
 window._terminerLootPhase = function() {
     db.ref('parties/' + sessionActuelle + '/loot_phase').remove();
+    db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
 };
 
 function activerEcouteurEnnemisUniques() {
@@ -2323,6 +2340,14 @@ function demarrerMoteurMulti() {
 
     console.log("🌐 Initialisation du mode multijoueur complète...");
     window._moteurMultiComplet = true; // flag pour autoSave — évite relance inutile
+
+    // Présence en ligne — auto-supprimée à la déconnexion Firebase
+    const _presId = (window.perso.nom || '').replace(/\s+/g, '_');
+    if (_presId) {
+        const _presRef = db.ref('parties/' + sessionActuelle + '/presence/' + _presId);
+        _presRef.onDisconnect().remove();
+        _presRef.set(true);
+    }
 
     // 2. REPLANTAGE DES ÉCOUTEURS (Les antennes)
     activerEcouteurCadeaux();

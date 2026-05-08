@@ -418,6 +418,13 @@ const succesData = [
     { id: 'de_10_cinq',      nom: 'Régulier',            desc: 'Faire cinq 10 au dé de l\'accueil.',                    icone: '🎲', categorie: 'Dé', type: 'seuil', cle: 'de_as_10', seuil: 5 },
     { id: 'de_deux_1_suite', nom: 'Double Fléau',        desc: 'Faire deux 1 consécutifs au dé de l\'accueil.',         icone: '🎲', categorie: 'Dé', type: 'custom' },
     { id: 'de_deux_10_suite',nom: 'Double Médiocrité',   desc: 'Faire deux 10 consécutifs au dé de l\'accueil.',        icone: '🎲', categorie: 'Dé', type: 'custom' },
+
+    // ── Combat de Rêve ───────────────────────────────────────
+    { id: 'reve_premier',  nom: 'Premières Armes du Rêve', desc: 'Vaincre un ennemi en Combat de Rêve pour la première fois.',        icone: '💤', categorie: 'Rêve', type: 'seuil', cle: 'reves_battus', seuil: 1  },
+    { id: 'reve_5',        nom: 'Guerrier Onirique',        desc: 'Vaincre 5 ennemis en Combat de Rêve.',                              icone: '💤', categorie: 'Rêve', type: 'seuil', cle: 'reves_battus', seuil: 5  },
+    { id: 'reve_10',       nom: 'Champion du Rêve',         desc: 'Vaincre 10 ennemis en Combat de Rêve.',                             icone: '🌙', categorie: 'Rêve', type: 'seuil', cle: 'reves_battus', seuil: 10 },
+    { id: 'reve_defaite',  nom: 'Mauvais Rêve',             desc: 'Perdre un Combat de Rêve.',                                         icone: '😰', categorie: 'Rêve', type: 'seuil', cle: 'reves_perdus', seuil: 1  },
+    { id: 'reve_invaincu', nom: 'Invaincu dans les Songes', desc: 'Remporter 5 Combats de Rêve consécutifs sans en perdre aucun.',     icone: '✨', categorie: 'Rêve', type: 'custom' },
 ];
 
 /**

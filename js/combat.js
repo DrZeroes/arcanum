@@ -102,14 +102,20 @@ function _afficherResultatCombat(resultat) {
     }
     if (panel) {
         const isReve = !!window.combatActif?.reve;
-        const btnFermer = (!window.estMJ || isReve)
-            ? `<button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button>`
-            : '';
         const reveBadge = isReve ? `<div style="font-size:0.5em;color:#4fc3f7;margin-top:4px;">💤 Combat de Rêve — sans conséquences</div>` : '';
         const btnLog = `<button onclick="ouvrirLogCombatActuel()" style="background:#0d1a1a;border:1px solid #37474f;color:#80cbc4;padding:8px 18px;border-radius:5px;cursor:pointer;font-size:0.85em;">📜 Log du combat</button>`;
+        const montrerLoot = isVic && !isReve;
+        const btnLoot = montrerLoot
+            ? `<button onclick="lancerLootPhase()" style="background:#2a1508;border:1px solid #d4af37;color:#d4af37;padding:8px 20px;border-radius:5px;cursor:pointer;font-size:0.9em;">🎒 Butin</button>`
+            : '';
+        const btnFermer = montrerLoot ? '' : (
+            window.estMJ && !isReve
+                ? `<button onclick="mjTerminerCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">↩ Retour tableau de bord</button>`
+                : `<button onclick="quitterEcranCombat()" style="background:#1a1a2a;border:1px solid #555;color:#ccc;padding:8px 24px;border-radius:5px;cursor:pointer;font-size:0.9em;">Fermer</button>`
+        );
         panel.innerHTML = '<div style="text-align:center;font-size:2em;padding:24px;">'
             + (isVic ? '🏆 VICTOIRE !' : '💀 DÉFAITE…') + reveBadge
-            + `<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">${btnLog}${btnFermer}</div>`
+            + `<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">${btnLog}${btnLoot}${btnFermer}</div>`
             + '</div>';
     }
 }
@@ -197,6 +203,15 @@ function _archiverCombat(resultat, ennemisKO) {
     });
 }
 
+function _restaurerHPReveur() {
+    if (window._revePvAvant === undefined || !window.perso) return;
+    window.perso.pvActuel = window._revePvAvant;
+    window.perso.ftActuel = window._reveFtAvant ?? window.perso.ftActuel;
+    window._revePvAvant = undefined;
+    window._reveFtAvant = undefined;
+    if (typeof synchroniserJoueur === 'function') synchroniserJoueur();
+}
+
 function _verifierFinCombat(ennemisMAJ) {
     const tousKO = ennemisMAJ.every(e => e.pvActuel <= 0);
     if (!tousKO) return;
@@ -213,32 +228,50 @@ function _verifierFinCombat(ennemisMAJ) {
                 db.ref('profils/' + _nomId + '/reves_battus/' + e.id).set(true);
             }
         });
+        _restaurerHPReveur();
+        if (typeof _incStatPartie === 'function') {
+            _incStatPartie('reves_battus', 1);
+            _verifierSucces('reves_battus');
+        }
+        db.ref('profils/' + _nomId + '/stats/reve_streak').transaction(cur => (cur || 0) + 1, (err, committed, snap) => {
+            if (!err && (snap?.val() || 0) >= 5 && typeof _debloquerSucces === 'function')
+                _debloquerSucces('reve_invaincu');
+        });
         setTimeout(() => {
             if (window.combatActif?.reve) db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
         }, 4000);
         return;
     }
-    if (window.estMJ) {
-        const now = Date.now();
-        ennemisMAJ.forEach(e => {
-            const def = (typeof ennemisData !== 'undefined' && e.id) ? ennemisData[e.id] : null;
-            if (def?.unique) {
-                db.ref('parties/' + sessionActuelle + '/ennemis_uniques/' + e.id).set({
-                    nom: e.nom || def.nom,
-                    date: now
-                });
-            }
-            if (e.id) {
-                const refB = db.ref('parties/' + sessionActuelle + '/bestiaire/' + e.id);
-                refB.once('value', snap => {
-                    const cur = snap.val() || {};
-                    refB.set({ nbKills: (cur.nbKills || 0) + 1, premierVu: cur.premierVu || now });
-                });
-            }
-        });
-        setTimeout(() => _demarrerLootPhase(ennemisMAJ), 4000);
-    }
+    // Mise à jour bestiaire : tout client qui détecte la victoire l'écrit (transaction = atomique)
+    const now = Date.now();
+    ennemisMAJ.forEach(e => {
+        const def = (typeof ennemisData !== 'undefined' && e.id) ? ennemisData[e.id] : null;
+        if (def?.unique) {
+            db.ref('parties/' + sessionActuelle + '/ennemis_uniques/' + e.id).set({
+                nom: e.nom || def.nom,
+                date: now
+            });
+        }
+        if (e.id) {
+            db.ref('parties/' + sessionActuelle + '/bestiaire/' + e.id).transaction(cur => ({
+                nbKills: ((cur?.nbKills) || 0) + 1,
+                premierVu: (cur?.premierVu) || now
+            }));
+        }
+    });
+    window._combatEnnemisFinaux = ennemisMAJ;
 }
+
+window.lancerLootPhase = function() {
+    const guardRef = db.ref('parties/' + sessionActuelle + '/combat_actif/loot_triggered');
+    guardRef.transaction(cur => {
+        if (cur) return; // déjà déclenché par un autre client
+        return true;
+    }, (err, committed) => {
+        if (!committed) return;
+        _demarrerLootPhase(window._combatEnnemisFinaux || window.combatActif?.ennemis || []);
+    });
+};
 
 function _demarrerLootPhase(ennemisKO) {
     const SLOTS_EQUIP = ['main_droite', 'main_gauche', 'tete', 'corps', 'jambes', 'pieds', 'amulette', 'anneau'];
@@ -246,19 +279,22 @@ function _demarrerLootPhase(ennemisKO) {
     let orTotal = 0;
 
     ennemisKO.forEach(e => {
-        // Équipement : 50% de chance par slot
-        if (e.equipement) {
+        const origDef = (typeof ennemisData !== 'undefined') ? ennemisData[e.id] : null;
+        // Équipement : 50% de chance par slot (fallback sur ennemisData si absent du combat_actif)
+        const equip = e.equipement || origDef?.equipement;
+        if (equip) {
             SLOTS_EQUIP.forEach(slot => {
-                const eq = e.equipement[slot];
+                const eq = equip[slot];
                 if (eq && eq.id && Math.random() < 0.5) {
                     const def = (typeof itemsData !== 'undefined') ? itemsData[eq.id] : null;
                     items.push({ id: eq.id, nom: def ? def.nom : eq.id, qte: 1, source: e.nom, pris: false, parJoueur: null });
                 }
             });
         }
-        // lootDrop : proba par unité (défaut 1)
-        if (e.lootDrop) {
-            e.lootDrop.forEach(drop => {
+        // lootDrop (fallback sur ennemisData)
+        const lootList = e.lootDrop || origDef?.lootDrop;
+        if (lootList) {
+            lootList.forEach(drop => {
                 const proba = drop.proba ?? 1;
                 const qte = drop.qte || 1;
                 let qteLoote = 0;
@@ -279,20 +315,35 @@ function _demarrerLootPhase(ennemisKO) {
 
     if (orTotal > 0) items.unshift({ id: 'OR_PIECES', nom: 'Or (' + orTotal + ' pièces)', qte: orTotal, source: 'ennemis', pris: false, parJoueur: null });
 
-    db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+    // Calculer les participants AVANT de toucher à combat_actif (window.combatActif devient null après remove)
+    const participantIds = new Set(
+        (window.combatActif?.ordre_jeu || [])
+            .filter(p => p.type === 'joueur')
+            .map(p => p.id)
+    );
+
+    // Nettoyage donjon (même si pas de butin)
     if (window.donjonActif) {
         const refDonjon = db.ref('parties/' + sessionActuelle + '/donjon_actif');
         refDonjon.child('pause').remove();
         refDonjon.child('rencontre_en_attente').remove();
     }
 
-    if (items.length === 0) return;
+    if (items.length === 0) {
+        if (typeof afficherToast === 'function') afficherToast('Aucun butin sur ces ennemis.');
+        db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
+        return;
+    }
+
+    // Signaler le loot en cours pour empêcher la redirection des clients
+    db.ref('parties/' + sessionActuelle + '/combat_actif/loot_en_cours').set(true);
 
     db.ref('parties/' + sessionActuelle + '/joueurs').once('value', snap => {
         const joueurs = snap.val() || {};
         const joueursLoot = {};
         Object.entries(joueurs).forEach(([id, j]) => {
             if (j.estMJ) return;
+            if (participantIds.size > 0 && !participantIds.has(id)) return;
             const ci = j.compInvesties || {};
             const bonus = (ci.marchandage || 0) + (ci.discretion || 0) + (ci.vol || 0) + (ci.persuasion || 0);
             joueursLoot[id] = { nom: j.nom || id, de: null, score: null, bonus };
@@ -347,6 +398,13 @@ function _verifierDefaite(ordreActuel) {
             _archiverCombat('defaite', []);
             db.ref('parties/' + sessionActuelle + '/combat_actif/resultat').set('defaite');
             if (window.combatActif?.reve) {
+                _restaurerHPReveur();
+                if (typeof _incStatPartie === 'function') {
+                    _incStatPartie('reves_perdus', 1);
+                    _verifierSucces('reves_perdus');
+                }
+                const _rNomId = (window.perso?.nom || '').replace(/\s+/g, '_');
+                db.ref('profils/' + _rNomId + '/stats/reve_streak').set(0);
                 setTimeout(() => {
                     if (window.combatActif?.reve) db.ref('parties/' + sessionActuelle + '/combat_actif').remove();
                 }, 4000);
@@ -503,7 +561,17 @@ function _afficherJoueurs() {
             if (p.type === 'joueur' && p.ko) ordreKO[p.id] = true;
         });
         window._combatPortraitsCache = window._combatPortraitsCache || {};
-        const frags = Object.entries(joueurs).filter(([, j]) => !j.estMJ).map(([uid, j]) => {
+        const estReve = !!window.combatActif?.reve;
+        const idsInCombat = new Set(
+            (window.combatActif?.ordre_jeu || [])
+                .filter(p => p.type === 'joueur')
+                .map(p => p.id)
+        );
+        const frags = Object.entries(joueurs)
+            .filter(([, j]) => !j.estMJ)
+            .filter(([id]) => idsInCombat.size === 0 || idsInCombat.has(id))
+            .filter(([, j]) => !estReve || j.nom === window.perso?.nom)
+            .map(([uid, j]) => {
             // Si marqué KO dans ordre_jeu, forcer pvActuel à 0 (évite stale data après attaque monstre)
             const pvActuel = ordreKO[j.nom?.replace(/\s+/g, '_')] ? 0 : (j.pvActuel ?? 0);
             const pvPct  = j.pvMax > 0 ? Math.round((pvActuel / j.pvMax) * 100) : 0;
@@ -545,8 +613,8 @@ function _afficherJoueurs() {
                 </div>`;
         });
 
-        // Compagnons présents dans l'ordre de jeu
-        const compagnons = (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'compagnon');
+        // Compagnons présents dans l'ordre de jeu (aucun en combat de rêve)
+        const compagnons = estReve ? [] : (window.combatActif?.ordre_jeu || []).filter(p => p.type === 'compagnon');
         const fragsComp = compagnons.map(c => {
             const cPvMax  = c.pvMax ?? 0;
             const cFtMax  = c.ftMax ?? 0;
@@ -610,6 +678,12 @@ function _getSortsDisponibles() {
 // Generation counter : cancel stale async panel writes
 window._panelGen = (window._panelGen || 0);
 
+function _joueurDansCombat(id) {
+    const ordre = window.combatActif?.ordre_jeu || [];
+    if (ordre.length === 0) return true;
+    return ordre.some(p => p.type === 'joueur' && p.id === id);
+}
+
 function _afficherPanneauActions(data) {
     const panel  = document.getElementById('combat-actions-panel');
     const statut = document.getElementById('combat-statut');
@@ -634,11 +708,12 @@ function _afficherPanneauActions(data) {
     const estMonInvoque    = participant.type === 'invoque' && participant.invocateurId === _moiId;
 
     if (statut) {
-        if (estTourEnnemi)         statut.textContent = `Tour de ${participant.nom} — le MJ joue…`;
-        else if (estTourCompagnon) statut.textContent = `Tour de ${participant.nom} (compagnon) — le MJ gère…`;
-        else if (estMonInvoque)    statut.textContent = `Tour de votre invoqué : ${participant.nom} !`;
-        else if (estMonTour)       statut.textContent = `C'est votre tour !`;
-        else                       statut.textContent = `Tour de ${participant.nom}…`;
+        if (estTourEnnemi && data.reve) statut.textContent = `Tour de ${participant.nom} — attaque en cours…`;
+        else if (estTourEnnemi)         statut.textContent = `Tour de ${participant.nom} — le MJ joue…`;
+        else if (estTourCompagnon)      statut.textContent = `Tour de ${participant.nom} (compagnon) — le MJ gère…`;
+        else if (estMonInvoque)         statut.textContent = `Tour de votre invoqué : ${participant.nom} !`;
+        else if (estMonTour)            statut.textContent = `C'est votre tour !`;
+        else                            statut.textContent = `Tour de ${participant.nom}…`;
     }
 
     // Si c'est le tour d'un monstre / compagnon / invoqué adverse
@@ -650,6 +725,8 @@ function _afficherPanneauActions(data) {
             _afficherActionsControleMJ(participant, panel, gen);
         } else {
             panel.innerHTML = '';
+            // Rêve : l'IA joue automatiquement pour les ennemis
+            if (data.reve && estTourEnnemi) _reveAutoAttaque(data.tour_actuel || 0);
         }
         return;
     }
@@ -969,6 +1046,7 @@ function ouvrirCiblesObjet(itemId, mode) {
             }
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
+                if (!_joueurDansCombat(id)) continue;
                 if ((joueurs[id].pvActuel || 0) <= 0 || joueurs[id].nom === window.perso?.nom) continue;
                 if (!_peutSoigner(joueurs[id].pvActuel, joueurs[id].pvMax, joueurs[id].ftActuel, joueurs[id].ftMax)) continue;
                 html += `<button class="combat-cible-btn allie" onclick="utiliserObjetCombat('${id}')">
@@ -1001,6 +1079,7 @@ function ouvrirCiblesObjet(itemId, mode) {
             let nbCibles = 0;
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
+                if (!_joueurDansCombat(id)) continue;
                 if (joueurs[id].nom === window.perso?.nom) continue;
                 if ((joueurs[id].pvActuel || 0) > 0) continue; // vivant : pas de cible pour résurrection
                 html += `<button class="combat-cible-btn allie" onclick="utiliserObjetCombat('${id}')">
@@ -1193,6 +1272,7 @@ function ouvrirCiblesSortCombat(nomSort) {
                 </button>`;
             for (let id in joueurs) {
                 if (joueurs[id].estMJ || id === moiId || (joueurs[id].pvActuel ?? 0) <= 0) continue;
+                if (!_joueurDansCombat(id)) continue;
                 html += `<button class="combat-cible-btn allie" onclick="finaliserSortCombat('${id}','joueur')">${joueurs[id].nom} <span class="cible-pv">PV ${joueurs[id].pvActuel}</span></button>`;
             }
             html += `<button class="combat-annuler-btn" onclick="_afficherPanneauActions(window.combatActif)">✕ Annuler</button>`;
@@ -1293,6 +1373,7 @@ function ouvrirCiblesSortCombat(nomSort) {
             }
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
+                if (!_joueurDansCombat(id)) continue;
                 if (joueurs[id].nom === window.perso?.nom) continue;
                 if (!s.resurrection && !s.buffStat && (joueurs[id].pvActuel ?? 1) <= 0) continue;
                 if (s.resurrection && (joueurs[id].pvActuel ?? 1) > 0) continue;
@@ -2083,6 +2164,7 @@ function _gagnerXPCompagnon(ownerID, compIdx, montant) {
 
 function _gagnerXP(montant) {
     if (!window.perso) return;
+    if (window.combatActif?.reve) return; // Pas d'XP en combat de Rêve
     window.perso.xp = (window.perso.xp || 0) + montant;
     const needed = xpPourNiveau(window.perso.niveau || 1, window.perso);
     let leveledUp = false;
@@ -2179,6 +2261,7 @@ function _afficherActionsControleMJ(participant, panel, _gen) {
 
             for (let id in joueurs) {
                 if (joueurs[id].estMJ) continue;
+                if (!_joueurDansCombat(id)) continue;
                 if ((joueurs[id].pvActuel ?? 1) > 0) {
                     const estDiscret  = premierTour && discrets[id] === true;
                     const estInterdit = _effCC.charme && _effCC.charme.cible_interdit === joueurs[id].nom;
@@ -2609,6 +2692,31 @@ function _getElementEnnemi(monstre) {
 }
 
 const _ELEM_LABELS = { feu: '🔥 Feu', elec: '⚡ Élec.', poison: '☠ Poison' };
+
+// ── IA rêve : auto-attaque ennemis ───────────────────────────
+window._reveAutoAttaqueTour = -1;
+
+function _reveAutoAttaque(tourActuel) {
+    if (window._reveAutoAttaqueTour === tourActuel) return;
+    window._reveAutoAttaqueTour = tourActuel;
+
+    setTimeout(() => {
+        const data = window.combatActif;
+        if (!data?.reve) return;
+        if ((data.tour_actuel || 0) !== tourActuel) return; // tour a changé entre-temps
+
+        const ordre = data.ordre_jeu || [];
+        const tourIdx = tourActuel % (ordre.length || 1);
+        const participant = ordre[tourIdx];
+        if (!participant || participant.type !== 'ennemi') return;
+
+        const myId  = window.perso?.nom?.replace(/\s+/g, '_');
+        const myNom = window.perso?.nom;
+        if (!myId || !myNom) return;
+
+        mjAttaqueMonstreJoueur(myId, myNom);
+    }, 1400);
+}
 
 function mjAttaqueMonstreJoueur(joueurID, joueurNom) {
     const data = window.combatActif;

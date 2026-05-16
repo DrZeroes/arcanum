@@ -837,7 +837,13 @@ const itemsData = {
         nom: "Botte de Elisa Pionnier", desc: "Une vieille botte usée mais solide, portant les initiales 'E.P.' gravées à l'intérieur. Elle semble aller à n'importe quel pied.",
         type: "objet_quete", rarete: "7", poids: 1.2, prix: 0,
         equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
-        stats: { }, prerequis: {}, lootable: true, nbUsages: null
+        stats: { }, prerequis: {}, lootable: false, nbUsages: null
+    },
+       "XXX07": {
+        nom: "Papier trouvé dans le sous sold  shulyer et fils", desc: "RECU DE COMMANDE - Chère M. Gilbert BATES, nous sommes heureux d'avoir fait affaire avec vous, si jamais vouq souahitez d'autre bijoux, nous seront heureux de vous farbiquer un deuxieme anneau.",
+        type: "objet_quete", rarete: "7", poids: 0.1, prix: 0,
+        equipable: "aucun", stackable: false, degats: "0", armure: 0, vitesse: 0, portee: 0,
+        stats: { }, prerequis: {}, lootable: false, nbUsages: null
     },
 
     // ---------------- OUTILS & DIVERS (DIV) ----------------

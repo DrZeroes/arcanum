@@ -23,6 +23,106 @@ const DONJON_PRESETS = {
             '##########',
         ]
     },
+
+    Schuyler: {
+        nom: '🏰 Schuyler et Fils',
+        etages: {
+            1: {
+                nom: '🏰 Schuyler et Fils — Étage 1',
+                carte: [
+                    '########',
+                    '#S...RC#',
+                    '#......#',
+                    '#C....E#',
+                    '########',
+                ],
+                events: {
+                    '6_1': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 50, variante: 'tonneau', piege: { declenche: false, degats: 12, type_degat: 'normal', description: 'Piège à ressort !', difficulte: 10 }}},
+                    '1_3': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 15, variante: 'tonneau', items: [
+                        { id: 'DEF11', nom: 'Casque de fer' },
+                        { id: 'MUN02', nom: 'Flèche' },
+                        { id: 'DIV14', nom: 'Chiffon' }
+                    ]}},
+                    '6_3': { type: 'escalier', declenche: false },
+                },
+                connexions: {
+                    '6_3': { x: 12, y: 2 }, // escalier SE étage 1 → arrive juste sous l'escalier NE (12,1) de l'étage 2
+                },
+            },
+            2: {
+                nom: '🏰 Schuyler et Fils — Étage 2',
+                carte: [
+                    '###############',
+                    '#S......R..#E#',
+                    '#.#######..#.#',
+                    '#D###C.##..#.#',
+                    '#.###..##....#',
+                    '#R.....#######',
+                    '#.#####.....C#',
+                    '#.#####.....E#',
+                    '#...........C#',
+                    '##############',
+                ],
+                events: {
+                    '6_3': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 15, piege: { declenche: false, degats: 12, type_degat: 'normal', description: 'Piège à ressort !', difficulte: 5 }, items: [
+                        { id: 'CONS03', nom: 'Potion de soin' },
+                        { id: 'MUN02', nom: 'Flèche' }
+                    ]}},
+                    '12_8': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 20, variante: 'magique', items: [
+                        { id: 'CONS04', nom: 'Potion d\'énergie' },
+                        { id: 'CONS07', nom: 'Antidote' },
+                        { id: 'AM68', nom: 'Hache mystique' }
+                    ]}},
+                    '12_6': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 20, variante: 'tonneau', items: [
+                        { id: 'CONS04', nom: 'Potion d\'énergie' },
+                        { id: 'CONS07', nom: 'Antidote' },
+                        { id: 'AM68', nom: 'Hache mystique' }
+                    ]}},
+                    '12_1': { type: 'escalier', declenche: false },
+                    '12_7': { type: 'escalier', declenche: false },
+                },
+                connexions: {
+                    '12_7': { x: 7, y: 2 }, // escalier SE étage 2 → arrive juste sous l'escalier unique (7,1) de l'étage 3
+                },
+            },
+            3: {
+                nom: '🏰 Schuyler et Fils — Étage 3',
+                carte: [
+                    '###############',
+                    '#######E#######',
+                    '#######S#######',
+                    '#######.#######',
+                    '##.....X.....##',
+                    '##...........##',
+                    '#######D#######',
+                    '####.......####',
+                    '####...X...####',
+                    '####.......D.C#',
+                    '###############',
+                ],
+                events: {
+                    '11_9': { type: 'porte', declenche: false, data: { probVerrou: 100, durabilite: 100, cleRequise: 'cle_schuyler', ouverteParDefaut: false } },
+                    '13_9': { type: 'coffre', declenche: false, data: { probVerrou: 0, or: 140, items: [
+                        { id: 'CONS23', nom: 'Liquide d\'épaississement' },
+                        { id: 'AM33', nom: 'Dague des ombres' },
+                        { id: 'XXX07', nom: 'Papier trouvé dans le sous-sol Schuyler et fils' }
+                    ]}},
+                    '7_1': { type: 'escalier', declenche: false },
+                    '7_4': { type: 'decouverte', visible: true, declenche: false, data: {
+                        emoji: '🧟',
+                        texte: 'Vous arrivez dans une grande salle.\nAutour de vous, des nains semblent ne prêter aucune attention à vous — ils continuent de miner en boucle dans un silence de mort.'
+                    }},
+                    '7_8': { type: 'decouverte', visible: true, declenche: false, data: {
+                        emoji: '🧛',
+                        texte: 'Vous arrivez dans une pièce chaleureuse.\nDevant vous se tient une chaise ancienne avec un cadavre dessus. Autour de lui, deux jeunes hommes en costume sombre discutent entre eux.'
+                    }},
+                },
+            },
+        },
+    },
+
+
+
     crypte: {
         nom: '⚰ Crypte',
         carte: [
@@ -139,7 +239,7 @@ const DONJON_PRESETS = {
             '1_4':  { type: 'decouverte', visible: true, declenche: false, data: {
                 emoji: '👻',
                 texte: 'L\'esprit d\'Elisa Pionnier vous apparaît, les traits rongés par la fatigue et le remords.\n"Ces galeries étaient les miennes. Je les ai creusées de mes propres mains… et elles m\'ont engloutie.\nPrenez ce que vous trouvez — vous l\'avez bien mérité."'
-            }},
+            }}
         }
     }
 };
@@ -170,7 +270,7 @@ function _parseDonjonPreset(preset) {
                 grille[key] = { type: 'sol', event: { type: 'rencontre', declenche: false, data: { description: 'Des ennemis surgissent !' } } };
             } else if (ch === 'D') {
                 grille[key] = { type: 'sol', event: { type: 'porte', declenche: false, data: { probVerrou: 40, durabilite: 30, cleRequise: null } } };
-            } else if (ch === 'X') {
+            } else if (ch === '') {
                 grille[key] = { type: 'sol', event: { type: 'decouverte', declenche: false, data: { texte: 'Une inscription mystérieuse…' } } };
             } else if (ch === 'V') {
                 grille[key] = { type: 'sol', event: { type: 'decouverte', visible: true, declenche: false, data: { texte: '', emoji: '👻' } } };
@@ -192,7 +292,7 @@ function _parseDonjonPreset(preset) {
             if (grille[key]) grille[key].event = eventData;
         });
     }
-    return { largeur, hauteur, grille, depart };
+    return { largeur, hauteur, grille, depart, connexions: preset.connexions || {} };
 }
 
 // ── Navigation ───────────────────────────────────────────────
@@ -909,7 +1009,7 @@ function deplacerJoueur(dx, dy) {
 
     // Escalier vers l'étage suivant
     if (cell?.type === 'escalier') {
-        _monterEtage(data, myID);
+        _monterEtage(data, myID, cellKey);
         return;
     }
 
@@ -2586,7 +2686,7 @@ function _utiliserAutelDonjon(cellKey, myID, effetType) {
 // ── Escalier / changement d'étage ───────────────────────────
 
 /** Transition vers l'étage suivant quand un joueur marche sur un escalier. */
-function _monterEtage(data, myID) {
+function _monterEtage(data, myID, staircaseKey) {
     const etageActuel  = data.etage_actuel || 1;
     const prochainEtage = etageActuel + 1;
     const etages       = data.etages || {};
@@ -2598,8 +2698,9 @@ function _monterEtage(data, myID) {
         return;
     }
 
-    // Repositionner tous les participants au départ du nouvel étage
-    const depart    = prochain.depart || { x: 1, y: 1 };
+    // Repositionner tous les participants : utilise la connexion de l'escalier si définie, sinon le départ du nouvel étage
+    const connexion = staircaseKey && etages[etageActuel]?.connexions?.[staircaseKey];
+    const depart    = connexion || prochain.depart || { x: 1, y: 1 };
     const positions = {};
     Object.keys(data.positions || {}).forEach(id => { positions[id] = { ...depart }; });
 

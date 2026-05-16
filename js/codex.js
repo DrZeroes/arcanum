@@ -3211,13 +3211,23 @@ function mjResetDonjon() {
     mjGererDonjon();
 }
 
-/** Charge une carte pré-enregistrée dans le brouillon (étage 1). */
+/** Charge une carte pré-enregistrée dans le brouillon. Supporte les presets multi-étages via la propriété `etages`. */
 function mjChargerPreset(nom) {
     if (typeof DONJON_PRESETS === 'undefined' || !DONJON_PRESETS[nom]) return;
     if (!confirm(`Charger la carte "${DONJON_PRESETS[nom].nom}" ? Le brouillon actuel sera remplacé.`)) return;
-    window._donjonBrouillon = _parseDonjonPreset(DONJON_PRESETS[nom]);
-    window._donjonEtageEdite = 1;
-    window._donjonBrouillonEtages = { 1: window._donjonBrouillon };
+    const preset = DONJON_PRESETS[nom];
+    if (preset.etages) {
+        window._donjonBrouillonEtages = {};
+        Object.entries(preset.etages).forEach(([n, etage]) => {
+            window._donjonBrouillonEtages[parseInt(n)] = _parseDonjonPreset(etage);
+        });
+        window._donjonEtageEdite = 1;
+        window._donjonBrouillon = window._donjonBrouillonEtages[1];
+    } else {
+        window._donjonBrouillon = _parseDonjonPreset(preset);
+        window._donjonEtageEdite = 1;
+        window._donjonBrouillonEtages = { 1: window._donjonBrouillon };
+    }
     window._donjonModeEdit = 'sol';
     const sec = document.getElementById('mj-section-donjon');
     if (sec) sec.innerHTML = _mjBuilderDonjonHtml();
